@@ -84,6 +84,8 @@ app.post("/admin/model-health/disable-model", auth.requireAdmin, modelHealth.dis
 app.post("/admin/model-health/enable-model", auth.requireAdmin, modelHealth.enableModel);
 app.post("/admin/model-health/disable-provider", auth.requireAdmin, modelHealth.disableProvider);
 app.post("/admin/model-health/enable-provider", auth.requireAdmin, modelHealth.enableProvider);
+app.post("/admin/model-health/disable-batch", auth.requireAdmin, modelHealth.disableBatch);
+app.post("/admin/model-health/enable-all", auth.requireAdmin, modelHealth.enableAll);
 
 // ---- Web search configuration ----
 app.get("/search-config", auth.requireAuth, searchConfig.publicGet);
