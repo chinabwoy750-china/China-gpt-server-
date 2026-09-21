@@ -394,6 +394,88 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
 .mh-filter:hover{color:var(--text)}
 .mh-filter.is-active{background:var(--accent-soft);color:var(--text);border-color:rgba(61,125,255,.4)}
 
+@media (max-width: 640px) {
+  /* Stack the health row so model name and Test/Disable/Enable
+     buttons are visible. The desktop grid uses fixed widths that
+     don't fit a 360px viewport. */
+  .mh-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 14px 12px;
+    align-items: center;
+  }
+  .mh-row .mh-dot {
+    flex: 0 0 8px;
+    align-self: flex-start;
+    margin-top: 6px;
+  }
+  .mh-row-main {
+    flex: 1 1 calc(100% - 18px);
+    min-width: 0;
+  }
+  .mh-row-cell {
+    flex: 0 0 auto;
+    font-size: 11.5px;
+  }
+  .mh-row-actions {
+    flex: 1 1 100%;
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .mh-row-actions button {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 12.5px;
+  }
+  .mh-provider-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .mh-provider-head button {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 12px;
+  }
+  /* Bulk buttons stack full-width on phones */
+  .mh-bulk-actions {
+    flex: 1 1 100%;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .mh-bulk-actions button {
+    flex: 1 1 calc(50% - 3px);
+    padding: 10px 12px;
+    font-size: 12.5px;
+  }
+}
+
+/* Destructive bulk button in the toolbar */
+.mh-toolbar button.mh-danger {
+  color: var(--danger);
+  border-color: rgba(242,97,97,.3);
+}
+.mh-toolbar button.mh-danger:hover {
+  background: rgba(242,97,97,.1);
+  color: var(--danger);
+  border-color: rgba(242,97,97,.5);
+}
+.mh-toolbar button.mh-danger[disabled] {
+  opacity: .4;
+  cursor: not-allowed;
+}
+.mh-toolbar button.mh-accent {
+  color: var(--accent);
+  border-color: rgba(61,125,255,.35);
+}
+.mh-toolbar button.mh-accent:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: rgba(61,125,255,.55);
+}
+
 /* ============ Web search indicator ============ */
 /* ============ Search provider pill ============ */
 .search-provider-pill{
@@ -4391,12 +4473,20 @@ function renderModelHealthTable(){
   const untestedCount = total - okCount - failCount;
 
   const f = mhState.filter;
+  const STALE_MS = 24 * 60 * 60 * 1000;
+  const now = Date.now();
   const matchesFilter = (id) => {
     if (f === "all") return true;
     if (f === "failing") return mhState.results[id]?.status === "failed" && !disabledSet.has(id);
     if (f === "disabled") return disabledSet.has(id);
     if (f === "untested") return !mhState.results[id] && !disabledSet.has(id);
     if (f === "ok") return mhState.results[id]?.status === "ok";
+    if (f === "stale") {
+      const r = mhState.results[id];
+      if (!r || !r.lastTested) return false;
+      const t = Date.parse(r.lastTested);
+      return Number.isFinite(t) && (now - t) > STALE_MS;
+    }
     return true;
   };
 
@@ -4418,6 +4508,10 @@ function renderModelHealthTable(){
       <button class="btn-primary" id="mhTestAll" ${mhState.running ? "disabled" : ""}>${mhState.running ? "Testing…" : "▶ Test all"}</button>
       ${mhState.running ? `<button class="btn-ghost" id="mhStop">Stop</button>` : ``}
       <button class="btn-ghost" id="mhRefresh">Refresh</button>
+      <div class="mh-bulk-actions">
+        <button class="btn-ghost mh-danger" id="mhDisableAllFailing" ${failCount === 0 || mhState.running ? "disabled" : ""}>⊘ Disable all failing (${failCount})</button>
+        <button class="btn-ghost mh-accent" id="mhEnableAll" ${disabledCount === 0 ? "disabled" : ""}>✓ Enable all disabled (${disabledCount})</button>
+      </div>
       <span class="spacer"></span>
       ${mhState.running ? `
         <span class="mh-progress">${mhState.progress.done} / ${mhState.progress.total}
@@ -4427,7 +4521,7 @@ function renderModelHealthTable(){
     </div>
 
     <div class="mh-filter-row">
-      ${[["all","All"],["ok","Passing"],["failing","Failing"],["disabled","Disabled"],["untested","Untested"]].map(([id,label]) =>
+      ${[["all","All"],["ok","Passing"],["failing","Failing"],["disabled","Disabled"],["untested","Untested"],["stale","Stale (24h+)"]].map(([id,label]) =>
         `<button type="button" class="mh-filter${mhState.filter === id ? " is-active" : ""}" data-mh-filter="${id}">${label}</button>`
       ).join("")}
     </div>
@@ -4441,8 +4535,8 @@ function renderModelHealthTable(){
           <div class="mh-provider-head">
             <span>${escapeHtml(data.label)} · ${models.length} model${models.length === 1 ? "" : "s"}</span>
             ${providerDisabled
-              ? `<button type="button" data-mh-enable-provider="${escapeHtml(key)}">Enable provider</button>`
-              : `<button type="button" data-mh-disable-provider="${escapeHtml(key)}">Disable whole provider</button>`}
+              ? `<button type="button" data-mh-enable-provider="${escapeHtml(key)}">Enable whole provider</button>`
+              : `<button type="button" data-mh-disable-provider="${escapeHtml(key)}">Disable whole provider (${data.models.length})</button>`}
           </div>
           ${models.map(m => renderMhRow(m, disabledSet, disabledProvSet)).join("")}
         </div>
@@ -4465,6 +4559,14 @@ function renderModelHealthTable(){
   // Test all
   const testAllBtn = c.querySelector("#mhTestAll");
   if (testAllBtn) testAllBtn.onclick = () => startMhTestAll();
+
+  // Disable all failing
+  const disableAllBtn = c.querySelector("#mhDisableAllFailing");
+  if (disableAllBtn) disableAllBtn.onclick = () => mhDisableAllFailing();
+
+  // Enable all disabled
+  const enableAllBtn = c.querySelector("#mhEnableAll");
+  if (enableAllBtn) enableAllBtn.onclick = () => mhEnableAll();
 
   // Stop
   const stopBtn = c.querySelector("#mhStop");
@@ -4630,6 +4732,59 @@ async function mhEnableProvider(provider) {
     renderModelHealthTable();
     toast("Provider enabled");
   } catch (e) { toast(e.message || "Could not enable provider"); }
+}
+
+/* Bulk disable every model whose last test was "failed". Sends one
+   request instead of N — the backend merges the list in a single
+   KV write. */
+async function mhDisableAllFailing() {
+  const failing = mhAllModels
+    .map(m => m.id)
+    .filter(id => mhState.results[id]?.status === "failed" && !mhState.disabledModels.includes(id));
+
+  if (!failing.length) {
+    toast("No failing models to disable");
+    return;
+  }
+  if (!confirm(`Disable ${failing.length} failing model${failing.length === 1 ? "" : "s"}? Users will stop seeing them.`)) return;
+
+  try {
+    const r = await fetch(WORKER_BASE + "/admin/model-health/disable-batch", {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ modelIds: failing })
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.error || "Bulk disable failed");
+    mhState.disabledModels = j.disabledModels || [];
+    renderModelHealthTable();
+    toast(`Disabled ${j.added || failing.length} model${(j.added || failing.length) === 1 ? "" : "s"}`);
+  } catch (e) {
+    toast(e.message || "Could not disable");
+  }
+}
+
+/* Clear the whole disabled list and reset failure counters. */
+async function mhEnableAll() {
+  const count = mhState.disabledModels.length;
+  if (!count) { toast("Nothing to enable"); return; }
+  if (!confirm(`Enable all ${count} disabled model${count === 1 ? "" : "s"}? They'll appear for users again on the next test.`)) return;
+
+  try {
+    const r = await fetch(WORKER_BASE + "/admin/model-health/enable-all", {
+      method: "POST", headers: authHeaders()
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.error || "Bulk enable failed");
+    mhState.disabledModels = [];
+    // Clear consecutive failures so nothing auto-trips right away
+    for (const id of Object.keys(mhState.results || {})) {
+      if (mhState.results[id]) mhState.results[id].consecutiveFailures = 0;
+    }
+    renderModelHealthTable();
+    toast(`Enabled ${count} model${count === 1 ? "" : "s"}`);
+  } catch (e) {
+    toast(e.message || "Could not enable");
+  }
 }
 function renderAdmin(){
   const c=$("#adminContent"),j=adminStatusData||{},count=state.models.length;
