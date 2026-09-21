@@ -315,6 +315,198 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
   .provider-row-status{grid-column:1 / -1;margin-top:4px}
 }
 
+/* ============ Model health ============ */
+.mh-summary{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:20px;
+}
+@media(max-width:640px){.mh-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.mh-toolbar{
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px;
+}
+.mh-toolbar .spacer{flex:1}
+.mh-progress{
+  font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums;
+}
+.mh-progress-bar{
+  display:inline-block;vertical-align:middle;
+  width:80px;height:4px;border-radius:99px;background:var(--panel-3);
+  overflow:hidden;margin-left:8px;
+}
+.mh-progress-bar i{
+  display:block;height:100%;background:var(--accent);transition:width var(--t-base);
+}
+
+.mh-row{
+  display:grid;
+  grid-template-columns:20px minmax(0,1.6fr) 100px 80px 130px auto;
+  align-items:center;gap:10px;
+  padding:11px 12px;
+  border-bottom:1px solid var(--line);
+  transition:background-color var(--t-base);
+}
+.mh-row:last-child{border-bottom:0}
+.mh-row:hover{background:var(--panel-2)}
+.mh-row.is-disabled{opacity:.55}
+.mh-row .mh-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--dim);
+}
+.mh-row.status-ok .mh-dot{background:var(--ok)}
+.mh-row.status-failed .mh-dot{background:var(--danger)}
+.mh-row.status-disabled .mh-dot{background:var(--dim)}
+.mh-row-main{min-width:0}
+.mh-row-main b{display:block;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mh-row-main small{display:block;color:var(--dim);font-size:11px;font-family:var(--mono);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mh-row-cell{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.mh-row-actions{display:flex;gap:5px;justify-self:end}
+.mh-row-actions button{
+  padding:6px 9px;font-size:11.5px;border-radius:6px;
+  border:1px solid var(--line);background:var(--panel-3);color:var(--muted);
+  transition:background-color var(--t-base),color var(--t-base);
+}
+.mh-row-actions button:hover{background:var(--raised);color:var(--text)}
+.mh-row-actions button.primary{color:var(--accent);border-color:rgba(61,125,255,.35)}
+.mh-row-actions button.danger{color:var(--danger);border-color:rgba(242,97,97,.3)}
+.mh-row-actions button[disabled]{opacity:.35;cursor:not-allowed}
+
+.mh-table{
+  border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;
+}
+.mh-provider-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 12px;background:var(--panel-2);border-bottom:1px solid var(--line);
+  font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;
+}
+.mh-provider-head button{
+  padding:5px 9px;font-size:11px;border-radius:6px;
+  border:1px solid var(--line);background:var(--panel-3);color:var(--muted);
+}
+.mh-provider-head button:hover{color:var(--text)}
+
+.mh-filter-row{
+  display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;
+}
+.mh-filter{
+  padding:6px 11px;font-size:12px;border-radius:99px;
+  border:1px solid var(--line);background:var(--panel-3);color:var(--muted);
+  transition:background-color var(--t-base),color var(--t-base);
+}
+.mh-filter:hover{color:var(--text)}
+.mh-filter.is-active{background:var(--accent-soft);color:var(--text);border-color:rgba(61,125,255,.4)}
+
+/* ============ Web search indicator ============ */
+/* ============ Search provider pill ============ */
+.search-provider-pill{
+  display:inline-flex;align-items:center;gap:4px;
+  height:34px;padding:0 9px 0 11px;
+  border:1px solid var(--line);border-radius:999px;
+  background:var(--panel-3);color:var(--text);
+  font-size:12px;flex:0 0 auto;
+  transition:background-color var(--t-base),border-color var(--t-base);
+}
+.search-provider-pill:hover{background:var(--raised);border-color:var(--line-strong)}
+.search-provider-pill svg{width:11px;height:11px;color:var(--dim);flex:0 0 auto}
+@media (max-width:420px){.search-provider-pill{padding:0 8px;font-size:11.5px}}
+
+.search-provider-menu{
+  position:fixed;z-index:65;
+  min-width:180px;max-width:min(280px,86vw);
+  background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r-lg);
+  box-shadow:0 20px 60px #000a;padding:6px;display:none;
+}
+.search-provider-menu.open{display:block}
+.search-provider-menu button{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  width:100%;text-align:left;padding:10px 11px;border-radius:var(--r-md);
+  color:var(--text);font-size:13px;border:1px solid transparent;
+  transition:background-color var(--t-base);
+}
+.search-provider-menu button:hover{background:var(--panel-3)}
+.search-provider-menu button.is-active{border-color:rgba(61,125,255,.4);background:var(--accent-soft)}
+.search-provider-menu button .check{color:var(--accent);font-size:12px;font-weight:700}
+.search-provider-menu .menu-header{padding:6px 11px 4px;color:var(--dim);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
+
+/* ============ Provider mapping page ============ */
+.pm-preview{
+  padding:12px 14px;background:var(--panel-2);
+  border:1px dashed var(--line-strong);border-radius:10px;
+  margin-top:12px;font-size:12.5px;color:var(--muted);line-height:1.55;
+  max-height:180px;overflow-y:auto;
+}
+.pm-preview code{font-family:var(--mono);font-size:11.5px;color:var(--text);background:var(--panel-3);padding:2px 6px;border-radius:4px}
+.pm-preview-count{color:var(--text);font-weight:600;margin-bottom:6px;display:block}
+.pm-preview-list{display:flex;flex-direction:column;gap:4px}
+.pm-preview-list div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:11.5px}
+.pm-list{margin-top:8px;display:flex;flex-direction:column;gap:8px}
+.pm-row{
+  display:grid;grid-template-columns:minmax(0,1.4fr) 130px minmax(0,1fr) auto;
+  gap:12px;align-items:center;padding:12px;
+  border:1px solid var(--line);border-radius:10px;background:var(--panel-2);
+}
+.pm-row .pm-pattern{font-family:var(--mono);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pm-row .pm-target{font-size:12.5px;color:var(--accent);font-weight:500}
+.pm-row .pm-affects{font-size:11.5px;color:var(--dim)}
+.pm-row button{padding:8px 11px;font-size:11.5px;border-radius:7px;background:var(--panel-3);border:1px solid var(--line);color:var(--muted)}
+.pm-row button:hover{color:var(--text);border-color:var(--line-strong)}
+.pm-row button.danger{color:var(--danger);border-color:rgba(242,97,97,.3)}
+@media(max-width:640px){
+  .pm-row{grid-template-columns:minmax(0,1fr) auto;row-gap:6px}
+  .pm-row .pm-affects{grid-column:1/-1}
+}
+
+.search-context-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 9px;
+  border-radius:6px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-size:11.5px;
+  font-weight:500;
+  margin-bottom:6px;
+}
+.search-context-badge svg{width:11px;height:11px}
+
+.searching-indicator{
+  display:flex;align-items:center;gap:8px;
+  color:var(--muted);
+  font-size:13px;
+  padding:2px 0;
+}
+.searching-indicator .spin{
+  display:inline-block;
+  animation:think-spin 1.1s linear infinite;
+}
+
+.search-sources{
+  margin:0 0 10px;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:var(--r-md);
+  background:var(--panel-2);
+  max-width:min(100%,640px);
+}
+.search-sources b{
+  display:block;
+  font-size:11px;font-weight:600;letter-spacing:.05em;
+  color:var(--dim);text-transform:uppercase;
+  margin-bottom:6px;
+}
+.search-sources ol{
+  margin:0;padding-left:20px;
+  list-style:decimal;
+}
+.search-sources li{
+  font-size:12.5px;
+  line-height:1.5;
+  margin-bottom:3px;
+}
+.search-sources a{
+  color:var(--accent);
+  text-decoration:none;
+  word-break:break-all;
+}
+.search-sources a:hover{text-decoration:underline}
+
 .qs-copy-id{
   display:grid;place-items:center;
   width:28px;height:28px;flex:0 0 auto;
@@ -400,9 +592,7 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
   transition:background-color var(--t-base),color var(--t-base),border-color var(--t-base),transform var(--t-fast);
   overflow:hidden;
 }
-.qs-prov-tile img{width:70%;height:70%;object-fit:contain;display:block}
-.qs-prov-tile[data-letter] img{display:none}
-.qs-prov-tile[data-letter]::before{content:attr(data-letter)}
+.qs-prov-tile .tile-icon{width:70%;height:70%}
 .qs-prov-tile:active{transform:scale(.94)}
 .qs-sheet-body{
   flex:1 1 0;min-height:0;
@@ -1380,6 +1570,10 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
           <div class="composer-bar">
             <label class="chip-btn" aria-label="Attach files" title="Attach files">＋<input id="fileInput" type="file" hidden multiple accept="image/*,.pdf,.txt,.md,.markdown,.json,.csv,.js,.ts,.html,.css,.xml,.yaml,.yml,.log,.py,.java,.c,.cpp,.h,.hpp,.sql,.sh,.go,.rs,.php,.jsx,.tsx,.vue"></label>
             <button class="chip-btn" id="searchBtn" aria-label="Web search" title="Web search">⌕</button>
+            <button class="search-provider-pill" id="searchProviderPill" type="button" style="display:none" title="Change search provider">
+              <span id="searchProviderLabel">Gemini</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10.2 4 4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+            </button>
             <button class="chip-btn" id="personalitiesBtn" aria-label="Personalities" title="Personalities">✨</button>
             <span class="composer-spacer"></span>
             <button class="send" id="sendBtn" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V6m0 0-6 6m6-6 6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -1415,6 +1609,9 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
       <button data-admin-section="playground">◇ Playground</button>
       <button data-admin-section="provider-icons">✦ Provider Icons</button>
       <button data-admin-section="api-settings">⌗ API Settings</button>
+      <button data-admin-section="model-health">⚕ Model Health</button>
+      <button data-admin-section="search-config">⌕ Search Providers</button>
+      <button data-admin-section="provider-map">⌘ Provider Mapping</button>
       <button data-admin-section="system">◌ System</button>
       <button data-admin-section="logs">☷ Activity Logs</button>
       <button data-admin-section="settings">⚙ Settings</button>
@@ -1495,7 +1692,10 @@ const state = {
   persona:safeJsonEarly("chinaGPTPersona",{text:"",enabled:false}),
   savedPrompts:safeJsonEarly("chinaGPTSavedPrompts",[]),
   apiBaseUrl:"",
-  apiKeys:[]
+  apiKeys:[],
+  searchProvider: localStorage.getItem("chinaGPTSearchProvider") || "",
+  searchConfig: { providers: ["gemini"], defaultProvider: "gemini" },
+  providerOverrides: { byPattern: [], byModelId: {} }
 };
 function safeJsonEarly(k,fallback){try{const v=JSON.parse(localStorage.getItem(k));return v===null||v===undefined?fallback:v}catch{return fallback}}
 
@@ -1812,8 +2012,25 @@ const AGGREGATOR_LABELS = {
   nvidia:"NVIDIA NIM", xkiro:"xKiro",
   bpm:"Bpm", seed:"ByteDance Seed"
 };
+function applyOverrideKey(id){
+  const ov = state.providerOverrides || {};
+  const byId = ov.byModelId || {};
+  if (byId[id]) return byId[id];
+  const low = String(id).toLowerCase();
+  const patterns = ov.byPattern || [];
+  let bestLen = -1, bestProvider = null;
+  for (const { pattern, provider } of patterns) {
+    if (low.includes(pattern) && pattern.length > bestLen) {
+      bestLen = pattern.length;
+      bestProvider = provider;
+    }
+  }
+  return bestProvider;
+}
 function makerOf(modelId){
   const id = String(modelId||"");
+  const override = applyOverrideKey(id);
+  if (override) return { key: override, label: providerLabel(override) };
   for (const m of MAKERS){ if (m.re.test(id)) return { key:m.key, label:m.label }; }
   const agg = (id.split("/")[0]||"").toLowerCase();
   const label = AGGREGATOR_LABELS[agg] || (agg ? agg[0].toUpperCase()+agg.slice(1) : "Other");
@@ -2068,6 +2285,20 @@ function renderMessages(){
       who.innerHTML=`${escapeHtml(state.profileName)}<span class="avatar-emoji">${escapeHtml(state.profileAvatar||"🙂")}</span>`;
       row.appendChild(who);
     }
+    // Search badge above the user's message when web context was captured.
+    if (m.role === "user" && m._search) {
+      const badge = document.createElement("div");
+      badge.className = "search-context-badge";
+      badge.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg> Web search`;
+      row.appendChild(badge);
+    }
+    // Show a "searching" pulse while the search call is in flight.
+    if (m.role === "assistant" && m._searching) {
+      const s = document.createElement("div");
+      s.className = "searching-indicator";
+      s.innerHTML = `<span class="spin">✦</span><span>Searching the web…</span>`;
+      row.appendChild(s);
+    }
     const text=typeof m.content==="string"?(m.content||""):(m.displayText||"[Attached image]");
     if(m.role==="assistant"&&m.streaming&&!text&&!m.error){
       const think=document.createElement("div");think.className="thinking-row";
@@ -2097,6 +2328,14 @@ function renderMessages(){
         b.textContent=text;
       }
       row.appendChild(b);
+    }
+    if (m.role === "user" && m._search && m._search.sources && m._search.sources.length) {
+      const sources = document.createElement("div");
+      sources.className = "search-sources";
+      sources.innerHTML = `<b>Sources</b><ol>${m._search.sources.map(s =>
+        `<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title)}</a></li>`
+      ).join("")}</ol>`;
+      row.appendChild(sources);
     }
     const controls=document.createElement("div");controls.className="msg-controls";
     if(m.role==="assistant" && m.content && !m.streaming && !m.error){
@@ -2145,7 +2384,12 @@ function persistCurrentConversation(){
   const record={
     id:state.conversationId,
     title:old?.title||makeConversationTitle(state.messages),
-    messages:state.messages.map(m=>({role:m.role,content:typeof m.content==="string"?m.content:(m.displayText||"[Attached image]"),model:m.model||null})),
+    messages:state.messages.map(m=>({
+      role:m.role,
+      content:typeof m.content==="string"?m.content:(m.displayText||"[Attached image]"),
+      model:m.model||null,
+      search:m._search||null
+    })),
     model:state.model||"",createdAt:old?.createdAt||now,updatedAt:now,pinned:!!old?.pinned
   };
   localStorage.setItem(CHAT_STORE_KEY,JSON.stringify([record,...list.filter(c=>c.id!==record.id)].slice(0,MAX_CONVERSATIONS)));
@@ -2154,7 +2398,14 @@ function persistCurrentConversation(){
 function loadConversation(id){
   const c=conversations().find(x=>x.id===id);if(!c)return false;
   state.conversationId=c.id;
-  state.messages=Array.isArray(c.messages)?c.messages.map(m=>({role:m.role,content:m.content||"",model:m.model||null})):[];
+  state.messages=Array.isArray(c.messages)
+    ? c.messages.map(m=>({
+        role:m.role,
+        content:m.content||"",
+        model:m.model||null,
+        _search:m.search||null
+      }))
+    :[];
   if(c.model&&state.models.some(m=>m.id===c.model)){state.model=c.model;markModelUsed(state.model)}
   localStorage.setItem("chinaGPTConversationId",state.conversationId);
   localStorage.setItem("chinaGPTModel",state.model||"");
@@ -2349,15 +2600,37 @@ async function send(){
   const finalText=(text+attachmentText).trim();
   if(!finalText){toast("This file type cannot be sent as text.");return}
 
+  // Build the user's persisted message first.
+  const userMsg = { role:"user", content: finalText };
+
   ensureConversation();
   input.value="";input.style.height="";
-  state.messages.push({role:"user",content:finalText});
+  state.messages.push(userMsg);
   const ai={role:"assistant",content:"",streaming:true,reasoningStartedAt:null,reasoningEndedAt:null};
   state.messages.push(ai);
-  state.attachments=[];renderAttachments();renderMessages();persistCurrentConversation();
+  state.attachments=[];renderAttachments();
+
+  // If web search is on, insert a "searching" placeholder into the
+  // assistant bubble so the user sees progress.
+  if (state.webSearch && text) {
+    ai._searching = true;
+    renderMessages();
+    const result = await performWebSearch(text);
+    ai._searching = false;
+    if (result && (result.answer || result.sources.length)) {
+      userMsg._search = {
+        answer: result.answer,
+        sources: result.sources
+      };
+    } else {
+      toast("Web search returned no usable results — sending anyway");
+    }
+  }
+
+  renderMessages();persistCurrentConversation();
 
   state.generating=true;updateGeneratingUI();
-  try{await requestCompletion(ai,chatMessages())}
+  try{await requestCompletion(ai, chatMessagesWithSearch())}
   catch(e){
     if(e.name!=="AbortError"){
       ai.error = true;
@@ -2366,6 +2639,186 @@ async function send(){
     }
   }
   finally{finalizeAssistantMessage(ai);state.generating=false;updateGeneratingUI();persistCurrentConversation();renderMessages()}
+}
+
+/* Like chatMessages(), but injects any captured web-search
+   context as a system message before the user's turn. */
+function chatMessagesWithSearch(){
+  const base = [];
+  for (const m of state.messages) {
+    if (m.role === "user") {
+      if (m._search && (m._search.answer || (m._search.sources && m._search.sources.length))) {
+        base.push({
+          role: "system",
+          content: buildSearchContextMessage(m.content, m._search)
+        });
+      }
+      base.push({ role: "user", content: m.content });
+    } else if (m.role === "assistant") {
+      base.push({ role: "assistant", content: m.content || "" });
+    }
+  }
+  const sys = activeSystemPrompt();
+  return sys ? [{ role:"system", content: sys }, ...base] : base;
+}
+
+/* ============================================================
+   WEB SEARCH (via 9Router's /v1/search)
+   ============================================================
+   Returns { answer, sources, raw } on success, null on failure.
+   Never throws — the chat must always be able to proceed without
+   web context even if search fails. */
+async function performWebSearch(query){
+  try{
+    const r = await fetch(API_BASE + "/search", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        model: resolveSearchProvider(),
+        query,
+        search_type: "web",
+        max_results: 5
+      })
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const answerText = j && j.answer && typeof j.answer.text === "string" ? j.answer.text : "";
+    const results = Array.isArray(j && j.results) ? j.results : [];
+    const sources = results
+      .map(x => ({
+        title: (x.title || "").trim() || "Source",
+        url: (x.url || "").trim()
+      }))
+      .filter(x => x.url);
+    return {
+      answer: answerText,
+      sources,
+      raw: j
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+/* ============================================================
+   SEARCH CONFIG
+   ============================================================ */
+async function loadSearchConfig(){
+  try{
+    const r = await fetch(WORKER_BASE + "/search-config", { headers: authHeaders(false) });
+    if (r.ok) {
+      const j = await r.json();
+      if (Array.isArray(j.providers) && j.providers.length) {
+        state.searchConfig = {
+          providers: j.providers,
+          defaultProvider: j.defaultProvider || j.providers[0]
+        };
+      }
+    }
+  } catch {}
+  updateSearchProviderUI();
+}
+function resolveSearchProvider(){
+  const available = state.searchConfig.providers || [];
+  if (state.searchProvider && available.includes(state.searchProvider)) return state.searchProvider;
+  return state.searchConfig.defaultProvider || available[0] || "gemini";
+}
+function providerDisplayName(slug){
+  if (!slug) return "Search";
+  return String(slug).charAt(0).toUpperCase() + String(slug).slice(1);
+}
+function updateSearchProviderUI(){
+  const pill = $("#searchProviderPill");
+  const label = $("#searchProviderLabel");
+  if (!pill || !label) return;
+  if (!state.webSearch) { pill.style.display = "none"; return; }
+  const available = state.searchConfig.providers || [];
+  if (available.length < 2) { pill.style.display = "none"; return; }
+  pill.style.display = "inline-flex";
+  label.textContent = providerDisplayName(resolveSearchProvider());
+}
+function openSearchProviderMenu(anchorEl){
+  document.querySelectorAll(".search-provider-menu").forEach(el => el.remove());
+
+  const menu = document.createElement("div");
+  menu.className = "search-provider-menu";
+  const providers = state.searchConfig.providers || [];
+  const current = resolveSearchProvider();
+
+  menu.innerHTML = `<div class="menu-header">Search provider</div>` + providers.map(p => `
+    <button type="button" data-pick-provider="${escapeHtml(p)}">
+      <span>${escapeHtml(providerDisplayName(p))}</span>
+      ${p === current ? `<span class="check">✓</span>` : ``}
+    </button>
+  `).join("");
+
+  document.body.appendChild(menu);
+
+  const r = anchorEl.getBoundingClientRect();
+  const width = menu.offsetWidth || 180;
+  let left = Math.max(10, Math.min(r.right - width, window.innerWidth - width - 10));
+  let top = r.top - menu.offsetHeight - 8;
+  if (top < 10) top = Math.min(r.bottom + 8, window.innerHeight - menu.offsetHeight - 10);
+  menu.style.left = left + "px";
+  menu.style.top = Math.max(10, top) + "px";
+  menu.classList.add("open");
+
+  menu.querySelectorAll("[data-pick-provider]").forEach(b => b.onclick = () => {
+    const picked = b.dataset.pickProvider;
+    state.searchProvider = picked;
+    localStorage.setItem("chinaGPTSearchProvider", picked);
+    menu.remove();
+    updateSearchProviderUI();
+    toast(`Search provider: ${providerDisplayName(picked)}`);
+  });
+
+  const closeOnOutside = (e) => {
+    if (!menu.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) {
+      menu.remove();
+      document.removeEventListener("click", closeOnOutside, true);
+    }
+  };
+  setTimeout(() => document.addEventListener("click", closeOnOutside, true), 0);
+}
+
+/* ============================================================
+   PROVIDER OVERRIDES
+   ============================================================ */
+async function loadProviderOverrides(){
+  try {
+    const r = await fetch(WORKER_BASE + "/provider-overrides", { headers: authHeaders(false) });
+    if (r.ok) {
+      const j = await r.json();
+      state.providerOverrides = {
+        byPattern: Array.isArray(j.byPattern) ? j.byPattern : [],
+        byModelId: (j.byModelId && typeof j.byModelId === "object") ? j.byModelId : {}
+      };
+    }
+  } catch {}
+}
+
+/* Build the system-message context we prepend before the user's
+   actual message, so the picked model answers with fresh context. */
+function buildSearchContextMessage(query, searchResult){
+  const lines = [];
+  lines.push(`[Web search results]`);
+  lines.push(`Query: ${query}`);
+  if (searchResult.answer) {
+    lines.push("");
+    lines.push("Summary:");
+    lines.push(searchResult.answer.trim());
+  }
+  if (searchResult.sources.length) {
+    lines.push("");
+    lines.push("Sources:");
+    searchResult.sources.forEach((s, i) => {
+      lines.push(`${i + 1}. ${s.title} — ${s.url}`);
+    });
+  }
+  lines.push(`[End web search results]`);
+  lines.push("");
+  lines.push("Use the above context to answer the user's question. Cite source numbers when relevant.");
+  return lines.join("\n");
 }
 
 async function regenerate(index){
@@ -2555,10 +3008,8 @@ function toggleWebSearch(){
   const b=$("#searchBtn");
   b.classList.toggle("is-on",state.webSearch);
   b.setAttribute("aria-pressed",String(state.webSearch));
-  if(state.webSearch){
-    const q=$("#prompt").value.trim();
-    if(q){window.open("https://www.google.com/search?q="+encodeURIComponent(q),"_blank","noopener,noreferrer");toast("Web search opened in a new tab")}
-  }
+  updateSearchProviderUI();
+  toast(state.webSearch ? "Web search on — the next message will search the web" : "Web search off");
 }
 
 /* ============================================================
@@ -3201,6 +3652,8 @@ function openLogin(reason){
       closeAuthPage();
       toast(j.role==="admin"?"Admin access granted":"Logged in");
       await loadModels();
+      await loadSearchConfig();
+      await loadProviderOverrides();
       updateAccountBadge();
       if(reason==="send")send();
     }catch(e){$("#loginError").textContent=e.message||"Invalid access key"}
@@ -3594,6 +4047,590 @@ function renderApiSettingsPage(){
   // Load fresh
   (async()=>{await loadApiBaseUrl();input.value=state.apiBaseUrl||""})();
 }
+
+/* ============================================================
+   SEARCH PROVIDERS (admin)
+   ============================================================ */
+async function renderSearchConfigPage(){
+  const c = $("#adminContent");
+  c.innerHTML = `<p class="admin-kicker">Loading…</p>`;
+
+  let config = { providers: [], defaultProvider: "" };
+  try {
+    const r = await fetch(WORKER_BASE + "/admin/search-config", { headers: authHeaders(false) });
+    if (r.ok) {
+      const j = await r.json();
+      config.providers = Array.isArray(j.providers) ? j.providers : [];
+      config.defaultProvider = j.defaultProvider || "";
+    }
+  } catch (e) {
+    c.innerHTML = `<p class="admin-kicker">Could not load config: ${escapeHtml(e.message)}</p>`;
+    return;
+  }
+
+  c.innerHTML = `
+    <p class="admin-kicker">Define the web search providers users can pick from. Enter one slug per line. These slugs are passed to your gateway's <code>/v1/search</code> endpoint as <code>model</code>.</p>
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>Allowed providers</h3><span>${config.providers.length} configured</span></div>
+      <div class="field" style="max-width:520px">
+        <label for="scProviders">Providers (one per line)</label>
+        <textarea id="scProviders" class="editor-textarea" style="min-height:140px" placeholder="gemini&#10;openai&#10;perplexity">${escapeHtml(config.providers.join("\n"))}</textarea>
+        <div class="editor-hint">Common slugs: <code style="font-family:var(--mono)">gemini</code>, <code style="font-family:var(--mono)">openai</code>, <code style="font-family:var(--mono)">perplexity</code>, <code style="font-family:var(--mono)">exa</code>, <code style="font-family:var(--mono)">tavily</code>. Not all are guaranteed on your gateway — test with a live search after saving.</div>
+      </div>
+      <div class="field" style="max-width:320px">
+        <label for="scDefault">Default provider</label>
+        <select id="scDefault" style="background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px;color:var(--text);outline:0">
+          <option value="">Pick one…</option>
+          ${config.providers.map(p => `<option value="${escapeHtml(p)}" ${p === config.defaultProvider ? "selected" : ""}>${escapeHtml(p)}</option>`).join("")}
+        </select>
+      </div>
+      <div class="admin-actions">
+        <button class="btn-primary" id="scSave">Save</button>
+        <button class="btn-ghost" id="scReset">Reset to Gemini only</button>
+      </div>
+    </div>
+  `;
+
+  const ta = c.querySelector("#scProviders");
+  const sel = c.querySelector("#scDefault");
+  ta.addEventListener("input", () => {
+    const list = ta.value.split(/\r?\n/).map(s => s.trim().toLowerCase()).filter(Boolean);
+    const current = sel.value;
+    const uniq = [...new Set(list)];
+    sel.innerHTML = `<option value="">Pick one…</option>` +
+      uniq.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
+    if (uniq.includes(current)) sel.value = current;
+  });
+
+  c.querySelector("#scSave").onclick = async () => {
+    const providers = ta.value.split(/\r?\n/).map(s => s.trim().toLowerCase()).filter(Boolean);
+    if (!providers.length) { toast("Add at least one provider"); return; }
+    const defaultProvider = sel.value || providers[0];
+    try {
+      const r = await fetch(WORKER_BASE + "/admin/search-config", {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({ providers, defaultProvider })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.error || "Save failed");
+      state.searchConfig = { providers: j.providers, defaultProvider: j.defaultProvider };
+      if (state.searchProvider && !j.providers.includes(state.searchProvider)) {
+        state.searchProvider = "";
+        localStorage.removeItem("chinaGPTSearchProvider");
+      }
+      updateSearchProviderUI();
+      toast("Search providers saved");
+      renderSearchConfigPage();
+    } catch (e) { toast(e.message || "Could not save"); }
+  };
+
+  c.querySelector("#scReset").onclick = async () => {
+    try {
+      const r = await fetch(WORKER_BASE + "/admin/search-config", {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({ providers: ["gemini"], defaultProvider: "gemini" })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.error || "Reset failed");
+      state.searchConfig = { providers: ["gemini"], defaultProvider: "gemini" };
+      updateSearchProviderUI();
+      toast("Reset to Gemini only");
+      renderSearchConfigPage();
+    } catch (e) { toast(e.message || "Could not reset"); }
+  };
+}
+
+/* ============================================================
+   PROVIDER MAPPING (admin)
+   ============================================================ */
+const PM_KNOWN_PROVIDERS = [
+  "openai","anthropic","google","deepseek","qwen","moonshot","zai","xai",
+  "meta","mistral","minimax","nvidia","cohere","bytedance","xiaomi","tencent",
+  "meituan","sensetime"
+];
+async function renderProviderMappingPage(){
+  const c = $("#adminContent");
+  c.innerHTML = `<p class="admin-kicker">Loading…</p>`;
+
+  if (!state.models.length && isAuthenticated()) {
+    try { await loadModels(); } catch {}
+  }
+  await loadProviderOverrides();
+
+  const allIds = state.models.map(m => m.id);
+  const allProviderKeys = [...new Set([
+    ...PM_KNOWN_PROVIDERS,
+    ...allIds.map(id => makerOf(id).key)
+  ])].sort((a,b)=>providerLabel(a).localeCompare(providerLabel(b)));
+
+  const optionList = allProviderKeys
+    .map(k => `<option value="${escapeHtml(k)}">${escapeHtml(providerLabel(k))}</option>`)
+    .join("");
+
+  const overrides = state.providerOverrides || { byPattern: [], byModelId: {} };
+  const countMatches = (pattern) => {
+    const low = pattern.toLowerCase();
+    return allIds.filter(id => id.toLowerCase().includes(low)).length;
+  };
+  const previewMatchIds = (pattern) => {
+    const low = pattern.toLowerCase();
+    return allIds.filter(id => id.toLowerCase().includes(low));
+  };
+
+  c.innerHTML = `
+    <p class="admin-kicker">Move a family of models from one provider to another by keyword. The upstream model ID never changes — only how the app labels, filters and colours it. Disabling the target provider in Model Health cascades here automatically.</p>
+
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>Move by keyword</h3><span>Case-insensitive substring match on the model ID</span></div>
+      <div class="row" style="flex-wrap:wrap;gap:8px">
+        <div class="field" style="flex:1;min-width:200px;margin:0">
+          <label for="pmKeyword">Models containing…</label>
+          <input id="pmKeyword" placeholder="e.g. grok" autocomplete="off">
+        </div>
+        <div class="field" style="flex:0 0 180px;margin:0">
+          <label for="pmTarget">Move to</label>
+          <select id="pmTarget" style="background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px;color:var(--text);outline:0">
+            ${optionList}
+          </select>
+        </div>
+        <div class="field" style="flex:0 0 auto;margin:0;align-self:flex-end">
+          <label>&nbsp;</label>
+          <button class="btn-primary" id="pmAdd" type="button">Move</button>
+        </div>
+      </div>
+      <div class="pm-preview" id="pmPreview">
+        <span class="pm-preview-count">Type a keyword to preview which models will be affected.</span>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>Active overrides</h3><span>${overrides.byPattern.length} pattern${overrides.byPattern.length===1?"":"s"} · ${Object.keys(overrides.byModelId).length} model${Object.keys(overrides.byModelId).length===1?"":"s"}</span></div>
+      <div class="pm-list" id="pmList"></div>
+    </div>
+  `;
+
+  const input = c.querySelector("#pmKeyword");
+  const preview = c.querySelector("#pmPreview");
+  const targetSel = c.querySelector("#pmTarget");
+
+  const updatePreview = () => {
+    const kw = (input.value || "").trim();
+    if (!kw) {
+      preview.innerHTML = `<span class="pm-preview-count">Type a keyword to preview which models will be affected.</span>`;
+      return;
+    }
+    const ids = previewMatchIds(kw);
+    if (!ids.length) {
+      preview.innerHTML = `<span class="pm-preview-count">No models match “${escapeHtml(kw)}”.</span>`;
+      return;
+    }
+    const shown = ids.slice(0, 30);
+    preview.innerHTML = `
+      <span class="pm-preview-count">${ids.length} model${ids.length===1?"":"s"} will move to ${escapeHtml(providerLabel(targetSel.value))}</span>
+      <div class="pm-preview-list">
+        ${shown.map(id => {
+          const fromKey = makerOf(id).key;
+          return `<div>${escapeHtml(id)} <code>${escapeHtml(providerLabel(fromKey))} → ${escapeHtml(providerLabel(targetSel.value))}</code></div>`;
+        }).join("")}
+        ${ids.length > shown.length ? `<div style="color:var(--dim)">…and ${ids.length - shown.length} more</div>` : ``}
+      </div>
+    `;
+  };
+  input.addEventListener("input", updatePreview);
+  targetSel.addEventListener("change", updatePreview);
+
+  const listBox = c.querySelector("#pmList");
+  const renderList = () => {
+    const rows = [];
+    for (const { pattern, provider } of (state.providerOverrides.byPattern || [])) {
+      const affects = countMatches(pattern);
+      rows.push(`
+        <div class="pm-row">
+          <span class="pm-pattern">keyword: <b>${escapeHtml(pattern)}</b></span>
+          <span class="pm-target">→ ${escapeHtml(providerLabel(provider))}</span>
+          <span class="pm-affects">${affects} model${affects===1?"":"s"}</span>
+          <button type="button" class="danger" data-remove-pattern="${escapeHtml(pattern)}">Remove</button>
+        </div>`);
+    }
+    for (const [modelId, provider] of Object.entries(state.providerOverrides.byModelId || {})) {
+      rows.push(`
+        <div class="pm-row">
+          <span class="pm-pattern">model: <b>${escapeHtml(modelId)}</b></span>
+          <span class="pm-target">→ ${escapeHtml(providerLabel(provider))}</span>
+          <span class="pm-affects">1 model</span>
+          <button type="button" class="danger" data-remove-model="${escapeHtml(modelId)}">Remove</button>
+        </div>`);
+    }
+    listBox.innerHTML = rows.length ? rows.join("") : `<div class="admin-note">No overrides yet.</div>`;
+
+    const refreshUI = () => {
+      renderProviderMappingPage();
+      refreshCatalogIfOpen();
+      if ($("#qsSheet").classList.contains("open")) renderQuickSwitch();
+      updateBadge();
+    };
+    listBox.querySelectorAll("[data-remove-pattern]").forEach(b => b.onclick = async () => {
+      try {
+        const r = await fetch(WORKER_BASE + "/admin/provider-overrides/pattern/remove", {
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({ pattern: b.dataset.removePattern })
+        });
+        const j = await r.json().catch(()=>({}));
+        if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
+        state.providerOverrides.byPattern = j.byPattern || [];
+        state.providerOverrides.byModelId = j.byModelId || {};
+        toast("Override removed");
+        refreshUI();
+      } catch (e) { toast(e.message || "Could not remove"); }
+    });
+    listBox.querySelectorAll("[data-remove-model]").forEach(b => b.onclick = async () => {
+      try {
+        const r = await fetch(WORKER_BASE + "/admin/provider-overrides/model/remove", {
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({ modelId: b.dataset.removeModel })
+        });
+        const j = await r.json().catch(()=>({}));
+        if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
+        state.providerOverrides.byPattern = j.byPattern || [];
+        state.providerOverrides.byModelId = j.byModelId || {};
+        toast("Override removed");
+        refreshUI();
+      } catch (e) { toast(e.message || "Could not remove"); }
+    });
+  };
+  renderList();
+
+  c.querySelector("#pmAdd").onclick = async () => {
+    const pattern = (input.value || "").trim().toLowerCase();
+    const provider = targetSel.value;
+    if (!pattern) { toast("Enter a keyword first"); return; }
+    if (!provider) { toast("Pick a target provider"); return; }
+    const matches = countMatches(pattern);
+    if (matches === 0) {
+      if (!confirm(`No models currently match "${pattern}". Add the override anyway?`)) return;
+    } else {
+      if (!confirm(`Move ${matches} model${matches===1?"":"s"} matching "${pattern}" to ${providerLabel(provider)}?`)) return;
+    }
+    try {
+      const r = await fetch(WORKER_BASE + "/admin/provider-overrides/pattern/add", {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({ pattern, provider })
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
+      state.providerOverrides.byPattern = j.byPattern || [];
+      state.providerOverrides.byModelId = j.byModelId || {};
+      toast(`Moved ${matches} model${matches===1?"":"s"} to ${providerLabel(provider)}`);
+      renderProviderMappingPage();
+      refreshCatalogIfOpen();
+      if ($("#qsSheet").classList.contains("open")) renderQuickSwitch();
+      updateBadge();
+    } catch (e) { toast(e.message || "Could not save"); }
+  };
+}
+
+/* ============================================================
+   MODEL HEALTH (admin)
+   ============================================================ */
+let mhState = {
+  disabledModels: [],
+  disabledProviders: [],
+  results: {},
+  autoDisableThreshold: 3,
+  filter: "all",
+  running: false,
+  stopped: false,
+  progress: { done: 0, total: 0 }
+};
+let mhAllModels = [];
+
+async function renderModelHealthPage(){
+  const c = $("#adminContent");
+  c.innerHTML = `<p class="admin-kicker">Loading…</p>`;
+
+  try {
+    const [stateRes, modelsRes] = await Promise.all([
+      fetch(WORKER_BASE + "/admin/model-health", { headers: authHeaders(false) }),
+      fetch(WORKER_BASE + "/admin/model-health/all-models", { headers: authHeaders(false) })
+    ]);
+    if (stateRes.ok) {
+      const j = await stateRes.json();
+      mhState.disabledModels = j.disabledModels || [];
+      mhState.disabledProviders = j.disabledProviders || [];
+      mhState.results = j.results || {};
+      mhState.autoDisableThreshold = j.autoDisableThreshold || 3;
+    }
+    if (modelsRes.ok) {
+      const j = await modelsRes.json();
+      mhAllModels = j.data || [];
+    }
+  } catch (e) {
+    c.innerHTML = `<p class="admin-kicker">Could not reach backend: ${escapeHtml(e.message)}</p>`;
+    return;
+  }
+
+  renderModelHealthTable();
+}
+
+function renderModelHealthTable(){
+  const c = $("#adminContent");
+  const disabledSet = new Set(mhState.disabledModels);
+  const disabledProvSet = new Set(mhState.disabledProviders);
+
+  const byProvider = {};
+  for (const m of mhAllModels) {
+    const maker = makerOf(m.id);
+    if (!byProvider[maker.key]) byProvider[maker.key] = { label: maker.label, models: [] };
+    byProvider[maker.key].models.push(m);
+  }
+
+  const total = mhAllModels.length;
+  const okCount = Object.values(mhState.results).filter(r => r.status === "ok").length;
+  const failCount = Object.values(mhState.results).filter(r => r.status === "failed").length;
+  const disabledCount = mhState.disabledModels.length;
+  const untestedCount = total - okCount - failCount;
+
+  const f = mhState.filter;
+  const matchesFilter = (id) => {
+    if (f === "all") return true;
+    if (f === "failing") return mhState.results[id]?.status === "failed" && !disabledSet.has(id);
+    if (f === "disabled") return disabledSet.has(id);
+    if (f === "untested") return !mhState.results[id] && !disabledSet.has(id);
+    if (f === "ok") return mhState.results[id]?.status === "ok";
+    return true;
+  };
+
+  const progressPct = mhState.progress.total > 0
+    ? Math.round((mhState.progress.done / mhState.progress.total) * 100)
+    : 0;
+
+  c.innerHTML = `
+    <p class="admin-kicker">Test models directly against 9Router. Failures auto-disable after ${mhState.autoDisableThreshold} consecutive attempts. Disabled models are hidden from everyone, including API callers.</p>
+
+    <div class="mh-summary">
+      ${adminStat("Total", total, "In catalogue")}
+      ${adminStat("Passing", okCount, "Last test OK")}
+      ${adminStat("Failing", failCount, "Last test failed")}
+      ${adminStat("Disabled", disabledCount, "Hidden from users")}
+    </div>
+
+    <div class="mh-toolbar">
+      <button class="btn-primary" id="mhTestAll" ${mhState.running ? "disabled" : ""}>${mhState.running ? "Testing…" : "▶ Test all"}</button>
+      ${mhState.running ? `<button class="btn-ghost" id="mhStop">Stop</button>` : ``}
+      <button class="btn-ghost" id="mhRefresh">Refresh</button>
+      <span class="spacer"></span>
+      ${mhState.running ? `
+        <span class="mh-progress">${mhState.progress.done} / ${mhState.progress.total}
+          <span class="mh-progress-bar"><i style="width:${progressPct}%"></i></span>
+        </span>` : ``}
+      <span class="mh-progress">Untested: ${untestedCount}</span>
+    </div>
+
+    <div class="mh-filter-row">
+      ${[["all","All"],["ok","Passing"],["failing","Failing"],["disabled","Disabled"],["untested","Untested"]].map(([id,label]) =>
+        `<button type="button" class="mh-filter${mhState.filter === id ? " is-active" : ""}" data-mh-filter="${id}">${label}</button>`
+      ).join("")}
+    </div>
+
+    ${Object.entries(byProvider).sort((a,b)=>a[1].label.localeCompare(b[1].label)).map(([key, data]) => {
+      const models = data.models.filter(m => matchesFilter(m.id));
+      if (!models.length) return "";
+      const providerDisabled = disabledProvSet.has(key);
+      return `
+        <div class="mh-table" style="margin-bottom:14px">
+          <div class="mh-provider-head">
+            <span>${escapeHtml(data.label)} · ${models.length} model${models.length === 1 ? "" : "s"}</span>
+            ${providerDisabled
+              ? `<button type="button" data-mh-enable-provider="${escapeHtml(key)}">Enable provider</button>`
+              : `<button type="button" data-mh-disable-provider="${escapeHtml(key)}">Disable whole provider</button>`}
+          </div>
+          ${models.map(m => renderMhRow(m, disabledSet, disabledProvSet)).join("")}
+        </div>
+      `;
+    }).join("")}
+
+    ${total === 0 ? `<div class="admin-note">No models returned from upstream.</div>` : ``}
+  `;
+
+  // Wire filter buttons
+  c.querySelectorAll("[data-mh-filter]").forEach(b => b.onclick = () => {
+    mhState.filter = b.dataset.mhFilter;
+    renderModelHealthTable();
+  });
+
+  // Refresh
+  const refBtn = c.querySelector("#mhRefresh");
+  if (refBtn) refBtn.onclick = () => renderModelHealthPage();
+
+  // Test all
+  const testAllBtn = c.querySelector("#mhTestAll");
+  if (testAllBtn) testAllBtn.onclick = () => startMhTestAll();
+
+  // Stop
+  const stopBtn = c.querySelector("#mhStop");
+  if (stopBtn) stopBtn.onclick = () => { mhState.stopped = true; toast("Stopping after current tests…") };
+
+  // Per-row actions
+  c.querySelectorAll("[data-mh-test]").forEach(b => b.onclick = () => mhTestOne(b.dataset.mhTest));
+  c.querySelectorAll("[data-mh-disable]").forEach(b => b.onclick = () => mhDisableModel(b.dataset.mhDisable));
+  c.querySelectorAll("[data-mh-enable]").forEach(b => b.onclick = () => mhEnableModel(b.dataset.mhEnable));
+
+  // Provider actions
+  c.querySelectorAll("[data-mh-disable-provider]").forEach(b => b.onclick = () => mhDisableProvider(b.dataset.mhDisableProvider));
+  c.querySelectorAll("[data-mh-enable-provider]").forEach(b => b.onclick = () => mhEnableProvider(b.dataset.mhEnableProvider));
+}
+
+function renderMhRow(m, disabledSet, disabledProvSet) {
+  const id = m.id;
+  const maker = makerOf(id);
+  const result = mhState.results[id];
+  const isDisabled = disabledSet.has(id) || disabledProvSet.has(maker.key);
+  const statusClass = isDisabled ? "status-disabled"
+                    : result?.status === "ok" ? "status-ok"
+                    : result?.status === "failed" ? "status-failed"
+                    : "status-untested";
+  const statusText = isDisabled ? "Disabled"
+                    : result?.status === "ok" ? "OK"
+                    : result?.status === "failed" ? "Failed"
+                    : "Untested";
+  const latency = result?.latency != null ? `${result.latency} ms` : "—";
+  const lastTested = result?.lastTested
+    ? new Date(result.lastTested).toLocaleTimeString()
+    : "—";
+  const failures = result?.consecutiveFailures || 0;
+
+  return `
+    <div class="mh-row ${statusClass}${isDisabled ? " is-disabled" : ""}" data-mh-id="${escapeHtml(id)}">
+      <span class="mh-dot"></span>
+      <span class="mh-row-main">
+        <b>${escapeHtml(cleanModelName(id))}</b>
+        <small>${escapeHtml(id)}</small>
+        ${result?.errorMessage && !isDisabled ? `<small style="color:var(--danger);font-family:inherit;font-size:11px;margin-top:3px">${escapeHtml(result.errorMessage.slice(0, 140))}</small>` : ""}
+      </span>
+      <span class="mh-row-cell">${escapeHtml(statusText)}${failures > 0 && !isDisabled ? ` (${failures}/${mhState.autoDisableThreshold})` : ""}</span>
+      <span class="mh-row-cell">${escapeHtml(latency)}</span>
+      <span class="mh-row-cell">${escapeHtml(lastTested)}</span>
+      <span class="mh-row-actions">
+        <button class="primary" data-mh-test="${escapeHtml(id)}" ${mhState.running ? "disabled" : ""}>Test</button>
+        ${isDisabled
+          ? `<button data-mh-enable="${escapeHtml(id)}">Enable</button>`
+          : `<button class="danger" data-mh-disable="${escapeHtml(id)}">Disable</button>`}
+      </span>
+    </div>
+  `;
+}
+
+async function mhTestOne(modelId) {
+  const row = document.querySelector(`.mh-row[data-mh-id="${CSS.escape(modelId)}"]`);
+  const btn = row?.querySelector("[data-mh-test]");
+  if (btn) { btn.disabled = true; btn.textContent = "…"; }
+  try {
+    const r = await fetch(WORKER_BASE + "/admin/model-health/test", {
+      method: "POST", headers: authHeaders(), body: JSON.stringify({ modelId })
+    });
+    const j = await r.json();
+    if (!r.ok || !j.ok) throw new Error(j.error || "Test failed");
+    mhState.results[modelId] = j.result;
+    if (j.autoDisabled && !mhState.disabledModels.includes(modelId)) {
+      mhState.disabledModels.push(modelId);
+      toast(`${cleanModelName(modelId)} auto-disabled after ${mhState.autoDisableThreshold} failures`);
+    }
+    renderModelHealthTable();
+  } catch (e) {
+    toast(e.message || "Could not test model");
+    if (btn) { btn.disabled = false; btn.textContent = "Test"; }
+  }
+}
+
+async function startMhTestAll() {
+  const ids = mhAllModels.map(m => m.id);
+  mhState.running = true;
+  mhState.stopped = false;
+  mhState.progress = { done: 0, total: ids.length };
+  renderModelHealthTable();
+
+  const queue = [...ids];
+  const CONCURRENCY = 4;
+  const worker = async () => {
+    while (queue.length > 0 && !mhState.stopped) {
+      const id = queue.shift();
+      if (!id) break;
+      try {
+        const r = await fetch(WORKER_BASE + "/admin/model-health/test", {
+          method: "POST", headers: authHeaders(), body: JSON.stringify({ modelId: id })
+        });
+        if (r.ok) {
+          const j = await r.json();
+          mhState.results[id] = j.result;
+          if (j.autoDisabled && !mhState.disabledModels.includes(id)) {
+            mhState.disabledModels.push(id);
+          }
+        }
+      } catch { /* skip */ }
+      mhState.progress.done++;
+      // Throttle re-renders — every 4 completions.
+      if (mhState.progress.done % 4 === 0) renderModelHealthTable();
+    }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, ids.length) }, worker));
+  mhState.running = false;
+  renderModelHealthTable();
+  toast(mhState.stopped ? "Test run stopped" : `Tested ${mhState.progress.done} models`);
+}
+
+async function mhDisableModel(modelId) {
+  try {
+    const r = await fetch(WORKER_BASE + "/admin/model-health/disable-model", {
+      method: "POST", headers: authHeaders(), body: JSON.stringify({ modelId })
+    });
+    const j = await r.json();
+    if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
+    mhState.disabledModels = j.disabledModels;
+    renderModelHealthTable();
+    toast("Model disabled");
+  } catch (e) { toast(e.message || "Could not disable"); }
+}
+
+async function mhEnableModel(modelId) {
+  try {
+    const r = await fetch(WORKER_BASE + "/admin/model-health/enable-model", {
+      method: "POST", headers: authHeaders(), body: JSON.stringify({ modelId })
+    });
+    const j = await r.json();
+    if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
+    mhState.disabledModels = j.disabledModels;
+    renderModelHealthTable();
+    toast("Model enabled");
+  } catch (e) { toast(e.message || "Could not enable"); }
+}
+
+async function mhDisableProvider(provider) {
+  if (!confirm(`Disable every model from ${provider}? Users will stop seeing them.`)) return;
+  try {
+    const r = await fetch(WORKER_BASE + "/admin/model-health/disable-provider", {
+      method: "POST", headers: authHeaders(), body: JSON.stringify({ provider })
+    });
+    const j = await r.json();
+    if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
+    mhState.disabledProviders = j.disabledProviders;
+    renderModelHealthTable();
+    toast("Provider disabled");
+  } catch (e) { toast(e.message || "Could not disable provider"); }
+}
+
+async function mhEnableProvider(provider) {
+  try {
+    const r = await fetch(WORKER_BASE + "/admin/model-health/enable-provider", {
+      method: "POST", headers: authHeaders(), body: JSON.stringify({ provider })
+    });
+    const j = await r.json();
+    if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
+    mhState.disabledProviders = j.disabledProviders;
+    renderModelHealthTable();
+    toast("Provider enabled");
+  } catch (e) { toast(e.message || "Could not enable provider"); }
+}
 function renderAdmin(){
   const c=$("#adminContent"),j=adminStatusData||{},count=state.models.length;
   if(adminSection==="overview"){
@@ -3640,6 +4677,12 @@ function renderAdmin(){
     c.innerHTML=`<p class="admin-kicker">Admin-only model request tester.</p><div class="admin-note">The playground will use the authenticated backend endpoint after key-management and usage tracking are implemented.</div>`;
   }else if(adminSection==="provider-icons"){
     renderProviderIconsPage();return;
+  }else if(adminSection==="model-health"){
+    renderModelHealthPage();return;
+  }else if(adminSection==="search-config"){
+    renderSearchConfigPage();return;
+  }else if(adminSection==="provider-map"){
+    renderProviderMappingPage();return;
   }else if(adminSection==="api-settings"){
     renderApiSettingsPage();return;
   }else if(adminSection==="system"){
@@ -3900,7 +4943,7 @@ function renderQuickSwitch(){
       const url=providerIconUrl(k);
       const letter=safeLetter(k);
       const inner = url
-        ? `<img src="${url}" alt="" loading="lazy" onerror="this.parentNode.setAttribute('data-letter','${letter}')">`
+        ? `<span class="tile-icon" style="--icon-url:url('${url}')"></span>`
         : letter;
       return `<button type="button" class="qs-prov-tile${active?" is-active":""}" data-qs-maker="${escapeHtml(k)}" title="${escapeHtml(providerLabel(k))}" style="${st}">${inner}</button>`;
     }).join("");
@@ -3993,6 +5036,10 @@ $("#menuBtn").onclick=()=>$("#shell").classList.add("nav-open");
 $("#drawerClose").onclick=()=>$("#shell").classList.remove("nav-open");
 $("#scrim").onclick=()=>$("#shell").classList.remove("nav-open");
 $("#searchBtn").onclick=toggleWebSearch;
+$("#searchProviderPill").onclick = (e) => {
+  e.stopPropagation();
+  openSearchProviderMenu($("#searchProviderPill"));
+};
 $("#qsBackdrop").addEventListener("click",closeQuickModelSwitch);
 
 document.addEventListener("keydown",e=>{
@@ -4019,7 +5066,9 @@ renderMessages();
   if (isAuthenticated()) {
     await Promise.all([
       loadApiBaseUrl(),
-      loadProviderIconOverrides()
+      loadProviderIconOverrides(),
+      loadSearchConfig(),
+      loadProviderOverrides()
     ]);
     await loadModels();
     // Warm icons after models arrive — this drives the multi-source probe.
