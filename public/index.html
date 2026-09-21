@@ -1,0 +1,3571 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>China-GPT — Universal AI Chat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link rel="preconnect" href="https://unpkg.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#000; --panel:#0a0a0a; --panel-2:#101010; --panel-3:#161616; --raised:#1b1b1b;
+  --line:#232323; --line-strong:#303030; --text:#ededed; --muted:#9a9a9a; --dim:#6b6b6b;
+  --accent:#3d7dff; --accent-soft:rgba(61,125,255,.14); --danger:#f26161;
+  --ok:#56d364;
+  --r-sm:6px; --r-md:8px; --r-lg:12px;
+  --t-fast:150ms cubic-bezier(.2,.6,.2,1); --t-base:180ms cubic-bezier(.2,.6,.2,1);
+  --font:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sidebar-w:236px; --measure:720px;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px);
+  --safe-r:env(safe-area-inset-right,0px);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--text);font:400 14px/1.5 var(--font);
+  -webkit-font-smoothing:antialiased;overflow:hidden;
+  overscroll-behavior:none;-webkit-tap-highlight-color:transparent;
+}
+button,input,textarea,select{font:inherit;color:inherit;border:0;background:none}
+button{cursor:pointer;touch-action:manipulation}
+svg{width:16px;height:16px;fill:none;stroke:currentColor}
+
+*{scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:99px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:var(--dim);background-clip:content-box;border:3px solid transparent}
+
+/* ============ Shell ============ */
+.shell{position:relative;height:100vh;height:100dvh;display:grid;grid-template-columns:var(--sidebar-w) minmax(0,1fr)}
+.scrim{position:fixed;inset:0;background:#0000;pointer-events:none;transition:background var(--t-base);z-index:39}
+.shell.nav-open .scrim{background:rgba(0,0,0,.55);pointer-events:auto}
+
+.sidebar{
+  position:relative;z-index:40;display:flex;flex-direction:column;background:var(--panel);
+  border-right:1px solid var(--line);min-height:0;
+  padding-top:var(--safe-t);padding-bottom:var(--safe-b);
+}
+.side-brand{flex:0 0 auto;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 16px;font-weight:600}
+.brand{display:flex;align-items:center;gap:9px}
+.logo{width:26px;height:26px;flex:0 0 auto;display:grid;place-items:center}
+.logo svg{width:100%;height:100%;display:block}
+.logo-sm{width:18px;height:18px}
+.logo-sm svg{width:100%;height:100%;display:block}
+.drawer-close{display:none;width:30px;height:30px;border-radius:var(--r-sm);color:var(--dim)}
+.drawer-close:hover{background:var(--panel-3);color:var(--text)}
+
+.side-nav{flex:0 0 auto;display:flex;flex-direction:column;gap:2px;padding:6px 10px}
+.side-nav button{display:flex;align-items:center;gap:10px;height:38px;padding:0 11px;color:var(--muted);border:1px solid transparent;border-radius:var(--r-sm);transition:background-color var(--t-base),color var(--t-base)}
+.side-nav button:hover{background:var(--panel-3);color:var(--text)}
+.side-nav button.is-active{background:var(--panel-3);color:var(--text);border-color:var(--line)}
+.side-new{margin-bottom:8px;background:var(--panel-3)!important;color:var(--text)!important;border-color:var(--line)!important}
+.side-new:hover{background:var(--raised)!important;border-color:var(--line-strong)!important}
+
+.side-recent{flex:1 1 0;min-height:0;display:flex;flex-direction:column;overflow:hidden;margin-top:8px;padding-top:6px;border-top:1px solid var(--line)}
+.side-label{flex:0 0 auto;padding:6px 16px 4px;color:var(--dim);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
+.side-list{flex:1 1 0;min-height:0;overflow-y:auto;padding:0 10px 8px;overscroll-behavior:contain}
+.side-chat-row{display:flex;align-items:center;gap:2px}
+.side-chat{flex:1;display:block;min-width:0;padding:7px 8px;color:var(--muted);font-size:13px;text-align:left;border-radius:var(--r-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background-color var(--t-base),color var(--t-base)}
+.side-chat:hover{background:var(--panel-3);color:var(--text)}
+.side-empty{padding:8px;color:var(--dim);font-size:12px;line-height:1.5}
+
+.side-api-link{
+  flex:0 0 auto;display:flex;align-items:center;gap:8px;
+  height:36px;padding:0 10px;margin:0 10px;
+  color:var(--dim);font-size:12.5px;border-radius:var(--r-sm);
+  font-family:var(--mono);
+  transition:background-color var(--t-base),color var(--t-base);
+}
+.side-api-link:hover{background:var(--panel-3);color:var(--text)}
+
+.side-account{flex:0 0 auto;padding:8px 10px 10px;border-top:1px solid var(--line)}
+.account-btn{display:flex;align-items:center;gap:10px;width:100%;padding:8px;border-radius:var(--r-md);text-align:left}
+.account-btn:hover{background:var(--panel-3)}
+.avatar{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--raised);color:var(--text);font-size:12px;font-weight:600;flex:0 0 auto}
+.account-id{flex:1;min-width:0;overflow:hidden}
+.account-id b{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.account-id small{display:block;color:var(--dim);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.main{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--bg)}
+.main-head{
+  flex:0 0 auto;display:flex;align-items:center;gap:10px;
+  height:calc(56px + var(--safe-t));
+  padding:var(--safe-t) calc(16px + var(--safe-r)) 0 calc(16px + var(--safe-l));
+  border-bottom:1px solid var(--line);
+}
+.drawer-open{display:none;width:32px;height:32px;border-radius:var(--r-sm);color:var(--muted)}
+.drawer-open:hover{background:var(--panel-3);color:var(--text)}
+
+.model-btn{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px 0 12px;color:var(--text);font-size:13px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-3);max-width:60vw;transition:background-color var(--t-base),border-color var(--t-base)}
+.model-btn:hover{background:var(--raised);border-color:var(--line-strong)}
+.model-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.model-caret{width:14px;height:14px;color:var(--dim);flex:0 0 auto}
+
+.stage{position:relative;flex:1 1 0;min-height:0;display:flex;flex-direction:column}
+.stage-scroll{flex:1 1 auto;min-height:0;overflow:hidden auto;display:flex;flex-direction:column;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.stage-inner{width:min(100%,var(--measure));margin:0 auto;padding:0 20px}
+.stage.is-home .stage-inner{margin-top:auto}
+.stage.is-home::before{
+  content:"";position:absolute;left:50%;top:18%;width:min(560px,86vw);height:340px;transform:translateX(-50%);
+  background:radial-gradient(closest-side,rgba(139,92,246,.16),transparent 72%);pointer-events:none;z-index:0;
+}
+.stage-head{position:relative;overflow:hidden;margin:0 0 20px;max-height:80px;font-size:30px;font-weight:600;letter-spacing:-.03em;text-align:center;transition:opacity var(--t-base),transform var(--t-base),max-height var(--t-base)}
+.stage:not(.is-home) .stage-head{max-height:0;margin-bottom:0;opacity:0;transform:translateY(-10px)}
+.stage-sub{position:relative;margin:-10px 0 24px;text-align:center;color:var(--muted);font-size:13.5px}
+.stage:not(.is-home) .stage-sub{display:none}
+
+.thread{display:flex;flex-direction:column;gap:18px;padding:22px 0 16px}
+.thread:empty{display:none}
+.msg{display:flex;flex-direction:column;gap:5px}
+.msg-user{align-items:flex-end}
+.msg-user .bubble{max-width:min(100%,540px);padding:10px 14px;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-lg);white-space:pre-wrap;overflow-wrap:anywhere}
+.msg-assistant .msg-who{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12.5px;margin-bottom:2px}
+.msg-assistant .bubble{max-width:min(100%,620px);padding:0;color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65}
+
+/* ============ Composer ============ */
+.composer-slot{
+  flex:0 0 auto;
+  width:min(100%,var(--measure));
+  margin:0 auto;
+  padding:0 calc(20px + var(--safe-r)) calc(16px + var(--safe-b)) calc(20px + var(--safe-l));
+}
+.composer{
+  position:relative;
+  display:flex;flex-direction:column;gap:4px;
+  padding:10px 12px 8px;
+  background-color:var(--panel-2);
+  background-image:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0) 55%);
+  border:1px solid var(--line-strong);
+  border-radius:28px;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.03) inset,
+    0 12px 32px -20px rgba(0,0,0,.9);
+  transition:border-color var(--t-base),box-shadow var(--t-base);
+}
+.composer:focus-within{
+  border-color:rgba(139,92,246,.5);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.04) inset,
+    0 0 0 4px rgba(139,92,246,.13),
+    0 16px 40px -22px rgba(139,92,246,.55);
+}
+.composer.is-dragging{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+
+.composer-model-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  align-self:flex-start;
+  max-width:100%;min-width:0;
+  height:22px;
+  padding:0 6px 0 4px;
+  border-radius:6px;
+  background:transparent;
+  border:1px solid transparent;
+  color:var(--dim);
+  font-size:11.5px;
+  font-weight:500;
+  transition:background-color var(--t-base),color var(--t-base),border-color var(--t-base);
+}
+.composer-model-chip:hover{background:var(--panel-3);color:var(--muted);border-color:var(--line)}
+.composer-model-chip .cmc-icon{width:14px;height:14px;display:grid;place-items:center;flex:0 0 auto;font-size:9px;font-weight:800}
+.composer-model-chip .cmc-icon img{width:14px;height:14px;object-fit:contain;display:block}
+.composer-model-chip .cmc-icon[data-letter] img{display:none}
+.composer-model-chip .cmc-icon[data-letter]::before{content:attr(data-letter)}
+.composer-model-chip .cmc-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;padding-right:2px}
+.composer-model-chip .cmc-caret{width:10px;height:10px;opacity:.55;flex:0 0 auto}
+
+.composer textarea{
+  width:100%;
+  min-height:28px;max-height:200px;
+  padding:2px 10px 4px;
+  resize:none;line-height:1.55;
+  outline:0;
+  font:inherit;font-size:15.5px;
+  background:transparent;color:var(--text);
+  border-radius:18px;
+}
+.composer textarea::placeholder{color:var(--dim)}
+
+.composer-bar{display:flex;align-items:center;gap:6px;padding:2px 2px 0;min-height:38px}
+.composer-spacer{flex:1;min-width:6px}
+
+.chip-btn{
+  display:grid;place-items:center;width:34px;height:34px;padding:0;
+  color:var(--muted);font-size:15px;
+  border:1px solid var(--line);border-radius:50%;
+  flex:0 0 auto;
+  transition:background-color var(--t-base),color var(--t-base),border-color var(--t-base),transform var(--t-fast);
+}
+.chip-btn:hover{background:var(--panel-3);color:var(--text);border-color:var(--line-strong)}
+.chip-btn:active{transform:scale(.94)}
+.chip-btn.is-on{color:var(--accent);border-color:rgba(61,125,255,.4);background:var(--accent-soft)}
+
+.send{
+  display:grid;place-items:center;
+  width:36px;height:36px;flex:0 0 auto;
+  background:var(--text);color:#0a0a0a;
+  border-radius:50%;
+  transition:background-color var(--t-base),transform var(--t-fast),box-shadow var(--t-base);
+}
+.send:hover{background:#fff;box-shadow:0 0 0 4px var(--accent-soft)}
+.send:active{transform:scale(.94)}
+.stop-btn{background:var(--danger)!important;color:#fff!important}
+.stop-btn:hover{background:#ff7a7a!important;box-shadow:0 0 0 4px rgba(242,97,97,.18)}
+
+/* ============ Provider tiles ============ */
+.tile{
+  width:26px;height:26px;border-radius:7px;
+  display:grid;place-items:center;
+  flex:0 0 auto;
+  font-size:10px;font-weight:800;
+  overflow:hidden;
+}
+.tile img{width:70%;height:70%;object-fit:contain;display:block}
+.tile[data-letter] img{display:none}
+.tile[data-letter]::before{content:attr(data-letter)}
+.tile.tile-sm{width:18px;height:18px;border-radius:6px}
+.tile.tile-sm img{width:72%;height:72%}
+.tile.tile-xs{width:16px;height:16px;border-radius:4px;font-size:9px}
+.tile.tile-xs img{width:76%;height:76%}
+.tile.tile-lg{width:34px;height:34px;border-radius:10px;font-size:13px}
+.tile.tile-lg img{width:66%;height:66%}
+
+/* ============ Quick model switch sheet ============ */
+.qs-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:80;
+  display:none;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  opacity:0;transition:opacity var(--t-base);
+}
+.qs-backdrop.open{display:block;opacity:1}
+.qs-sheet{
+  position:fixed;
+  left:0;right:0;bottom:0;
+  margin:0 auto;
+  max-width:min(560px,100%);
+  z-index:81;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-bottom:0;
+  border-top-left-radius:22px;border-top-right-radius:22px;
+  height:min(82vh,720px);
+  max-height:82vh;
+  display:flex;flex-direction:column;
+  transform:translateY(110%);
+  transition:transform 280ms cubic-bezier(.2,.8,.2,1);
+  padding-bottom:var(--safe-b);
+  box-shadow:0 -20px 60px rgba(0,0,0,.6);
+  overflow:hidden;
+}
+.qs-sheet.open{transform:translateY(0)}
+.qs-sheet-handle{flex:0 0 auto;width:36px;height:4px;border-radius:99px;background:var(--line-strong);margin:8px auto 0}
+.qs-sheet-head{
+  flex:0 0 auto;position:relative;z-index:3;
+  padding:8px 14px 10px;
+  background:var(--panel-2);
+  border-bottom:1px solid var(--line);
+}
+.qs-sheet-title{
+  font-size:11.5px;font-weight:600;letter-spacing:.09em;
+  color:var(--muted);text-transform:uppercase;
+  margin:0 0 8px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:flex;align-items:center;gap:8px;
+}
+.qs-sheet-title .dot{
+  width:8px;height:8px;border-radius:50%;flex:0 0 auto;
+  background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);
+}
+.qs-search{
+  display:flex;align-items:center;gap:8px;
+  height:38px;padding:0 12px;margin-bottom:8px;
+  background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-md);
+}
+.qs-search svg{color:var(--dim);flex:0 0 auto;width:14px;height:14px}
+.qs-search input{flex:1;background:none;outline:0;min-width:0;font-size:14px}
+.qs-sheet-providers{
+  flex:0 0 auto;
+  display:flex;gap:8px;
+  overflow-x:auto;overflow-y:hidden;
+  padding:10px 14px 10px;
+  scrollbar-width:none;
+  position:relative;z-index:2;
+  background:var(--panel-2);
+  border-bottom:1px solid var(--line);
+}
+.qs-sheet-providers::-webkit-scrollbar{display:none}
+.qs-prov-tile{
+  flex:0 0 auto;width:40px;height:40px;border-radius:11px;
+  display:grid;place-items:center;
+  font-size:12px;font-weight:800;
+  background:var(--panel-3);color:var(--muted);
+  border:1px solid var(--line);
+  transition:background-color var(--t-base),color var(--t-base),border-color var(--t-base),transform var(--t-fast);
+  overflow:hidden;
+}
+.qs-prov-tile img{width:70%;height:70%;object-fit:contain;display:block}
+.qs-prov-tile[data-letter] img{display:none}
+.qs-prov-tile[data-letter]::before{content:attr(data-letter)}
+.qs-prov-tile:active{transform:scale(.94)}
+.qs-sheet-body{
+  flex:1 1 0;min-height:0;
+  overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  padding:6px 8px calc(16px + var(--safe-b));
+  position:relative;z-index:1;
+}
+.qs-row{
+  display:flex;align-items:center;gap:12px;
+  width:100%;text-align:left;
+  padding:11px 10px;
+  border-radius:12px;
+  background:transparent;border:0;color:var(--text);
+  transition:background-color var(--t-base);
+}
+.qs-row:hover,.qs-row:active{background:var(--panel-3)}
+.qs-row-main{flex:1;min-width:0}
+.qs-row-main b{
+  display:block;font-size:13.5px;font-weight:600;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.qs-row-main small{
+  display:flex;align-items:center;gap:5px;
+  color:var(--dim);font-size:11.5px;margin-top:3px;
+  overflow:hidden;white-space:nowrap;
+}
+.qs-row-main small .prov-dot{
+  width:6px;height:6px;border-radius:50%;flex:0 0 auto;
+}
+.qs-radio{
+  width:18px;height:18px;border-radius:50%;
+  border:1.5px solid var(--line-strong);
+  flex:0 0 auto;display:grid;place-items:center;
+  transition:border-color var(--t-base),background-color var(--t-base);
+}
+.qs-row.is-active .qs-radio{border-color:var(--accent);background:var(--accent-soft)}
+.qs-row.is-active .qs-radio::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.qs-empty{padding:22px 12px;color:var(--dim);font-size:12.5px;text-align:center}
+
+/* ============ Screen pages ============ */
+.screen-page{
+  position:fixed;inset:0;background:var(--bg);z-index:78;
+  display:none;flex-direction:column;
+}
+.screen-page.open{display:flex;animation:screenIn 200ms cubic-bezier(.2,.8,.2,1)}
+@keyframes screenIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.screen-page-head{
+  flex:0 0 auto;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:calc(14px + var(--safe-t)) calc(16px + var(--safe-r)) 14px calc(16px + var(--safe-l));
+  border-bottom:1px solid var(--line);
+  background:var(--bg);
+}
+.screen-page-head h2{
+  margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
+}
+.screen-page-close{
+  width:38px;height:38px;border-radius:50%;
+  display:grid;place-items:center;flex:0 0 auto;
+  color:var(--muted);background:var(--panel-3);border:1px solid var(--line);
+  transition:background-color var(--t-base),color var(--t-base),border-color var(--t-base),transform var(--t-fast);
+}
+.screen-page-close:hover{color:var(--text);background:var(--raised);border-color:var(--line-strong)}
+.screen-page-close:active{transform:scale(.94)}
+.screen-page-body{
+  flex:1 1 0;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  padding:22px calc(20px + var(--safe-r)) calc(28px + var(--safe-b)) calc(20px + var(--safe-l));
+  max-width:720px;width:100%;margin:0 auto;
+}
+.screen-page-body h3{margin:0 0 10px;font-size:15px;font-weight:600}
+.screen-page-body .section-divider{height:1px;background:var(--line);margin:22px 0}
+@media(max-width:640px){
+  .screen-page-body{padding:16px calc(14px + var(--safe-r)) calc(24px + var(--safe-b)) calc(14px + var(--safe-l))}
+}
+
+/* Account page */
+.acct-hero{
+  display:flex;align-items:center;gap:14px;
+  padding:16px;
+  border:1px solid var(--line);border-radius:14px;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+  margin-bottom:22px;
+}
+.acct-hero .avatar{width:48px;height:48px;font-size:18px}
+.acct-hero-main{flex:1;min-width:0}
+.acct-hero-main b{display:block;font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct-hero-main small{display:block;color:var(--dim);font-size:12px;margin-top:2px;font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.acct-list{display:flex;flex-direction:column;gap:2px}
+.acct-row{
+  display:grid;grid-template-columns:36px minmax(0,1fr) auto;
+  align-items:center;gap:12px;
+  width:100%;text-align:left;
+  padding:14px 12px;
+  border-radius:12px;
+  background:transparent;border:0;color:var(--text);
+  transition:background-color var(--t-base);
+}
+.acct-row:hover,.acct-row:active{background:var(--panel-3)}
+.acct-row-icon{
+  width:36px;height:36px;border-radius:10px;
+  display:grid;place-items:center;
+  background:var(--panel-3);border:1px solid var(--line);color:var(--muted);
+}
+.acct-row-icon svg{width:16px;height:16px}
+.acct-row-main{min-width:0}
+.acct-row-main b{display:block;font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct-row-main small{display:block;color:var(--dim);font-size:12px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct-row-caret{color:var(--dim);flex:0 0 auto}
+.acct-row-caret svg{width:14px;height:14px}
+.acct-row.danger .acct-row-icon{color:var(--danger);border-color:rgba(242,97,97,.25);background:rgba(242,97,97,.08)}
+.acct-row.danger .acct-row-main b{color:var(--danger)}
+
+/* ============ Auth page ============ */
+.auth-page{
+  position:fixed;inset:0;background:var(--bg);z-index:75;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b));
+  overflow-y:auto;
+}
+.auth-page.open{display:flex}
+.auth-card{
+  width:min(440px,100%);
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:22px;
+  box-shadow:0 24px 70px -20px rgba(0,0,0,.7);
+  animation:authIn 220ms cubic-bezier(.2,.8,.2,1);
+}
+@keyframes authIn{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
+.auth-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.auth-brand{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600}
+.auth-back{color:var(--muted);font-size:13px;font-weight:500;padding:7px 12px;border-radius:8px}
+.auth-back:hover{background:var(--panel-3);color:var(--text)}
+.auth-card h2{margin:0 0 8px;font-size:26px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+.auth-sub{color:var(--muted);font-size:13.5px;margin:0 0 22px;line-height:1.5}
+.auth-card .field{margin:0 0 16px}
+.auth-card .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:8px}
+.auth-card .field input{
+  width:100%;
+  background:var(--panel-3);
+  border:1px solid var(--line);
+  border-radius:10px;
+  color:var(--text);
+  padding:14px;
+  font-size:15px;
+  outline:0;
+  transition:border-color var(--t-base),box-shadow var(--t-base);
+}
+.auth-card .field input:focus{border-color:var(--line-strong);box-shadow:0 0 0 3px var(--accent-soft)}
+.auth-primary{
+  display:block;width:100%;
+  background:var(--text);color:var(--bg);
+  padding:14px;border-radius:10px;
+  font-size:14.5px;font-weight:600;text-align:center;
+  transition:opacity var(--t-base),transform var(--t-fast);
+}
+.auth-primary:hover{opacity:.92}
+.auth-primary:active{transform:scale(.985)}
+.auth-primary:disabled{opacity:.5;cursor:not-allowed}
+.auth-link-row{
+  margin-top:16px;padding:13px 14px;
+  border:1px solid var(--line);border-radius:10px;
+  text-align:center;color:var(--muted);font-size:13px;
+  background:var(--panel-2);
+}
+.auth-link-row button{color:var(--text);text-decoration:underline;font-weight:500}
+.auth-error{color:var(--danger);font-size:12.5px;margin-top:12px;min-height:16px;text-align:center}
+.auth-note{
+  margin-top:18px;padding:12px 14px;
+  background:var(--panel-2);border:1px solid var(--line);border-radius:10px;
+  color:var(--muted);font-size:12px;line-height:1.55;
+}
+.auth-note b{color:var(--text)}
+
+/* ============ Message actions ============ */
+.msg-controls{display:flex;gap:4px;margin:6px 0 0 4px;flex-wrap:wrap}
+.msg-action{display:grid;place-items:center;width:28px;height:28px;border:0;background:transparent;color:var(--muted);cursor:pointer;border-radius:var(--r-sm)}
+.msg-action svg{width:15px;height:15px}
+.msg-action:hover{color:var(--text);background:var(--panel-3)}
+
+/* ============ Persona presets ============ */
+.persona-preset-row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 16px}
+.persona-preset-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 12px;border-radius:999px;
+  border:1px solid var(--line);color:var(--muted);font-size:12.5px;
+  background:var(--panel-2);
+  transition:background-color var(--t-base),color var(--t-base),border-color var(--t-base);
+}
+.persona-preset-chip:hover{border-color:var(--line-strong);color:var(--text);background:var(--panel-3)}
+
+/* ============ API KEYS PAGE (modern) ============ */
+.apikeys-hero{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+  padding:20px;
+  border:1px solid var(--line);border-radius:16px;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+  margin-bottom:22px;
+}
+.apikeys-hero-main{flex:1;min-width:0}
+.apikeys-hero-main h3{margin:0 0 6px;font-size:17px;font-weight:600}
+.apikeys-hero-main p{margin:0;color:var(--muted);font-size:13px;line-height:1.55;max-width:520px}
+.apikeys-hero .btn-primary{
+  flex:0 0 auto;
+  padding:11px 16px;
+  font-size:13.5px;
+  white-space:nowrap;
+  border-radius:10px;
+}
+@media(max-width:520px){
+  .apikeys-hero{flex-direction:column;align-items:stretch;padding:16px}
+  .apikeys-hero .btn-primary{width:100%}
+}
+
+.apikey-list{display:flex;flex-direction:column;gap:10px}
+
+.apikey-card{
+  padding:16px;
+  border:1px solid var(--line);border-radius:14px;
+  background:var(--panel-2);
+  transition:border-color var(--t-base),background-color var(--t-base);
+}
+.apikey-card:hover{border-color:var(--line-strong);background:var(--panel-3)}
+.apikey-card.is-revoked{opacity:.6}
+
+.apikey-card-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-bottom:10px;
+}
+.apikey-card-title{
+  font-size:14.5px;font-weight:600;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
+}
+.apikey-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  height:22px;padding:0 9px;
+  border-radius:99px;
+  font-size:11px;font-weight:600;
+  letter-spacing:.02em;
+  flex:0 0 auto;
+  border:1px solid var(--line);
+  background:var(--panel-3);
+  color:var(--muted);
+}
+.apikey-pill::before{
+  content:"";width:6px;height:6px;border-radius:50%;
+  background:currentColor;
+}
+.apikey-pill.active{color:var(--ok);border-color:rgba(86,211,100,.3);background:rgba(86,211,100,.08)}
+.apikey-pill.revoked{color:var(--danger);border-color:rgba(242,97,97,.3);background:rgba(242,97,97,.08)}
+
+.apikey-card-key{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 12px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:10px;
+  margin-bottom:12px;
+  min-width:0;
+}
+.apikey-card-key code{
+  flex:1;min-width:0;
+  font-family:var(--mono);font-size:12.5px;
+  color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  letter-spacing:.02em;
+}
+.apikey-card-key.has-full code{color:var(--text)}
+.apikey-copy-icon{
+  display:grid;place-items:center;
+  width:28px;height:28px;flex:0 0 auto;
+  border-radius:8px;
+  color:var(--muted);
+  transition:background-color var(--t-base),color var(--t-base);
+}
+.apikey-copy-icon:hover{background:var(--raised);color:var(--text)}
+.apikey-copy-icon svg{width:14px;height:14px}
+.apikey-copy-icon.is-copied{color:var(--ok)}
+
+.apikey-card-meta{
+  display:flex;flex-wrap:wrap;gap:6px 14px;
+  font-size:11.5px;
+  color:var(--dim);
+  margin-bottom:12px;
+}
+.apikey-card-meta b{color:var(--muted);font-weight:500}
+
+.apikey-card-actions{
+  display:flex;gap:8px;
+  flex-wrap:wrap;
+}
+.apikey-card-actions button{
+  padding:8px 12px;
+  font-size:12.5px;
+  border-radius:8px;
+  background:var(--panel-3);
+  border:1px solid var(--line);
+  color:var(--muted);
+  transition:background-color var(--t-base),color var(--t-base),border-color var(--t-base);
+}
+.apikey-card-actions button:hover{background:var(--raised);color:var(--text);border-color:var(--line-strong)}
+.apikey-card-actions button.danger{color:var(--danger);border-color:rgba(242,97,97,.25)}
+.apikey-card-actions button.danger:hover{background:rgba(242,97,97,.1);color:var(--danger);border-color:rgba(242,97,97,.4)}
+
+.apikey-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;
+  padding:48px 20px;
+  text-align:center;
+  border:1px dashed var(--line-strong);
+  border-radius:16px;
+  background:var(--panel-2);
+}
+.apikey-empty-icon{
+  width:52px;height:52px;border-radius:50%;
+  display:grid;place-items:center;
+  background:var(--accent-soft);color:var(--accent);
+}
+.apikey-empty-icon svg{width:24px;height:24px}
+.apikey-empty h4{margin:0;font-size:15px;font-weight:600}
+.apikey-empty p{margin:0;color:var(--dim);font-size:12.5px;max-width:320px;line-height:1.55}
+.apikey-empty .btn-primary{padding:12px 20px;font-size:13.5px;border-radius:10px;margin-top:4px}
+
+.apikey-created-value{
+  padding:16px;
+  background:var(--panel);
+  border:1px solid var(--line-strong);
+  border-radius:12px;
+  font-family:var(--mono);
+  font-size:13px;
+  word-break:break-all;
+  line-height:1.6;
+  margin:12px 0;
+  color:var(--text);
+  user-select:all;
+  -webkit-user-select:all;
+}
+.apikey-created-warning{
+  padding:12px 14px;
+  background:rgba(242,97,97,.08);
+  border:1px solid rgba(242,97,97,.25);
+  border-radius:10px;
+  color:var(--danger);
+  font-size:12.5px;
+  line-height:1.55;
+  margin-bottom:12px;
+}
+
+/* ============ API DOCS PAGE (modern) ============ */
+.docs-hero{
+  padding:20px;
+  border:1px solid var(--line);border-radius:16px;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+  margin-bottom:22px;
+}
+.docs-hero h3{margin:0 0 6px;font-size:17px;font-weight:600}
+.docs-hero p{margin:0;color:var(--muted);font-size:13px;line-height:1.55;max-width:560px}
+
+.docs-baseurl{
+  display:flex;align-items:center;gap:8px;
+  padding:12px 14px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:12px;
+  margin:20px 0 26px;
+  min-width:0;
+}
+.docs-baseurl-label{
+  font-size:11px;font-weight:600;letter-spacing:.06em;
+  color:var(--dim);text-transform:uppercase;
+  flex:0 0 auto;
+}
+.docs-baseurl-code{
+  flex:1;min-width:0;
+  font-family:var(--mono);font-size:12.5px;
+  color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.docs-baseurl-actions{
+  display:flex;gap:4px;flex:0 0 auto;
+}
+.docs-icon-btn{
+  display:grid;place-items:center;
+  width:30px;height:30px;
+  border-radius:8px;
+  color:var(--muted);
+  transition:background-color var(--t-base),color var(--t-base);
+}
+.docs-icon-btn:hover{background:var(--raised);color:var(--text)}
+.docs-icon-btn svg{width:14px;height:14px}
+.docs-icon-btn.is-copied{color:var(--ok)}
+
+.docs-edit-row{
+  display:flex;gap:6px;align-items:center;
+  width:100%;min-width:0;
+}
+.docs-edit-row input{
+  flex:1;min-width:0;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:8px 10px;
+  font-size:12.5px;
+  font-family:var(--mono);
+  color:var(--text);
+  outline:0;
+}
+.docs-edit-row input:focus{border-color:var(--line-strong);box-shadow:0 0 0 3px var(--accent-soft)}
+.docs-edit-row button{
+  padding:8px 12px;font-size:12px;border-radius:8px;
+  flex:0 0 auto;
+}
+.docs-edit-row .btn-save{background:var(--accent);color:#fff;font-weight:500}
+.docs-edit-row .btn-cancel{background:var(--panel-3);border:1px solid var(--line);color:var(--muted)}
+
+.docs-section-title{
+  font-size:11px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--dim);
+  margin:26px 0 10px;
+}
+
+.docs-endpoint{
+  margin:0 0 16px;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--panel-2);
+  position:relative;
+  overflow:hidden;
+}
+.docs-endpoint::before{
+  content:"";position:absolute;
+  left:0;top:0;bottom:0;width:3px;
+  background:var(--line-strong);
+}
+.docs-endpoint.method-get::before{background:#22c55e}
+.docs-endpoint.method-post::before{background:#3d7dff}
+
+.docs-endpoint-head{
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:10px;
+  flex-wrap:wrap;
+}
+.docs-method{
+  display:inline-flex;align-items:center;
+  height:20px;padding:0 8px;
+  border-radius:5px;
+  font-family:var(--mono);
+  font-size:10.5px;font-weight:600;
+  letter-spacing:.04em;
+}
+.docs-method.get{background:rgba(34,197,94,.14);color:#4ade80}
+.docs-method.post{background:rgba(61,125,255,.14);color:#7aa9ff}
+.docs-path{
+  font-family:var(--mono);
+  font-size:13px;
+  color:var(--text);
+  font-weight:500;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  min-width:0;
+}
+.docs-endpoint p{
+  margin:0 0 12px;
+  color:var(--muted);
+  font-size:12.5px;
+  line-height:1.55;
+}
+
+.docs-code{
+  position:relative;
+  background:#0d0d0d;
+  border:1px solid var(--line);
+  border-radius:10px;
+  overflow:hidden;
+}
+:root[data-theme="light"] .docs-code{background:#f4f4f5}
+.docs-code pre{
+  margin:0;
+  padding:12px 14px;
+  overflow-x:auto;
+  font-family:var(--mono);
+  font-size:12px;
+  line-height:1.6;
+  color:var(--text);
+  -webkit-overflow-scrolling:touch;
+}
+.docs-code-copy{
+  position:absolute;top:8px;right:8px;
+  display:grid;place-items:center;
+  width:28px;height:28px;
+  border-radius:8px;
+  background:var(--panel-3);
+  border:1px solid var(--line);
+  color:var(--muted);
+  transition:background-color var(--t-base),color var(--t-base);
+}
+.docs-code-copy:hover{background:var(--raised);color:var(--text)}
+.docs-code-copy.is-copied{color:var(--ok);background:rgba(86,211,100,.12);border-color:rgba(86,211,100,.3)}
+.docs-code-copy svg{width:13px;height:13px}
+
+.docs-note{
+  padding:14px 16px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:12px;
+  color:var(--muted);
+  font-size:12.5px;
+  line-height:1.6;
+}
+
+/* ============ Models catalogue ============ */
+.page-view{position:fixed;inset:0;background:var(--bg);z-index:55;display:none;flex-direction:column}
+.page-view.open{display:flex}
+.page{flex:1;display:flex;flex-direction:column;min-height:0;max-width:960px;width:100%;margin:0 auto}
+.page-head{flex:0 0 auto;padding:calc(18px + var(--safe-t)) 20px 0}
+.page-head-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.page-head h2{margin:0;font-size:20px}
+.page-head p{margin:6px 0 0;color:var(--muted);font-size:13px;max-width:640px}
+.page-close{width:34px;height:34px;border-radius:var(--r-sm);color:var(--muted);flex:0 0 auto;display:grid;place-items:center}
+.page-close:hover{background:var(--panel-3);color:var(--text)}
+.toolbar{flex:0 0 auto;padding:14px 20px 0}
+.search-field{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-md)}
+.search-field:focus-within{border-color:var(--line-strong)}
+.search-field svg{color:var(--dim);flex:0 0 auto}
+.search-field input{flex:1;background:none;outline:0;min-width:0}
+.filters{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px;padding:12px 20px}
+.filter{display:flex;align-items:center;gap:6px;height:30px;padding:0 11px 0 6px;color:var(--muted);font-size:12.5px;background:var(--panel-3);border:1px solid var(--line);border-radius:99px;transition:background-color var(--t-base),color var(--t-base),border-color var(--t-base)}
+.filter:hover{color:var(--text);border-color:var(--line-strong)}
+.filter.is-active{color:var(--text);background:var(--accent-soft);border-color:rgba(61,125,255,.4)}
+.filter .tile{width:16px;height:16px;border-radius:4px}
+.page-body{flex:1;min-height:0;overflow-y:auto;padding:6px 20px calc(24px + var(--safe-b));-webkit-overflow-scrolling:touch}
+.model-table{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+
+.model-head,.model-row{
+  display:grid;
+  grid-template-columns:minmax(0,2.2fr) 84px 96px 88px 34px;
+  align-items:center;gap:12px;padding:0 14px;
+}
+.model-head{height:36px;background:var(--panel-2);border-bottom:1px solid var(--line);color:var(--dim);font-size:11.5px;letter-spacing:.03em;text-transform:uppercase}
+.model-row{border-bottom:1px solid var(--line);transition:background-color var(--t-base)}
+.model-row:last-child{border-bottom:0}
+.model-row:hover{background:var(--panel-2)}
+.model-row.is-active{background:var(--accent-soft)}
+.model-main{
+  grid-column:1 / 5;
+  display:grid;
+  grid-template-columns:minmax(0,2.2fr) 84px 96px 88px;
+  align-items:center;gap:12px;
+  min-height:58px;
+  background:none;border:0;color:inherit;padding:0;
+  text-align:left;cursor:pointer;
+}
+.model-id{display:flex;align-items:center;gap:10px;min-width:0}
+.model-id-text{display:grid;min-width:0;line-height:1.32}
+.model-id-text b{font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.model-id-text small{color:var(--dim);font-size:11.5px}
+.model-cell{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums;min-width:0}
+.model-cell.price{color:var(--dim);font-size:11.5px}
+.selected-flag{display:inline-flex;align-items:center;gap:5px;color:var(--accent);font-size:11.5px}
+.model-fav{grid-column:5;justify-self:end;width:30px;height:30px;border-radius:var(--r-sm);color:var(--dim);display:grid;place-items:center;transition:color var(--t-base),background-color var(--t-base)}
+.model-fav:hover,.model-fav.is-on{color:#ffd45c;background:var(--panel-3)}
+
+@media (max-width:640px){
+  .model-head{display:none}
+  .model-row{grid-template-columns:minmax(0,1fr) 34px;gap:8px;padding:12px}
+  .model-main{grid-column:1;grid-template-columns:minmax(0,1fr);gap:5px;min-height:0}
+  .model-fav{grid-column:2;align-self:start}
+  .model-cell{display:flex;align-items:baseline;gap:8px;font-size:12px}
+  .model-cell::before{content:attr(data-label);color:var(--dim);font-size:11px;min-width:82px;flex:0 0 auto}
+}
+
+/* ============ Admin dashboard ============ */
+.admin-page{position:fixed;inset:0;background:var(--bg);z-index:58;display:none;flex-direction:column}
+.admin-page.open{display:flex}
+.admin-shell{display:grid;grid-template-columns:210px minmax(0,1fr);min-height:0;flex:1}
+.admin-nav{border-right:1px solid var(--line);padding:14px 10px;background:var(--panel);display:flex;flex-direction:column;gap:3px;min-height:0}
+.admin-nav-title{padding:7px 10px 13px;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.admin-nav button{height:36px;padding:0 11px;text-align:left;border-radius:var(--r-sm);color:var(--muted);border:1px solid transparent}
+.admin-nav button:hover,.admin-nav button.is-active{background:var(--panel-3);color:var(--text);border-color:var(--line)}
+.admin-back{margin-top:auto!important}
+.admin-main{min-width:0;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch}
+.admin-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  height:calc(58px + var(--safe-t));
+  padding:var(--safe-t) calc(20px + var(--safe-r)) 0 calc(20px + var(--safe-l));
+  border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(0,0,0,.92);backdrop-filter:blur(10px);z-index:2;
+}
+.admin-head h2{margin:0;font-size:18px}
+.admin-head-actions{display:flex;gap:7px}
+.admin-content{max-width:1180px;margin:0 auto;padding:22px 20px 40px}
+.admin-kicker{color:var(--dim);font-size:12px;margin:0 0 18px}
+.admin-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:22px}
+.admin-card{background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r-md);padding:15px}
+.admin-card-label{color:var(--muted);font-size:12px}
+.admin-card-value{font-size:24px;font-weight:600;margin-top:5px;font-variant-numeric:tabular-nums}
+.admin-card-sub{color:var(--dim);font-size:11px;margin-top:4px}
+.admin-section{margin-top:22px}
+.admin-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.admin-section-head h3{margin:0;font-size:14px}
+.admin-section-head span{color:var(--dim);font-size:11.5px}
+.admin-status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.admin-status{display:flex;align-items:center;gap:9px;padding:12px;background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r-md)}
+.admin-dot{width:8px;height:8px;border-radius:50%;background:var(--dim);flex:0 0 auto}
+.admin-dot.ok{background:#56d364}.admin-dot.bad{background:var(--danger)}
+.admin-status b{display:block;font-size:12.5px;font-weight:500}
+.admin-status small{display:block;color:var(--dim);font-size:11px;margin-top:2px}
+.admin-actions{display:flex;flex-wrap:wrap;gap:8px}
+.admin-note{padding:13px 14px;background:var(--panel-2);border:1px dashed var(--line-strong);border-radius:var(--r-md);color:var(--muted);font-size:12.5px;line-height:1.6}
+.admin-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:var(--r-md);-webkit-overflow-scrolling:touch}
+.admin-table{width:100%;border-collapse:collapse;min-width:680px}
+.admin-table th,.admin-table td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:12px}
+.admin-table th{color:var(--dim);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;background:var(--panel-2)}
+.admin-table tr:last-child td{border-bottom:0}
+.admin-code{font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all}
+.admin-empty{padding:20px;color:var(--dim);font-size:12px;text-align:center}
+.admin-mobile-close{display:none}
+
+@media(max-width:800px){
+  .admin-shell{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  .admin-nav{
+    flex-direction:row;align-items:center;
+    overflow-x:auto;overflow-y:hidden;
+    border-right:0;border-bottom:1px solid var(--line);
+    padding:8px;gap:6px;
+    scrollbar-width:none;
+  }
+  .admin-nav::-webkit-scrollbar{display:none}
+  .admin-nav-title{display:none}
+  .admin-nav button{flex:0 0 auto;white-space:nowrap;height:34px;padding:0 12px;border:1px solid var(--line)}
+  .admin-back{display:none}
+  .admin-mobile-close{display:inline-flex!important}
+  .admin-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .admin-status-grid{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .admin-content{padding:16px 12px calc(30px + var(--safe-b))}
+  .admin-card{padding:12px}
+  .admin-card-value{font-size:20px}
+}
+
+/* ============ Overlay ============ */
+.overlay{position:fixed;inset:0;background:#0009;display:none;align-items:stretch;justify-content:flex-end;z-index:60}
+.overlay.open{display:flex}
+.dialog{
+  width:min(420px,92vw);height:100%;background:var(--panel);border-left:1px solid var(--line);
+  padding:calc(18px + var(--safe-t)) 18px calc(18px + var(--safe-b));
+  overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+}
+.dialog h2{margin:0 0 16px;font-size:17px}
+.field{display:grid;gap:7px;margin:14px 0}
+.field label{font-size:12px;color:var(--muted)}
+.field input,.field textarea{background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);color:var(--text);padding:11px;outline:0;min-width:0}
+.field input:focus,.field textarea:focus{border-color:var(--line-strong)}
+.row{display:flex;gap:8px}
+.row>*{flex:1;min-width:0}
+.btn-primary{background:var(--accent);color:#fff;padding:11px 12px;border-radius:var(--r-sm);font-weight:600;transition:filter var(--t-base),transform var(--t-fast)}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-primary:active{transform:scale(.985)}
+.btn-ghost{background:var(--panel-3);padding:11px 12px;border-radius:var(--r-sm);border:1px solid var(--line);transition:background-color var(--t-base),border-color var(--t-base)}
+.btn-ghost:hover{background:var(--raised);border-color:var(--line-strong)}
+.hint-text{color:var(--dim);font-size:12px;line-height:1.6}
+
+.toast{
+  position:fixed;top:calc(66px + var(--safe-t));right:calc(18px + var(--safe-r));
+  background:var(--panel-3);border:1px solid var(--line);
+  padding:11px 14px;border-radius:var(--r-sm);font-size:13px;
+  display:none;z-index:70;max-width:min(360px,86vw);box-shadow:0 12px 40px #000a;
+}
+.toast.show{display:block}
+
+/* ============ Mobile responsive ============ */
+@media (max-width:900px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .sidebar{
+    position:fixed;top:0;bottom:0;left:0;width:min(84vw,290px);
+    transform:translateX(-100%);transition:transform var(--t-base);
+    box-shadow:0 0 0 1px var(--line),24px 0 60px rgba(0,0,0,.45);
+    padding-bottom:calc(10px + var(--safe-b));
+  }
+  .shell.nav-open .sidebar{transform:none}
+  .drawer-close,.drawer-open{display:inline-flex;align-items:center;justify-content:center}
+  .main-head{padding-left:calc(10px + var(--safe-l));padding-right:calc(10px + var(--safe-r))}
+  .side-chat{padding:10px;font-size:13.5px}
+}
+
+@media (max-width:640px){
+  .stage-inner{padding:0 14px}
+  .composer-slot{
+    padding-left:calc(12px + var(--safe-l));
+    padding-right:calc(12px + var(--safe-r));
+    padding-bottom:calc(12px + var(--safe-b));
+  }
+  .composer{padding:8px 10px 6px;border-radius:24px}
+  .composer textarea{min-height:26px;padding:2px 8px 4px;font-size:16px}
+  .composer-model-chip{height:20px;font-size:11px}
+  .msg-user .bubble{max-width:100%}
+  .stage-head{font-size:23px}
+  .msg-action{width:32px;height:32px}
+  .page-head{padding:calc(14px + var(--safe-t)) 14px 0}
+  .toolbar{padding:12px 14px 0}
+  .filters{padding:10px 14px}
+  .page-body{padding:6px 14px calc(20px + var(--safe-b))}
+}
+
+@media (max-width:420px){
+  .chip-btn{width:32px;height:32px}
+  .send{width:34px;height:34px}
+}
+
+@media (max-width:900px){
+  input,textarea,select{font-size:16px}
+}
+
+/* ============ Chat manager ============ */
+.chat-search{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-md)}
+.chat-search input{width:100%;outline:0;background:none}
+.chat-tools{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+.chat-tool{padding:8px 12px;border:1px solid var(--line);border-radius:var(--r-sm);color:var(--muted);font-size:12.5px;background:var(--panel-2)}
+.chat-tool:hover,.chat-tool.is-on{background:var(--panel-3);color:var(--text)}
+.chat-item{display:grid;grid-template-columns:1fr auto;gap:6px;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--panel-2)}
+.chat-item:hover{background:var(--panel-3)}
+.chat-item-main{min-width:0;text-align:left}
+.chat-item-title{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:500}
+.chat-item-meta{display:block;color:var(--dim);font-size:11.5px;margin-top:4px}
+.chat-item-actions{display:flex;gap:3px;align-items:center}
+.chat-item-actions button{color:var(--dim);font-size:14px;padding:6px 8px;border-radius:6px}
+.chat-item-actions button:hover{color:var(--text);background:var(--raised)}
+@media(max-width:640px){.chat-item{grid-template-columns:1fr}.chat-item-actions{justify-content:flex-end}}
+
+.attachment-strip{display:flex;gap:6px;flex-wrap:wrap;padding:2px 2px 0}
+.attachment-chip{position:relative;display:flex;align-items:center;gap:5px;max-width:100%;padding:5px 7px;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);font-size:11.5px;color:var(--muted)}
+.attachment-chip span{max-width:min(180px,50vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.attachment-chip button{color:var(--dim);padding:0 3px}
+.attachment-chip button:hover{color:var(--text)}
+.attachment-kind{font-size:9px;color:var(--dim);text-transform:uppercase}
+
+.model-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:3px}
+.cap-badge{display:inline-flex;align-items:center;height:18px;padding:0 6px;border:1px solid var(--line);border-radius:99px;color:var(--dim);font-size:9.5px;background:var(--panel-3);white-space:nowrap}
+.model-tools{display:flex;gap:7px;flex-wrap:wrap;padding:0 20px 4px}
+.model-tool{height:32px;padding:0 11px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-3);color:var(--muted);font-size:11.5px;transition:background-color var(--t-base),color var(--t-base),border-color var(--t-base)}
+.model-tool:hover,.model-tool.is-on{color:var(--text);border-color:var(--line-strong);background:var(--raised)}
+
+/* ============ Themes ============ */
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#fff; --panel:#f7f7f8; --panel-2:#f0f0f1; --panel-3:#e8e8ea; --raised:#e0e0e2;
+  --line:#e2e2e4; --line-strong:#cfcfd2; --text:#1a1a1a; --muted:#5c5c60; --dim:#8b8b8f;
+  --accent-soft:rgba(61,125,255,.12);
+}
+:root[data-theme="light"] .admin-head{background:rgba(255,255,255,.92)}
+:root[data-theme="light"] .composer{
+  background-image:linear-gradient(180deg,rgba(0,0,0,.01),rgba(0,0,0,0) 55%);
+  box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 12px 32px -22px rgba(0,0,0,.18);
+}
+:root[data-theme="light"] .send{color:#fff}
+:root[data-theme="light"] .send:hover{background:#000}
+:root[data-theme="light"] .toast{color:var(--text)}
+:root[data-theme="light"] .auth-primary{background:#111;color:#fff}
+:root[data-theme="amoled"]{
+  color-scheme:dark;
+  --bg:#000; --panel:#000; --panel-2:#050505; --panel-3:#0c0c0c; --raised:#131313;
+  --line:#1a1a1a; --line-strong:#242424; --text:#f0f0f0; --muted:#8f8f8f; --dim:#5c5c5c;
+}
+:root[data-theme="amoled"] .composer{background-color:#050505}
+
+/* ============ Density / font ============ */
+:root[data-fontsize="small"] .bubble, :root[data-fontsize="small"] .composer textarea{font-size:12.5px}
+:root[data-fontsize="large"] .bubble, :root[data-fontsize="large"] .composer textarea{font-size:15.5px}
+:root[data-density="compact"] .thread{gap:10px}
+:root[data-density="compact"] .msg-user .bubble{padding:7px 10px}
+:root[data-density="spacious"] .thread{gap:28px}
+:root[data-density="spacious"] .msg-user .bubble{padding:14px 18px}
+
+/* ============ Thinking / reasoning ============ */
+.thinking-row{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;padding:2px 0}
+.thinking-dots{display:inline-flex;gap:3px}
+.thinking-dots span{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:think-pulse 1.1s ease-in-out infinite}
+.thinking-dots span:nth-child(2){animation-delay:.15s}
+.thinking-dots span:nth-child(3){animation-delay:.3s}
+@keyframes think-pulse{0%,60%,100%{opacity:.25;transform:scale(.85)}30%{opacity:1;transform:scale(1)}}
+.thinking-spark{display:inline-block;animation:think-spin 1.6s linear infinite}
+@keyframes think-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+.reasoning-block{margin:0 0 10px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--panel-2);max-width:min(100%,640px)}
+.reasoning-toggle{display:flex;align-items:center;gap:7px;width:100%;text-align:left;padding:9px 12px;color:var(--muted);font-size:12.5px;font-weight:500}
+.reasoning-toggle:hover{color:var(--text)}
+.reasoning-body{display:none;padding:9px 12px 12px;color:var(--dim);font-size:12.5px;white-space:pre-wrap;line-height:1.55;border-top:1px solid var(--line);margin-top:2px}
+.reasoning-block.open .reasoning-body{display:block}
+.reasoning-block.open .reasoning-caret{transform:rotate(90deg)}
+.reasoning-caret{transition:transform var(--t-fast);display:inline-block}
+.msg-error .bubble{color:var(--danger)}
+
+/* ============ Markdown ============ */
+.md{line-height:1.65;overflow-wrap:anywhere}
+.md>*:first-child{margin-top:0}.md>*:last-child{margin-bottom:0}
+.md h1,.md h2,.md h3{line-height:1.3;margin:18px 0 8px;font-weight:600}
+.md h1{font-size:1.4em}.md h2{font-size:1.22em}.md h3{font-size:1.08em}
+.md p{margin:0 0 12px}
+.md ul,.md ol{margin:0 0 12px;padding-left:22px}
+.md li{margin:3px 0}
+.md blockquote{margin:0 0 12px;padding:2px 14px;border-left:3px solid var(--line-strong);color:var(--muted)}
+.md a{color:var(--accent);text-decoration:underline}
+.md hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+.md code{font-family:var(--mono);font-size:.9em;background:var(--panel-3);padding:2px 5px;border-radius:4px}
+.md pre{margin:0 0 12px;background:#0d0d0d;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+:root[data-theme="light"] .md pre{background:#f4f4f5}
+.md pre code{display:block;background:none;padding:12px 14px;overflow-x:auto;font-size:12.5px;line-height:1.55;border-radius:0;-webkit-overflow-scrolling:touch}
+.code-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;background:var(--panel-3);border-bottom:1px solid var(--line);font-size:11px;color:var(--dim)}
+.code-toolbar-actions{display:flex;gap:4px}
+.code-toolbar button{padding:4px 8px;border-radius:5px;color:var(--muted);font-size:11px}
+.code-toolbar button:hover{background:var(--raised);color:var(--text)}
+.md table{border-collapse:collapse;margin:0 0 12px;font-size:13px;min-width:100%}
+.md-table-wrap{overflow-x:auto;margin:0 0 12px;border:1px solid var(--line);border-radius:var(--r-md);-webkit-overflow-scrolling:touch}
+.md-table-wrap table{margin:0}
+.md th,.md td{border:1px solid var(--line);padding:7px 10px;text-align:left;white-space:nowrap}
+.md th{background:var(--panel-3);color:var(--muted);font-weight:600}
+.md tr:nth-child(even) td{background:var(--panel-2)}
+.katex-display{overflow-x:auto;overflow-y:hidden;padding:4px 0}
+
+/* ============ Avatars / prompts ============ */
+.msg-user .msg-who{display:flex;align-items:center;justify-content:flex-end;gap:6px;color:var(--muted);font-size:12px;margin-bottom:2px}
+.avatar-emoji{display:inline-grid;place-items:center;width:18px;height:18px;font-size:12px;border-radius:5px;background:var(--panel-3)}
+
+.saved-prompt-row{display:flex;align-items:flex-start;gap:8px;padding:12px;border:1px solid var(--line);border-radius:var(--r-md);margin-bottom:8px;background:var(--panel-2)}
+.saved-prompt-main{flex:1;min-width:0}
+.saved-prompt-main b{display:block;font-size:13.5px;font-weight:500;margin-bottom:3px}
+.saved-prompt-main span{display:block;color:var(--dim);font-size:12px;line-height:1.4;max-height:2.8em;overflow:hidden}
+.saved-prompt-actions{display:flex;flex-direction:column;gap:4px}
+.saved-prompt-actions button{font-size:11.5px;color:var(--muted);padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:transparent}
+.saved-prompt-actions button:hover{color:var(--text);border-color:var(--line-strong);background:var(--panel-3)}
+
+.swatch-row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.swatch{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer;transition:transform var(--t-fast)}
+.swatch:active{transform:scale(.94)}
+.swatch.is-active{border-color:var(--text);box-shadow:0 0 0 3px var(--accent-soft)}
+.theme-option-row{display:flex;gap:8px;flex-wrap:wrap}
+.theme-option{flex:1;min-width:84px;padding:12px 8px;border:1px solid var(--line);border-radius:var(--r-md);text-align:center;font-size:12.5px;color:var(--muted);background:var(--panel-2);transition:background-color var(--t-base),color var(--t-base),border-color var(--t-base)}
+.theme-option.is-active{border-color:rgba(139,92,246,.55);background:rgba(139,92,246,.12);color:var(--text);font-weight:500}
+
+.avatar-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:8px 0}
+@media(max-width:420px){.avatar-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.avatar-opt{
+  aspect-ratio:1;border-radius:10px;
+  display:grid;place-items:center;
+  font-size:20px;
+  background:var(--panel-2);border:1px solid var(--line);
+  transition:background-color var(--t-base),border-color var(--t-base),transform var(--t-fast);
+}
+.avatar-opt:hover{background:var(--panel-3);border-color:var(--line-strong)}
+.avatar-opt:active{transform:scale(.94)}
+.avatar-opt.is-active{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 2px var(--accent-soft)}
+
+/* ============ Full-screen editor ============ */
+.editor-body{display:flex;flex-direction:column;gap:18px;min-height:100%}
+.editor-section{}
+.editor-section > label{
+  display:block;
+  font-size:12px;font-weight:500;color:var(--muted);
+  margin-bottom:8px;letter-spacing:.01em;
+}
+.editor-textarea{
+  width:100%;
+  min-height:180px;
+  padding:14px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:12px;
+  color:var(--text);
+  font-size:14.5px;
+  line-height:1.6;
+  resize:vertical;
+  outline:0;
+  transition:border-color var(--t-base),box-shadow var(--t-base);
+  font-family:inherit;
+}
+.editor-textarea:focus{border-color:var(--line-strong);box-shadow:0 0 0 3px var(--accent-soft)}
+.editor-input{
+  width:100%;
+  padding:14px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:12px;
+  color:var(--text);
+  font-size:14.5px;
+  outline:0;
+  transition:border-color var(--t-base),box-shadow var(--t-base);
+  font-family:inherit;
+}
+.editor-input:focus{border-color:var(--line-strong);box-shadow:0 0 0 3px var(--accent-soft)}
+.editor-hint{font-size:11.5px;color:var(--dim);margin-top:8px;line-height:1.5}
+.editor-actions{
+  display:flex;gap:10px;
+  margin-top:auto;
+  padding-top:16px;
+}
+.editor-actions .btn-primary,.editor-actions .btn-ghost{
+  flex:1;
+  padding:14px;
+  font-size:14px;
+  border-radius:10px;
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs" type="module" id="pdfjs-module"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+</head>
+<body>
+<div class="shell" id="shell">
+  <div class="scrim" id="scrim"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="side-brand">
+      <span class="brand"><span class="logo" id="brandLogo"></span><b>China-GPT</b></span>
+      <button class="drawer-close" id="drawerClose" aria-label="Close menu">✕</button>
+    </div>
+    <nav class="side-nav">
+      <button class="side-new" id="newChat">＋ New</button>
+      <button id="navModels">◉ Models</button>
+      <button id="navChats">◷ Chats</button>
+    </nav>
+    <div class="side-recent">
+      <div class="side-label">Recent</div>
+      <div class="side-list" id="recentChats"></div>
+    </div>
+    <button class="side-api-link" id="apiDocsBtn" aria-label="API documentation">&lt;&gt; API</button>
+    <div class="side-account">
+      <button class="account-btn" id="accountBtn">
+        <span class="avatar" id="accountAvatar">U</span>
+        <span class="account-id"><b id="accountName">Account</b><small id="accountSub">Not signed in</small></span>
+        <svg class="model-caret" viewBox="0 0 24 24"><path d="m8 10.2 4 4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="main-head">
+      <button class="drawer-open" id="menuBtn" aria-label="Menu">☰</button>
+      <button class="model-btn" id="modelBtn"><span id="modelLabel">Loading models…</span><svg class="model-caret" viewBox="0 0 24 24"><path d="m8 10.2 4 4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"/></svg></button>
+    </header>
+
+    <section class="stage is-home" id="stage">
+      <div class="stage-scroll" id="stageScroll">
+        <div class="stage-inner">
+          <h1 class="stage-head" id="stageHead">What can I help you make?</h1>
+          <p class="stage-sub">One conversation, many models — routed through your own gateway.</p>
+          <div class="thread" id="messages"></div>
+        </div>
+      </div>
+
+      <div class="composer-slot">
+        <div class="composer" id="composer">
+          <button class="composer-model-chip" id="composerModelChip" type="button" title="Switch model">
+            <span class="cmc-icon" id="composerChipIcon"></span>
+            <span class="cmc-text" id="composerChipText">Pick a model</span>
+            <svg class="cmc-caret" viewBox="0 0 24 24"><path d="m8 10.2 4 4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+          </button>
+          <textarea id="prompt" placeholder="Ask China-GPT anything" rows="1" aria-label="Message"></textarea>
+          <div id="attachmentStrip" class="attachment-strip"></div>
+          <div class="composer-bar">
+            <label class="chip-btn" aria-label="Attach files" title="Attach files">＋<input id="fileInput" type="file" hidden multiple accept="image/*,.pdf,.txt,.md,.markdown,.json,.csv,.js,.ts,.html,.css,.xml,.yaml,.yml,.log,.py,.java,.c,.cpp,.h,.hpp,.sql,.sh,.go,.rs,.php,.jsx,.tsx,.vue"></label>
+            <button class="chip-btn" id="searchBtn" aria-label="Web search" title="Web search">⌕</button>
+            <button class="chip-btn" id="personalitiesBtn" aria-label="Personalities" title="Personalities">✨</button>
+            <span class="composer-spacer"></span>
+            <button class="send" id="sendBtn" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V6m0 0-6 6m6-6 6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <button class="send stop-btn" id="stopBtn" style="display:none" title="Stop generating" aria-label="Stop generating"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+
+<div class="admin-page" id="adminPage">
+  <div class="admin-head">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="btn-ghost admin-mobile-close" id="adminMobileClose">☰</button>
+      <h2>Admin Dashboard</h2>
+    </div>
+    <div class="admin-head-actions">
+      <button class="btn-ghost" id="adminRefreshBtn">Refresh</button>
+      <button class="btn-ghost" id="adminCloseBtn" aria-label="Close">✕</button>
+    </div>
+  </div>
+  <div class="admin-shell">
+    <aside class="admin-nav" id="adminNav">
+      <div class="admin-nav-title">China-GPT Admin</div>
+      <button class="is-active" data-admin-section="overview">⌂ Overview</button>
+      <button data-admin-section="accounts">♙ Accounts</button>
+      <button data-admin-section="keys">⌁ Access Keys</button>
+      <button data-admin-section="models">◉ Models</button>
+      <button data-admin-section="usage">▥ Usage</button>
+      <button data-admin-section="compare">⇄ Compare</button>
+      <button data-admin-section="playground">◇ Playground</button>
+      <button data-admin-section="api-settings">⌗ API Settings</button>
+      <button data-admin-section="system">◌ System</button>
+      <button data-admin-section="logs">☷ Activity Logs</button>
+      <button data-admin-section="settings">⚙ Settings</button>
+      <button class="admin-back" id="adminBackBtn">← Back to China-GPT</button>
+    </aside>
+    <main class="admin-main"><div class="admin-content" id="adminContent"></div></main>
+  </div>
+</div>
+
+<div class="page-view" id="modelsPage">
+  <div class="page">
+    <div class="page-head">
+      <div class="page-head-row">
+        <h2 id="catalogCount">Models</h2>
+        <div style="display:flex;gap:8px;align-items:center"><button class="page-close" id="modelsClose" aria-label="Close">✕</button></div>
+      </div>
+      <p>Selecting one pins its exact model ID to the composer.</p>
+    </div>
+    <div class="toolbar">
+      <label class="search-field">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.6" stroke-width="1.6"/><path d="m16 16 4.4 4.4" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <input id="modelSearch" placeholder="Search models or providers" aria-label="Search models">
+      </label>
+    </div>
+    <div class="filters" id="modelFilters"></div>
+    <div class="model-tools"><button class="model-tool" id="favoritesOnlyBtn">☆ Favorites</button><button class="model-tool" id="recentOnlyBtn">◷ Recently used</button><select class="model-tool" id="modelSort"><option value="name">Sort: Name</option><option value="provider">Sort: Provider</option></select></div>
+    <div class="page-body">
+      <div class="model-table">
+        <div class="model-head"><span>Model</span><span>Context</span><span>Input / 1M</span><span>Output / 1M</span><span></span></div>
+        <div id="modelResults"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="qs-backdrop" id="qsBackdrop"></div>
+<div class="qs-sheet" id="qsSheet" role="dialog" aria-label="Select a model"></div>
+
+<div class="auth-page" id="authPage"><div class="auth-card" id="authCard"></div></div>
+
+<div class="screen-page" id="screenPage">
+  <div class="screen-page-head">
+    <h2 id="screenPageTitle">Page</h2>
+    <button class="screen-page-close" id="screenPageClose" aria-label="Close">✕</button>
+  </div>
+  <div class="screen-page-body" id="screenPageBody"></div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* Same-origin: the app and the API both live on china-gpt.onrender.com. */
+const WORKER_BASE = "";
+const API_BASE = WORKER_BASE + "/v1";
+const $ = s => document.querySelector(s);
+function readStoredArray(k){try{const v=JSON.parse(localStorage.getItem(k)||"[]");return Array.isArray(v)?v:[]}catch{return []}}
+const state = {
+  models:[],
+  model:localStorage.getItem("chinaGPTModel")||"",
+  messages:[],
+  accessCode:localStorage.getItem("chinaGPTAccessCode")||"",
+  role:localStorage.getItem("chinaGPTRole")||"",
+  conversationId:localStorage.getItem("chinaGPTConversationId")||"",
+  attachments:[],
+  webSearch:false,
+  generating:false,
+  abortController:null,
+  favorites:readStoredArray("chinaGPTFavoriteModels"),
+  recentModels:readStoredArray("chinaGPTRecentModels"),
+  favoritesOnly:false,
+  recentOnly:false,
+  theme:localStorage.getItem("chinaGPTTheme")||"dark",
+  accent:localStorage.getItem("chinaGPTAccent")||"",
+  fontSize:localStorage.getItem("chinaGPTFontSize")||"medium",
+  density:localStorage.getItem("chinaGPTDensity")||"comfortable",
+  profileName:localStorage.getItem("chinaGPTProfileName")||"",
+  profileAvatar:localStorage.getItem("chinaGPTProfileAvatar")||"🙂",
+  persona:safeJsonEarly("chinaGPTPersona",{text:"",enabled:false}),
+  savedPrompts:safeJsonEarly("chinaGPTSavedPrompts",[]),
+  apiBaseUrl:"",
+  apiKeys:[]
+};
+function safeJsonEarly(k,fallback){try{const v=JSON.parse(localStorage.getItem(k));return v===null||v===undefined?fallback:v}catch{return fallback}}
+
+/* ============================================================
+   KEY CACHE (browser-only, option 3a)
+   ============================================================ */
+const API_KEY_CACHE_PREFIX = "chinaGPTApiKeyCache_";
+function cacheApiKey(id, fullKey){
+  try{ localStorage.setItem(API_KEY_CACHE_PREFIX+id, fullKey) }catch{}
+}
+function getCachedApiKey(id){
+  try{ return localStorage.getItem(API_KEY_CACHE_PREFIX+id) || null }catch{ return null }
+}
+function clearCachedApiKey(id){
+  try{ localStorage.removeItem(API_KEY_CACHE_PREFIX+id) }catch{}
+}
+
+/* ============================================================
+   LOGO
+   ============================================================ */
+const LOGO_SVG = `
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="cgGradA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="cgGradB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e9d5ff"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <path d="M24 4.5c-11 0-19.5 8-19.5 18 0 5 2.2 9.6 5.9 12.8L8 43l7-2.5A21 21 0 0 0 24 42c11 0 19.5-8 19.5-18S35 4.5 24 4.5Z"
+        stroke="url(#cgGradA)" stroke-width="2.4" fill="none" stroke-linejoin="round"/>
+  <path d="M17 15.5c-2.4.6-4 2.4-4 4.9 0 1.2.4 2.3 1 3.2-.8.9-1.2 2-1.2 3.2 0 2 1.2 3.6 3 4.4.2 2.2 2 3.9 4.2 3.9 1 0 2-.3 2.7-1 .8.6 1.8 1 2.9 1 2.2 0 4.1-1.5 4.4-3.5 2-.7 3.3-2.5 3.3-4.6 0-1.4-.5-2.6-1.3-3.6.7-.9 1.1-2 1.1-3.2 0-2.4-1.6-4.3-3.9-4.9-1-1.2-2.5-2-4.2-2-1.4 0-2.7.5-3.7 1.4-1-.9-2.3-1.4-3.7-1.4-1.8 0-3.3.8-4.3 2Z"
+        stroke="url(#cgGradB)" stroke-width="1.7" fill="none" stroke-linejoin="round"/>
+  <g fill="#c4b5fd">
+    <circle cx="17.5" cy="19.5" r="1.05"/>
+    <circle cx="24" cy="18.5" r="1.05"/>
+    <circle cx="30.5" cy="19.5" r="1.05"/>
+    <circle cx="16.5" cy="25.5" r="1.05"/>
+    <circle cx="24" cy="24.5" r="1.05"/>
+    <circle cx="31.5" cy="25.5" r="1.05"/>
+    <circle cx="20.5" cy="30.5" r="1.05"/>
+    <circle cx="27.5" cy="30.5" r="1.05"/>
+  </g>
+  <g stroke="#a78bfa" stroke-width="0.7" opacity="0.6" stroke-linecap="round">
+    <path d="M17.5 19.5 24 18.5 30.5 19.5"/>
+    <path d="M16.5 25.5 24 24.5 31.5 25.5"/>
+    <path d="M17.5 19.5 16.5 25.5"/>
+    <path d="M30.5 19.5 31.5 25.5"/>
+    <path d="M24 18.5 24 24.5"/>
+    <path d="M24 24.5 20.5 30.5"/>
+    <path d="M24 24.5 27.5 30.5"/>
+    <path d="M20.5 30.5 16.5 25.5"/>
+    <path d="M27.5 30.5 31.5 25.5"/>
+  </g>
+</svg>`;
+
+/* ============================================================
+   LOBE ICONS — external SVG brand marks
+   ============================================================ */
+const LOBE_BASE = "https://unpkg.com/@lobehub/icons-static-svg@latest/icons/";
+const PROVIDER_ICON_SLUGS = {
+  openai: "openai",
+  anthropic: "anthropic",
+  google: "gemini",
+  deepseek: "deepseek",
+  qwen: "qwen",
+  moonshot: "kimi",
+  zai: "zai",
+  xai: "grok",
+  meta: "meta",
+  mistral: "mistral",
+  minimax: "minimax",
+  nvidia: "nvidia",
+  cohere: "cohere",
+  bytedance: "doubao",
+  xiaomi: "xiaomi",
+  tencent: "hunyuan"
+};
+function providerIconUrl(key){
+  const slug = PROVIDER_ICON_SLUGS[key];
+  return slug ? LOBE_BASE + slug + ".svg" : null;
+}
+
+const PROVIDER_COLORS = {
+  openai:"#10a37f", anthropic:"#d97757", google:"#4285f4", deepseek:"#4d6bfe",
+  qwen:"#615ced", meta:"#0866ff", mistral:"#fa520f", xai:"#c9c9c9",
+  moonshot:"#5a4fcf", zai:"#2b5797", nvidia:"#76b900", microsoft:"#0078d4",
+  cohere:"#39594d", bytedance:"#325ab4", xiaomi:"#ff6900", tencent:"#1296db",
+  minimax:"#e94a3a"
+};
+function providerColor(key){
+  if (PROVIDER_COLORS[key]) return PROVIDER_COLORS[key];
+  let h = 0;
+  const s = String(key||"");
+  for (let i=0;i<s.length;i++) h = (h*31 + s.charCodeAt(i)) >>> 0;
+  return `hsl(${h % 360} 55% 62%)`;
+}
+function hexToRgba(hex,a){
+  const h = String(hex||"#6b6b6b").replace("#","");
+  if (h.length !== 6) return `rgba(139,92,246,${a})`;
+  const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+/* ============================================================
+   MAKER DETECTION
+   ============================================================ */
+const MAKERS = [
+  { re:/(^|\/)(gpt|gpt-oss|gpt-6|gpt-5|o1|o3|o4)[-\d]/i, key:"openai", label:"OpenAI" },
+  { re:/(^|\/)(claude|fable)/i, key:"anthropic", label:"Anthropic" },
+  { re:/(^|\/)(gemini|gemma|lyria)/i, key:"google", label:"Google" },
+  { re:/(^|\/)deepseek/i, key:"deepseek", label:"DeepSeek" },
+  { re:/(^|\/)(qwen|qwq)/i, key:"qwen", label:"Qwen" },
+  { re:/(^|\/)kimi/i, key:"moonshot", label:"Moonshot AI" },
+  { re:/(^|\/)glm/i, key:"zai", label:"Z.AI" },
+  { re:/(^|\/)grok/i, key:"xai", label:"xAI" },
+  { re:/(^|\/)(llama|muse-spark)/i, key:"meta", label:"Meta" },
+  { re:/(^|\/)(mistral|ministral|codestral|devstral)/i, key:"mistral", label:"Mistral" },
+  { re:/(^|\/)minimax/i, key:"minimax", label:"MiniMax" },
+  { re:/(^|\/)(nemotron|parakeet)/i, key:"nvidia", label:"NVIDIA" },
+  { re:/(^|\/)north(-mini-code)/i, key:"cohere", label:"Cohere" },
+  { re:/(^|\/)(seedream|doubao)/i, key:"bytedance", label:"ByteDance" },
+  { re:/(^|\/)mimo/i, key:"xiaomi", label:"Xiaomi" },
+  { re:/(^|\/)(hy\d|hunyuan)/i, key:"tencent", label:"Tencent" },
+  { re:/(^|\/)longcat/i, key:"meituan", label:"Meituan" },
+  { re:/(^|\/)sensenova/i, key:"sensetime", label:"SenseTime" }
+];
+const AGGREGATOR_LABELS = {
+  crax:"Crax", Dahl:"Dahl", kr:"Krea", cf:"Cloudflare",
+  ollama:"Ollama", openrouter:"OpenRouter", gemini:"Google",
+  nvidia:"NVIDIA NIM", xkiro:"xKiro"
+};
+function makerOf(modelId){
+  const id = String(modelId||"");
+  for (const m of MAKERS){ if (m.re.test(id)) return { key:m.key, label:m.label }; }
+  const agg = (id.split("/")[0]||"").toLowerCase();
+  const label = AGGREGATOR_LABELS[agg] || (agg ? agg[0].toUpperCase()+agg.slice(1) : "Other");
+  return { key: agg || "other", label };
+}
+function providerOf(modelId){ return makerOf(modelId).key; }
+function providerLabel(key){
+  if (!key) return "Other";
+  for (const m of MAKERS) if (m.key === key) return m.label;
+  for (const [k,v] of Object.entries(AGGREGATOR_LABELS)) if (k.toLowerCase() === String(key).toLowerCase()) return v;
+  return String(key).charAt(0).toUpperCase() + String(key).slice(1);
+}
+function safeLetter(key){
+  const l = String(providerLabel(key) || "?")[0].toUpperCase();
+  return /^[A-Z0-9]$/.test(l) ? l : "?";
+}
+function renderTile(key, sizeClass=""){
+  const color = providerColor(key);
+  const tint = hexToRgba(color, .16);
+  const border = hexToRgba(color, .35);
+  const url = providerIconUrl(key);
+  const letter = safeLetter(key);
+  const inner = url
+    ? `<img src="${url}" alt="" loading="lazy" onerror="this.parentNode.setAttribute('data-letter','${letter}')">`
+    : letter;
+  return `<span class="tile ${sizeClass}" style="background:${tint};color:${color};border:1px solid ${border}">${inner}</span>`;
+}
+function renderChipIcon(key){
+  const url = providerIconUrl(key);
+  const letter = safeLetter(key);
+  if(url){
+    return `<img src="${url}" alt="" loading="lazy" onerror="this.parentNode.setAttribute('data-letter','${letter}')">`;
+  }
+  return letter;
+}
+
+/* ============================================================
+   MODEL NAME CLEANING
+   ============================================================ */
+const NAME_TOKEN_MAP = { gpt:"GPT", llm:"LLM", ai:"AI", vl:"VL", glm:"GLM", oss:"OSS", api:"API", qwq:"QwQ" };
+function cleanModelName(id){
+  let raw = String(id||"").split("/").pop() || id || "Unknown";
+  raw = raw.replace(/_+/g," ");
+  let tokens = raw.split(/-+/).filter(Boolean);
+  const merged = [];
+  for (let i=0;i<tokens.length;i++){
+    const t = tokens[i];
+    if (/^\d$/.test(t) && merged.length && /^\d(\.\d+)?$/.test(merged[merged.length-1])){
+      merged[merged.length-1] += "." + t;
+    } else {
+      merged.push(t);
+    }
+  }
+  return merged.map(tok=>{
+    const lower = tok.toLowerCase();
+    if (NAME_TOKEN_MAP[lower]) return NAME_TOKEN_MAP[lower];
+    if (/^\d/.test(tok)) return tok.replace(/([a-z])$/i, m=>m.toUpperCase());
+    return tok[0].toUpperCase() + tok.slice(1);
+  }).join(" ");
+}
+
+const PERSONA_PRESETS=[
+  {id:"researcher",name:"Researcher",icon:"🔍",prompt:"You are a meticulous research assistant. Prioritize accuracy, organize findings clearly, cite sources when known, and distinguish facts from speculation."},
+  {id:"coder",name:"Coder",icon:"⌨",prompt:"You are an expert software engineer. Write clean, correct, well-explained code, point out bugs and edge cases, and prefer concrete working examples over vague advice."},
+  {id:"writer",name:"Writer",icon:"✎",prompt:"You are a skilled editor and writer. Focus on clarity, tone, and structure. Offer concrete rewrites, not just abstract feedback."},
+  {id:"analyst",name:"Analyst",icon:"▥",prompt:"You are a rigorous analyst. Break problems into structured steps, surface assumptions, and present comparisons and conclusions in clearly organized form."}
+];
+function savePersona(){localStorage.setItem("chinaGPTPersona",JSON.stringify(state.persona))}
+function saveSavedPrompts(){localStorage.setItem("chinaGPTSavedPrompts",JSON.stringify(state.savedPrompts))}
+function loadTheme(){
+  const root=document.documentElement;
+  if(state.theme&&state.theme!=="dark") root.setAttribute("data-theme",state.theme); else root.removeAttribute("data-theme");
+  root.setAttribute("data-fontsize",state.fontSize||"medium");
+  root.setAttribute("data-density",state.density||"comfortable");
+  if(state.accent){
+    root.style.setProperty("--accent",state.accent);
+    const hex=String(state.accent).replace("#","");
+    if(/^[0-9a-fA-F]{6}$/.test(hex)){
+      const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
+      root.style.setProperty("--accent-soft",`rgba(${r},${g},${b},.14)`);
+    }
+  }
+}
+function saveTheme(theme){state.theme=theme;localStorage.setItem("chinaGPTTheme",theme);loadTheme()}
+function saveAccent(hex){state.accent=hex;localStorage.setItem("chinaGPTAccent",hex);loadTheme()}
+function saveFontSize(v){state.fontSize=v;localStorage.setItem("chinaGPTFontSize",v);loadTheme()}
+function saveDensity(v){state.density=v;localStorage.setItem("chinaGPTDensity",v);loadTheme()}
+function saveProfile(name,avatar){
+  state.profileName=name;state.profileAvatar=avatar;
+  localStorage.setItem("chinaGPTProfileName",name);
+  localStorage.setItem("chinaGPTProfileAvatar",avatar);
+  updateAccountBadge();
+}
+loadTheme();
+
+function toast(t){const x=$("#toast");x.textContent=t;x.classList.add("show");clearTimeout(x._t);x._t=setTimeout(()=>x.classList.remove("show"),2600)}
+function key(){return state.accessCode||localStorage.getItem("chinaGPTAccessCode")||""}
+function authHeaders(json=true){
+  const h={};
+  if(key())h["X-China-GPT-Key"]=key();
+  if(json)h["Content-Type"]="application/json";
+  return h;
+}
+function isAuthenticated(){return !!key()}
+function setAuth(code,role){
+  state.accessCode=code; state.role=role||"user";
+  localStorage.setItem("chinaGPTAccessCode",code);
+  localStorage.setItem("chinaGPTRole",state.role);
+}
+function clearAuth(){
+  state.accessCode=""; state.role="";
+  localStorage.removeItem("chinaGPTAccessCode");
+  localStorage.removeItem("chinaGPTRole");
+}
+function escapeHtml(s){
+  return String(s===undefined||s===null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+}
+
+/* ============================================================
+   SCREEN-PAGE STACK
+   ============================================================ */
+const pageStack=[];
+function pushPage(title,renderFn){
+  pageStack.push({title,renderFn});
+  renderTopPage();
+}
+function popPage(){
+  pageStack.pop();
+  renderTopPage();
+}
+function closeAllPages(){
+  pageStack.length=0;
+  renderTopPage();
+}
+function renderTopPage(){
+  const el=$("#screenPage");
+  if(pageStack.length===0){ el.classList.remove("open"); return; }
+  const top=pageStack[pageStack.length-1];
+  $("#screenPageTitle").textContent=top.title;
+  const body=$("#screenPageBody");
+  body.innerHTML="";
+  body.scrollTop=0;
+  top.renderFn(body);
+  el.classList.add("open");
+}
+$("#screenPageClose").onclick=popPage;
+
+/* ============================================================
+   LOAD MODELS
+   ============================================================ */
+async function loadModels(){
+  try{
+    const r=await fetch(API_BASE+"/models",{headers:authHeaders(false)});
+    if(r.status===401||r.status===403){clearAuth();updateBadge();openLogin("models");return}
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j=await r.json(); state.models=Array.isArray(j.data)?j.data:[];
+    if(!state.model || !state.models.some(m=>m.id===state.model)) state.model=state.models[0]?.id||"";
+    localStorage.setItem("chinaGPTModel",state.model); updateBadge(); refreshCatalogIfOpen();
+  }catch(e){updateBadge();toast("Could not load models.")}
+}
+function updateBadge(){
+  const label=$("#modelLabel");
+  if(label) label.textContent=state.model?cleanModelName(state.model):"Pick a model";
+  const chipText=$("#composerChipText");
+  const chipIcon=$("#composerChipIcon");
+  if(chipText) chipText.textContent=state.model?cleanModelName(state.model):"Pick a model";
+  if(chipIcon){
+    chipIcon.removeAttribute("data-letter");
+    if(state.model){
+      const maker=makerOf(state.model);
+      const c=providerColor(maker.key);
+      chipIcon.style.color=c;
+      chipIcon.innerHTML=renderChipIcon(maker.key);
+    } else {
+      chipIcon.style.color="";
+      chipIcon.innerHTML="?";
+    }
+  }
+  updateAccountBadge();
+}
+function refreshCatalogIfOpen(){if($("#modelsPage").classList.contains("open")){buildFilters();renderCatalog()}}
+
+/* ============================================================
+   MARKDOWN
+   ============================================================ */
+function renderMarkdownSafe(text){
+  try{
+    if(window.marked&&window.DOMPurify){
+      marked.setOptions({breaks:true,gfm:true});
+      const raw=marked.parse(text);
+      return DOMPurify.sanitize(raw,{ADD_ATTR:["target","rel"]});
+    }
+  }catch(e){}
+  return null;
+}
+const CODE_EXT_MAP={javascript:".js",js:".js",typescript:".ts",ts:".ts",html:".html",xml:".xml",css:".css",json:".json",bash:".sh",shell:".sh",sh:".sh",python:".py",py:".py",java:".java",c:".c",cpp:".cpp","c++":".cpp",csharp:".cs","c#":".cs",php:".php",sql:".sql",yaml:".yml",yml:".yml",markdown:".md",md:".md",go:".go",rust:".rs",rs:".rs"};
+function extFor(lang){return CODE_EXT_MAP[(lang||"").toLowerCase()]||".txt"}
+function enhanceRenderedMarkdown(container){
+  container.querySelectorAll("pre code").forEach(block=>{
+    try{if(window.hljs)hljs.highlightElement(block)}catch(e){}
+    const pre=block.parentElement;
+    if(!pre||!pre.parentElement||pre.parentElement.classList.contains("code-block-wrap"))return;
+    const lang=(block.className.match(/language-(\S+)/)||[])[1]||"";
+    const wrap=document.createElement("div");wrap.className="code-block-wrap";
+    const toolbar=document.createElement("div");toolbar.className="code-toolbar";
+    toolbar.innerHTML=`<span>${escapeHtml(lang||"code")}</span><span class="code-toolbar-actions"><button type="button" data-copy-code>Copy</button><button type="button" data-download-code data-lang="${escapeHtml(lang)}">Download</button></span>`;
+    pre.parentElement.insertBefore(wrap,pre);wrap.appendChild(toolbar);wrap.appendChild(pre);
+  });
+  container.querySelectorAll(":scope table").forEach(t=>{
+    if(t.parentElement.classList.contains("md-table-wrap"))return;
+    const w=document.createElement("div");w.className="md-table-wrap";
+    t.parentElement.insertBefore(w,t);w.appendChild(t);
+  });
+  container.querySelectorAll("[data-copy-code]").forEach(b=>b.onclick=()=>{
+    const wrapEl=b.closest(".code-block-wrap");
+    const code=wrapEl?wrapEl.querySelector("code").innerText:"";
+    copyText(code);b.textContent="Copied ✓";setTimeout(()=>{b.textContent="Copy"},1500);
+  });
+  container.querySelectorAll("[data-download-code]").forEach(b=>b.onclick=()=>{
+    const wrapEl=b.closest(".code-block-wrap");
+    const code=wrapEl?wrapEl.querySelector("code").innerText:"";
+    try{
+      const blob=new Blob([code],{type:"text/plain"});const a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);a.download="snippet"+extFor(b.dataset.lang);a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    }catch(e){toast("Download failed")}
+  });
+  try{if(window.renderMathInElement)renderMathInElement(container,{delimiters:[{left:"$$",right:"$$",display:true},{left:"$",right:"$",display:false},{left:"\\(",right:"\\)",display:false},{left:"\\[",right:"\\]",display:true}],throwOnError:false})}catch(e){}
+}
+
+function scrollToBottom(force){
+  const el=$("#stageScroll");if(!el)return;
+  const distance=el.scrollHeight-el.scrollTop-el.clientHeight;
+  if(force||distance<140)el.scrollTop=el.scrollHeight;
+}
+
+/* ============================================================
+   MESSAGE RENDERING
+   ============================================================ */
+function renderMessages(){
+  const box=$("#messages"), stage=$("#stage");
+  stage.classList.toggle("is-home", state.messages.length===0);
+  box.innerHTML="";
+  state.messages.forEach((m,i)=>{
+    const row=document.createElement("div");
+    row.className="msg "+(m.role==="user"?"msg-user":"msg-assistant")+(m.error?" msg-error":"");
+    if(m.role==="assistant"){
+      const who=document.createElement("div");who.className="msg-who";
+      who.innerHTML=`<span class="logo logo-sm">${LOGO_SVG}</span>China-GPT`;
+      row.appendChild(who);
+    }else if(m.role==="user"&&state.profileName){
+      const who=document.createElement("div");who.className="msg-who";
+      who.innerHTML=`${escapeHtml(state.profileName)}<span class="avatar-emoji">${escapeHtml(state.profileAvatar||"🙂")}</span>`;
+      row.appendChild(who);
+    }
+    const text=typeof m.content==="string"?(m.content||""):(m.displayText||"[Attached image]");
+    if(m.role==="assistant"&&m.streaming&&!text&&!m.error){
+      const think=document.createElement("div");think.className="thinking-row";
+      think.innerHTML='<span class="thinking-spark">✦</span><span>Thinking</span><span class="thinking-dots"><span></span><span></span><span></span></span>';
+      row.appendChild(think);
+    }else{
+      if(m.role==="assistant"&&m.reasoning){
+        const rb=document.createElement("div");rb.className="reasoning-block";
+        let label="Thinking…";
+        if(!m.streaming && m.reasoningStartedAt){
+          const endedAt=m.reasoningEndedAt||Date.now();
+          const ms=Math.max(0,endedAt-m.reasoningStartedAt);
+          const sec=ms<1000?(ms/1000).toFixed(1):Math.round(ms/1000);
+          label="Thought for "+sec+"s";
+        }
+        rb.innerHTML=`<button type="button" class="reasoning-toggle"><span class="reasoning-caret">▸</span> ${escapeHtml(label)}</button><div class="reasoning-body"></div>`;
+        rb.querySelector(".reasoning-body").textContent=m.reasoning;
+        rb.querySelector(".reasoning-toggle").onclick=()=>rb.classList.toggle("open");
+        row.appendChild(rb);
+      }
+      const b=document.createElement("div");b.className="bubble";
+      if(m.role==="assistant"&&!m.streaming&&!m.error){
+        const html=renderMarkdownSafe(text);
+        if(html!==null){b.classList.add("md");b.innerHTML=html;enhanceRenderedMarkdown(b)}
+        else b.textContent=text;
+      }else{
+        b.textContent=text;
+      }
+      row.appendChild(b);
+    }
+    const controls=document.createElement("div");controls.className="msg-controls";
+    if(m.role==="assistant" && m.content && !m.streaming && !m.error){
+      const regen=document.createElement("button");regen.className="msg-action";regen.setAttribute("aria-label","Regenerate response");regen.title="Regenerate";regen.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16m0 5v-5h5"/></svg>';regen.onclick=()=>regenerate(i);controls.appendChild(regen);
+      const cont=document.createElement("button");cont.className="msg-action";cont.setAttribute("aria-label","Continue generating");cont.title="Continue";cont.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 4 9 8-9 8V4Z"/><path d="M18 4v16"/></svg>';cont.onclick=()=>continueGeneration(i);controls.appendChild(cont);
+    }
+    if(m.role==="user"&&!state.generating){
+      const edit=document.createElement("button");edit.className="msg-action";edit.setAttribute("aria-label","Edit and resend message");edit.title="Edit & resend";edit.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';edit.onclick=()=>editAndResend(i);controls.appendChild(edit);
+    }
+    if(controls.children.length) row.appendChild(controls);
+    box.appendChild(row);
+  });
+  scrollToBottom(true);
+}
+
+function updateStreamingMessage(ai){
+  const box=$("#messages");
+  const row=box.lastElementChild;
+  if(!row||!row.classList.contains("msg-assistant")){renderMessages();return}
+  if(ai.reasoning){
+    const rb=row.querySelector(".reasoning-block");
+    if(!rb){renderMessages();return}
+    const body=rb.querySelector(".reasoning-body");
+    if(body&&body.textContent!==ai.reasoning)body.textContent=ai.reasoning;
+  }
+  const b=row.querySelector(".bubble");
+  if(!b){renderMessages();return}
+  if(b.textContent!==ai.content)b.textContent=ai.content;
+  scrollToBottom();
+}
+
+/* ============================================================
+   CONVERSATIONS
+   ============================================================ */
+const CHAT_STORE_KEY="chinaGPTConversationsV2",MAX_CONVERSATIONS=100;
+function safeJson(key,fallback){try{return JSON.parse(localStorage.getItem(key)||"")??fallback}catch{return fallback}}
+function conversations(){const a=safeJson(CHAT_STORE_KEY,[]);return Array.isArray(a)?a:[]}
+function makeConversationTitle(messages){const f=messages.find(m=>m.role==="user"&&m.content);return ((f?.content||"New conversation").replace(/\s+/g," ").trim()).slice(0,80)||"New conversation"}
+function ensureConversation(){if(!state.conversationId){state.conversationId="chat_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8);localStorage.setItem("chinaGPTConversationId",state.conversationId)}return state.conversationId}
+function persistCurrentConversation(){
+  if(!state.messages.length||!state.conversationId)return;
+  const list=conversations(),old=list.find(c=>c.id===state.conversationId),now=Date.now();
+  const record={
+    id:state.conversationId,
+    title:old?.title||makeConversationTitle(state.messages),
+    messages:state.messages.map(m=>({role:m.role,content:typeof m.content==="string"?m.content:(m.displayText||"[Attached image]"),model:m.model||null})),
+    model:state.model||"",createdAt:old?.createdAt||now,updatedAt:now,pinned:!!old?.pinned
+  };
+  localStorage.setItem(CHAT_STORE_KEY,JSON.stringify([record,...list.filter(c=>c.id!==record.id)].slice(0,MAX_CONVERSATIONS)));
+  renderRecent();
+}
+function loadConversation(id){
+  const c=conversations().find(x=>x.id===id);if(!c)return false;
+  state.conversationId=c.id;
+  state.messages=Array.isArray(c.messages)?c.messages.map(m=>({role:m.role,content:m.content||"",model:m.model||null})):[];
+  if(c.model&&state.models.some(m=>m.id===c.model)){state.model=c.model;markModelUsed(state.model)}
+  localStorage.setItem("chinaGPTConversationId",state.conversationId);
+  localStorage.setItem("chinaGPTModel",state.model||"");
+  updateBadge();renderMessages();renderRecent();return true;
+}
+function deleteConversation(id){
+  localStorage.setItem(CHAT_STORE_KEY,JSON.stringify(conversations().filter(c=>c.id!==id)));
+  if(state.conversationId===id){state.conversationId="";state.messages=[];localStorage.removeItem("chinaGPTConversationId");renderMessages()}
+  renderRecent();
+}
+function togglePinConversation(id){
+  localStorage.setItem(CHAT_STORE_KEY,JSON.stringify(conversations().map(c=>c.id===id?{...c,pinned:!c.pinned}:c)));
+  renderRecent();
+}
+function renameConversation(id){
+  const c=conversations().find(x=>x.id===id);if(!c)return;
+  const t=prompt("Conversation name",c.title||"Conversation");if(t===null)return;
+  const clean=t.trim().slice(0,80);if(!clean)return;
+  localStorage.setItem(CHAT_STORE_KEY,JSON.stringify(conversations().map(x=>x.id===id?{...x,title:clean,updatedAt:Date.now()}:x)));
+  renderRecent();
+}
+function renderRecent(){
+  const list=conversations().sort((a,b)=>(Number(b.pinned)-Number(a.pinned))||((b.updatedAt||0)-(a.updatedAt||0))).slice(0,20);
+  $("#recentChats").innerHTML=list.length
+    ? list.map(c=>`<div class="side-chat-row"><button type="button" class="side-chat" data-chat-id="${escapeHtml(c.id)}" title="${escapeHtml(c.title)}">${c.pinned?"★ ":""}${escapeHtml(c.title)}</button></div>`).join("")
+    : `<div class="side-empty">No chats yet</div>`;
+  $("#recentChats").querySelectorAll("[data-chat-id]").forEach(b=>b.onclick=()=>{
+    if(state.generating)return toast("Wait for the response to finish.");
+    loadConversation(b.dataset.chatId);
+    $("#shell").classList.remove("nav-open");
+  });
+}
+
+/* ============================================================
+   CHAT MANAGER
+   ============================================================ */
+function openChatManager(){
+  pushPage("Conversations", (body)=>{
+    body.innerHTML=`
+      <label class="chat-search"><span style="color:var(--dim)">⌕</span><input id="chatManagerSearch" placeholder="Search conversations"></label>
+      <div class="chat-tools">
+        <button class="chat-tool" id="chatNewFromManager" type="button">＋ New chat</button>
+        <button class="chat-tool" id="chatExportBtn" type="button">Export</button>
+        <button class="chat-tool" id="chatImportBtn" type="button">Import</button>
+        <input id="chatImportFile" type="file" accept="application/json,.json" hidden>
+      </div>
+      <div id="chatResults"></div>
+    `;
+    const renderList=()=>{
+      const q=(body.querySelector("#chatManagerSearch").value||"").trim().toLowerCase();
+      const list=conversations()
+        .filter(c=>!q||(c.title||"").toLowerCase().includes(q)||c.messages.some(m=>(m.content||"").toLowerCase().includes(q)))
+        .sort((a,b)=>(Number(b.pinned)-Number(a.pinned))||((b.updatedAt||0)-(a.updatedAt||0)));
+      const box=body.querySelector("#chatResults");
+      box.innerHTML=list.length
+        ? list.map(c=>`<div class="chat-item"><button class="chat-item-main" data-open-chat="${escapeHtml(c.id)}"><span class="chat-item-title">${c.pinned?"★ ":""}${escapeHtml(c.title)}</span><span class="chat-item-meta">${new Date(c.updatedAt||c.createdAt||Date.now()).toLocaleString()} · ${c.messages.length} messages</span></button><div class="chat-item-actions"><button title="Pin" data-pin-chat="${escapeHtml(c.id)}">${c.pinned?"★":"☆"}</button><button title="Rename" data-rename-chat="${escapeHtml(c.id)}">✎</button><button title="Delete" data-delete-chat="${escapeHtml(c.id)}">×</button></div></div>`).join("")
+        : `<div class="admin-empty">No conversations found.</div>`;
+      box.querySelectorAll("[data-open-chat]").forEach(b=>b.onclick=()=>{if(loadConversation(b.dataset.openChat))popPage()});
+      box.querySelectorAll("[data-pin-chat]").forEach(b=>b.onclick=()=>{togglePinConversation(b.dataset.pinChat);renderList()});
+      box.querySelectorAll("[data-rename-chat]").forEach(b=>b.onclick=()=>{renameConversation(b.dataset.renameChat);renderList()});
+      box.querySelectorAll("[data-delete-chat]").forEach(b=>b.onclick=()=>{
+        if(confirm("Delete this conversation?")){deleteConversation(b.dataset.deleteChat);renderList()}
+      });
+    };
+    renderList();
+    body.querySelector("#chatManagerSearch").addEventListener("input",renderList);
+    body.querySelector("#chatNewFromManager").onclick=()=>{popPage();$("#newChat").click()};
+    body.querySelector("#chatExportBtn").onclick=()=>{
+      const blob=new Blob([JSON.stringify(conversations(),null,2)],{type:"application/json"});
+      const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="china-gpt-conversations.json";a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    };
+    body.querySelector("#chatImportBtn").onclick=()=>body.querySelector("#chatImportFile").click();
+    body.querySelector("#chatImportFile").addEventListener("change",async e=>{
+      const file=e.target.files?.[0];e.target.value="";if(!file)return;
+      try{
+        const imported=JSON.parse(await file.text());
+        if(!Array.isArray(imported))throw new Error("Invalid conversation export");
+        const clean=imported.filter(c=>c&&typeof c.id==="string"&&Array.isArray(c.messages)).slice(0,MAX_CONVERSATIONS);
+        localStorage.setItem(CHAT_STORE_KEY,JSON.stringify(clean));
+        renderRecent();renderList();toast("Conversations imported");
+      }catch(err){toast(err.message||"Import failed")}
+    });
+  });
+}
+
+/* ============================================================
+   CHAT / STREAMING
+   ============================================================ */
+function activeSystemPrompt(){
+  if(state.persona&&state.persona.enabled&&state.persona.text&&state.persona.text.trim()) return state.persona.text.trim();
+  return "";
+}
+function chatMessages(){
+  const base=state.messages.filter(m=>m.role==="user"||m.role==="assistant").map(m=>({role:m.role,content:m.content||m.displayText||""}));
+  const sys=activeSystemPrompt();
+  return sys?[{role:"system",content:sys},...base]:base;
+}
+async function readCompletionResponse(response,onChunk,onReasoning){
+  if(!response.ok){let msg="";try{msg=await response.text()}catch{};throw new Error("HTTP "+response.status+(msg?" — "+msg:""))}
+  const type=response.headers.get("content-type")||"";
+  if(!response.body)return null;
+  if(!type.includes("text/event-stream")){
+    const j=await response.json();
+    const msg=j.choices?.[0]?.message;
+    const r=msg?.reasoning_content||msg?.reasoning;
+    if(r&&onReasoning)onReasoning(r);
+    if(msg?.content) onChunk(msg.content);
+    return j.usage||null;
+  }
+  const reader=response.body.getReader(),decoder=new TextDecoder();let buf="",usage=null;
+  while(true){
+    const {value,done}=await reader.read();if(done)break;
+    buf+=decoder.decode(value,{stream:true});
+    const lines=buf.split(/\r?\n/);buf=lines.pop()||"";
+    for(const line of lines){
+      if(!line.startsWith("data:"))continue;
+      const raw=line.slice(5).trim();
+      if(!raw||raw==="[DONE]")continue;
+      try{
+        const j=JSON.parse(raw);const delta=j.choices?.[0]?.delta;
+        const rc=delta?.reasoning_content||delta?.reasoning;
+        if(rc&&onReasoning)onReasoning(rc);
+        const c=delta?.content;if(c)onChunk(c);
+        if(j.usage)usage=j.usage;
+      }catch{}
+    }
+  }
+  return usage;
+}
+async function requestCompletion(target, messages, model=state.model){
+  state.abortController=new AbortController();
+  const body={model,messages,stream:true};
+  try{
+    const r=await fetch(API_BASE+"/chat/completions",{
+      method:"POST",headers:authHeaders(),body:JSON.stringify(body),signal:state.abortController.signal
+    });
+    return await readCompletionResponse(r,
+      c=>{target.content+=c;updateStreamingMessage(target)},
+      rc=>{
+        if(!target.reasoningStartedAt) target.reasoningStartedAt=Date.now();
+        target.reasoning=(target.reasoning||"")+rc;
+        updateStreamingMessage(target);
+      }
+    );
+  }finally{state.abortController=null;}
+}
+function finalizeAssistantMessage(ai){
+  if(ai.reasoningStartedAt && !ai.reasoningEndedAt){
+    ai.reasoningEndedAt=Date.now();
+  }
+  ai.streaming=false;
+}
+function updateGeneratingUI(){
+  const stop=$("#stopBtn"),sendBtn=$("#sendBtn");
+  if(stop)stop.style.display=state.generating?"inline-flex":"none";
+  if(sendBtn)sendBtn.style.display=state.generating?"none":"grid";
+}
+function stopGeneration(){
+  if(!state.generating)return;
+  try{state.abortController&&state.abortController.abort()}catch{}
+  state.generating=false;
+  const last=state.messages[state.messages.length-1];
+  if(last&&last.role==="assistant")finalizeAssistantMessage(last);
+  updateGeneratingUI();persistCurrentConversation();renderMessages();toast("Generation stopped");
+}
+async function send(){
+  const input=$("#prompt"),text=input.value.trim();
+  if(!text&&!state.attachments.length)return;
+  if(!isAuthenticated()){openLogin("send");return}
+  if(!state.model){toast("No model selected.");return}
+  if(state.generating){toast("A response is already generating.");return}
+
+  const attachmentText=state.attachments.filter(a=>a.text).map(a=>`\n\n[Attached file: ${a.name}]\n${a.text}`).join("");
+  const finalText=(text+attachmentText).trim();
+  if(!finalText){toast("This file type cannot be sent as text.");return}
+
+  ensureConversation();
+  input.value="";input.style.height="";
+  state.messages.push({role:"user",content:finalText});
+  const ai={role:"assistant",content:"",streaming:true,reasoningStartedAt:null,reasoningEndedAt:null};
+  state.messages.push(ai);
+  state.attachments=[];renderAttachments();renderMessages();persistCurrentConversation();
+
+  state.generating=true;updateGeneratingUI();
+  try{await requestCompletion(ai,chatMessages())}
+  catch(e){if(e.name!=="AbortError"){ai.content="Error: "+e.message;ai.error=true;toast("Request failed")}}
+  finally{finalizeAssistantMessage(ai);state.generating=false;updateGeneratingUI();persistCurrentConversation();renderMessages()}
+}
+
+async function regenerate(index){
+  if(state.generating||!isAuthenticated()||state.messages[index]?.role!=="assistant")return;
+  const prior=state.messages.slice(0,index).filter(m=>m.role==="user"||m.role==="assistant");
+  if(!prior.length)return;
+  state.messages=state.messages.slice(0,index);
+  const ai={role:"assistant",content:"",streaming:true,reasoningStartedAt:null,reasoningEndedAt:null};state.messages.push(ai);renderMessages();
+  state.generating=true;updateGeneratingUI();
+  try{await requestCompletion(ai,prior)}
+  catch(e){if(e.name!=="AbortError"){ai.content="Error: "+e.message;ai.error=true;toast("Regeneration failed")}}
+  finally{finalizeAssistantMessage(ai);state.generating=false;updateGeneratingUI();persistCurrentConversation();renderMessages()}
+}
+function editAndResend(index){
+  if(state.generating||!isAuthenticated()||state.messages[index]?.role!=="user")return;
+  const old=state.messages[index].content;
+  pushPage("Edit message",(body)=>{
+    body.innerHTML=`
+      <div class="editor-body">
+        <div class="editor-section">
+          <label for="editPrompt">Message</label>
+          <textarea id="editPrompt" class="editor-textarea" placeholder="Type your message…">${escapeHtml(old)}</textarea>
+          <div class="editor-hint">Editing this message will remove everything after it in the conversation, then resend.</div>
+        </div>
+        <div class="editor-actions">
+          <button class="btn-ghost" id="editCancel" type="button">Cancel</button>
+          <button class="btn-primary" id="editSend" type="button">Resend</button>
+        </div>
+      </div>
+    `;
+    body.querySelector("#editCancel").onclick=popPage;
+    body.querySelector("#editSend").onclick=async()=>{
+      const text=body.querySelector("#editPrompt").value.trim();if(!text)return;
+      popPage();
+      state.messages=state.messages.slice(0,index);
+      state.messages.push({role:"user",content:text});
+      ensureConversation();persistCurrentConversation();
+      const ai={role:"assistant",content:"",streaming:true,reasoningStartedAt:null,reasoningEndedAt:null};state.messages.push(ai);renderMessages();
+      state.generating=true;updateGeneratingUI();
+      try{await requestCompletion(ai,chatMessages())}
+      catch(e){if(e.name!=="AbortError"){ai.content="Error: "+e.message;ai.error=true;toast("Request failed")}}
+      finally{finalizeAssistantMessage(ai);state.generating=false;updateGeneratingUI();persistCurrentConversation();renderMessages()}
+    };
+  });
+}
+async function continueGeneration(index){
+  if(state.generating||!isAuthenticated()||state.messages[index]?.role!=="assistant"||!state.messages[index].content)return;
+  const ai=state.messages[index];ai.streaming=true;ai.error=false;
+  const prior=state.messages.slice(0,index+1).filter(m=>m.role==="user"||m.role==="assistant");
+  const continuation={role:"user",content:"Continue the previous answer from exactly where it stopped. Do not repeat content already given."};
+  state.generating=true;updateGeneratingUI();renderMessages();
+  try{await requestCompletion(ai,[...prior,continuation])}
+  catch(e){if(e.name!=="AbortError"){toast("Continue failed");ai.error=true}}
+  finally{finalizeAssistantMessage(ai);state.generating=false;updateGeneratingUI();persistCurrentConversation();renderMessages()}
+}
+
+/* ============================================================
+   USAGE
+   ============================================================ */
+function openUsage(){
+  if(!isAuthenticated()){openLogin("usage");return}
+  pushPage("Usage",(body)=>{
+    body.innerHTML='<div class="admin-note">Loading…</div>';
+    (async()=>{
+      try{
+        const r=await fetch(WORKER_BASE+"/usage/me?days=30",{headers:authHeaders(false)});
+        const j=await r.json();
+        if(!r.ok)throw new Error(j.error?.message||"Could not load usage");
+        const byModel=Array.isArray(j.byModel)?j.byModel:[];
+        body.innerHTML=`
+          <div class="admin-grid">${adminStat("Requests",j.requests||0,"Last 30 days")}${adminStat("Prompt tokens",(j.promptTokens||0).toLocaleString(),"")}${adminStat("Completion tokens",(j.completionTokens||0).toLocaleString(),"")}${adminStat("Total tokens",(j.totalTokens||0).toLocaleString(),"")}</div>
+          <div class="admin-section"><div class="admin-section-head"><h3>Models used</h3><span>${byModel.length}</span></div>
+          <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Model</th><th>Requests</th><th>Total tokens</th></tr></thead><tbody>
+          ${byModel.length?byModel.map(x=>`<tr><td>${escapeHtml(cleanModelName(x.model||"unknown"))}</td><td>${x.requests}</td><td>${(x.totalTokens||0).toLocaleString()}</td></tr>`).join(""):`<tr><td colspan="3">No recorded usage yet.</td></tr>`}
+          </tbody></table></div></div>`;
+      }catch(e){body.innerHTML=`<div class="admin-note">${escapeHtml(e.message||"Could not load usage")}</div>`}
+    })();
+  });
+}
+
+/* ============================================================
+   COMPARE (admin-only)
+   ============================================================ */
+async function openCompare(prefillPrompt=""){
+  if(!isAuthenticated()){openLogin("compare");return}
+  const opts=state.models.map(m=>`<option value="${escapeHtml(m.id)}">${escapeHtml(cleanModelName(m.id))}</option>`).join("");
+  pushPage("Compare models",(body)=>{
+    body.innerHTML=`
+      <p class="hint-text" style="margin-top:0">Run the same prompt independently against 2–3 models.</p>
+      <div class="editor-section">
+        <label>Prompt</label>
+        <textarea id="comparePrompt" class="editor-textarea" placeholder="Enter a prompt…">${escapeHtml(prefillPrompt)}</textarea>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <select id="compareA" style="flex:1;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px">${opts}</select>
+        <select id="compareB" style="flex:1;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px">${opts}</select>
+        <select id="compareC" style="flex:1;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px"><option value="">None</option>${opts}</select>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn-primary" id="compareRun" type="button">Compare</button>
+      </div>
+      <div id="compareResults" class="compare-results"></div>
+    `;
+    if(state.models.length>1) body.querySelector("#compareB").selectedIndex=1;
+    body.querySelector("#compareRun").onclick=async()=>{
+      const prompt=body.querySelector("#comparePrompt").value.trim();
+      const models=[body.querySelector("#compareA").value,body.querySelector("#compareB").value,body.querySelector("#compareC").value].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i);
+      if(!prompt||models.length<2){toast("Enter a prompt and choose at least 2 different models.");return}
+      const out=body.querySelector("#compareResults");
+      out.innerHTML=models.map(m=>`<div class="compare-card"><h3>${escapeHtml(cleanModelName(m))}</h3><div class="compare-answer" id="cmp-${encodeURIComponent(m)}">Running…</div></div>`).join("");
+      await Promise.all(models.map(async m=>{
+        const el=body.querySelector("#cmp-"+encodeURIComponent(m));
+        let text="";
+        try{
+          const r=await fetch(API_BASE+"/chat/completions",{method:"POST",headers:authHeaders(),body:JSON.stringify({model:m,messages:[{role:"user",content:prompt}],stream:true})});
+          await readCompletionResponse(r,c=>{text+=c;el.textContent=text});
+          el.textContent=text||"No response";
+        }catch(e){el.textContent="Error: "+e.message}
+      }));
+    };
+  });
+}
+
+/* ============================================================
+   ATTACHMENTS
+   ============================================================ */
+function renderAttachments(){
+  const box=$("#attachmentStrip");if(!box)return;
+  box.innerHTML=state.attachments.map((a,i)=>`<span class="attachment-chip"><span class="attachment-kind">${escapeHtml(a.kind||"file")}</span><span>${escapeHtml(a.name)}</span><button type="button" data-remove-attachment="${i}" aria-label="Remove attachment">×</button></span>`).join("");
+  box.querySelectorAll("[data-remove-attachment]").forEach(b=>b.onclick=()=>{state.attachments.splice(Number(b.dataset.removeAttachment),1);renderAttachments()});
+}
+async function readPdfText(file){
+  try{
+    const pdfjs=await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs");
+    const data=await file.arrayBuffer();
+    const pdf=await pdfjs.getDocument({data}).promise;
+    let out="";
+    const pages=Math.min(pdf.numPages,30);
+    for(let n=1;n<=pages;n++){
+      const page=await pdf.getPage(n);
+      const tc=await page.getTextContent();
+      out+=tc.items.map(x=>x.str||"").join(" ")+"\n";
+      if(out.length>=300000)break;
+    }
+    return out.slice(0,300000)+(pdf.numPages>pages?`\n[PDF truncated after ${pages} pages]`:"");
+  }catch(e){throw new Error("PDF text extraction failed. Try a text-based PDF or smaller file.")}
+}
+function fileDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
+async function handleFiles(files){
+  const accepted=[];
+  for(const file of Array.from(files).slice(0,5-state.attachments.length)){
+    if(file.size>10*1024*1024){toast(`${file.name} is larger than 10 MB`);continue}
+    const item={name:file.name,type:file.type,size:file.size,text:"",dataUrl:"",kind:"file"};
+    try{
+      const lower=file.name.toLowerCase();
+      const textLike=/^(text\/|application\/(json|javascript|xml))/i.test(file.type)||/\.(txt|md|markdown|json|csv|js|ts|html|css|xml|yaml|yml|log|py|java|c|cpp|h|hpp|sql|sh|go|rs|php|jsx|tsx|vue)$/i.test(lower);
+      if(file.type==="application/pdf"||lower.endsWith(".pdf")){item.kind="pdf";item.text=await readPdfText(file)}
+      else if(file.type.startsWith("image/")){item.kind="image";item.dataUrl=await fileDataUrl(file);item.text=`[Image attached: ${file.name}]`}
+      else if(textLike){item.kind="text";item.text=(await file.text()).slice(0,300000);if(file.size>300000)item.text+="\n[File content truncated at 300 KB]"}
+      else{toast(`${file.name}: unsupported file type`);continue}
+      accepted.push(item);
+    }catch(e){toast(`${file.name}: ${e.message||"could not read file"}`)}
+  }
+  state.attachments=state.attachments.concat(accepted).slice(0,5);
+  renderAttachments();
+}
+function toggleWebSearch(){
+  state.webSearch=!state.webSearch;
+  const b=$("#searchBtn");
+  b.classList.toggle("is-on",state.webSearch);
+  b.setAttribute("aria-pressed",String(state.webSearch));
+  if(state.webSearch){
+    const q=$("#prompt").value.trim();
+    if(q){window.open("https://www.google.com/search?q="+encodeURIComponent(q),"_blank","noopener,noreferrer");toast("Web search opened in a new tab")}
+  }
+}
+
+/* ============================================================
+   AUTH PAGE
+   ============================================================ */
+function openAuthPage(html){
+  $("#authCard").innerHTML=html;
+  $("#authPage").classList.add("open");
+}
+function closeAuthPage(){
+  $("#authPage").classList.remove("open");
+  setTimeout(()=>{if(!$("#authPage").classList.contains("open"))$("#authCard").innerHTML=""},220);
+}
+
+/* ============================================================
+   ACCOUNT PAGE
+   ============================================================ */
+function maskedKey(){const k=key();return k?"•••• "+k.slice(-4):""}
+function updateAccountBadge(){
+  const nameEl=$("#accountName"),subEl=$("#accountSub"),avEl=$("#accountAvatar");
+  if(!nameEl)return;
+  if(!isAuthenticated()){nameEl.textContent="Account";subEl.textContent="Not signed in";avEl.textContent="U";return}
+  nameEl.textContent=state.profileName||(state.role==="admin"?"Admin":"Account");
+  subEl.textContent=maskedKey();
+  avEl.textContent=state.profileAvatar||(state.profileName?state.profileName[0].toUpperCase():"U");
+}
+function openAccountPage(){
+  if(!isAuthenticated()){openLogin("account");return}
+  pushPage("Account",(body)=>{
+    const isAdmin = state.role==="admin";
+    body.innerHTML=`
+      <div class="acct-hero">
+        <span class="avatar">${escapeHtml(state.profileAvatar||(state.profileName?state.profileName[0].toUpperCase():"U"))}</span>
+        <div class="acct-hero-main">
+          <b>${escapeHtml(state.profileName||(isAdmin?"Admin":"Account"))}</b>
+          <small>${escapeHtml(maskedKey())}</small>
+        </div>
+      </div>
+
+      <div class="acct-list">
+        <button class="acct-row" data-act="profile" type="button">
+          <span class="acct-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/></svg></span>
+          <span class="acct-row-main"><b>Profile</b><small>Display name, avatar &amp; theme</small></span>
+          <span class="acct-row-caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+        </button>
+        <button class="acct-row" data-act="apikeys" type="button">
+          <span class="acct-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8 2 2-3 3 2 2-3 3-2-2"/></svg></span>
+          <span class="acct-row-main"><b>API keys</b><small>Create keys for your own apps</small></span>
+          <span class="acct-row-caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+        </button>
+        <button class="acct-row" data-act="usage" type="button">
+          <span class="acct-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16"/><path d="M8 15V9M12 15V7M16 15v-3"/></svg></span>
+          <span class="acct-row-main"><b>Usage</b><small>Requests &amp; tokens</small></span>
+          <span class="acct-row-caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+        </button>
+        <button class="acct-row" data-act="prefs" type="button">
+          <span class="acct-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 12h4M12 12h8M4 17h12M20 17h0"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="17" r="2"/></svg></span>
+          <span class="acct-row-main"><b>Preferences</b><small>Font size &amp; density</small></span>
+          <span class="acct-row-caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+        </button>
+        <button class="acct-row" data-act="personalities" type="button">
+          <span class="acct-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.5"/></svg></span>
+          <span class="acct-row-main"><b>Personalities</b><small>Persona &amp; saved prompts</small></span>
+          <span class="acct-row-caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+        </button>
+        ${isAdmin?`
+        <button class="acct-row" data-act="admin" type="button">
+          <span class="acct-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8.4 8 9 4.5-.6 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <span class="acct-row-main"><b>Admin dashboard</b><small>Accounts, keys &amp; system health</small></span>
+          <span class="acct-row-caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+        </button>`:``}
+      </div>
+
+      <div class="section-divider"></div>
+
+      <div class="acct-list">
+        <button class="acct-row danger" data-act="signout" type="button">
+          <span class="acct-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12H4M10 6l-6 6 6 6"/><path d="M14 4h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-5"/></svg></span>
+          <span class="acct-row-main"><b>Sign out</b><small>Clear this device's access key</small></span>
+          <span class="acct-row-caret"></span>
+        </button>
+      </div>
+    `;
+    body.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{
+      const a=b.dataset.act;
+      if(a==="profile") openProfileSettings();
+      else if(a==="apikeys") openApiKeys();
+      else if(a==="usage") openUsage();
+      else if(a==="prefs") openPreferences();
+      else if(a==="personalities") openPersonalities();
+      else if(a==="admin"){closeAllPages();openAdmin()}
+      else if(a==="signout"){
+        clearAuth();state.models=[];state.model="";closeAllPages();closeAdmin();
+        updateBadge();updateAccountBadge();toast("Signed out");
+      }
+    });
+  });
+}
+
+/* ============================================================
+   PROFILE
+   ============================================================ */
+function openProfileSettings(){
+  const avatars=["🙂","😀","🦊","🐼","🐸","🤖","🧑‍💻","🐙","🚀","🌱","🎧","⚡"];
+  const themes=[["dark","Dark"],["light","Light"],["amoled","AMOLED"]];
+  const accents=["#3d7dff","#22c55e","#f59e0b","#ef4444","#a855f7","#14b8a6"];
+  pushPage("Profile",(body)=>{
+    body.innerHTML=`
+      <div class="editor-body">
+        <div class="editor-section">
+          <h3>Personal</h3>
+          <div class="field"><label>Display name</label><input id="profileNameInput" value="${escapeHtml(state.profileName)}" placeholder="Optional — shown next to your messages" maxlength="40"></div>
+          <div class="field"><label>Avatar</label><div class="avatar-grid" id="avatarRow"></div></div>
+          <div class="field"><label>Access key</label><input value="${escapeHtml(key())}" readonly></div>
+        </div>
+        <div class="section-divider"></div>
+        <div class="editor-section">
+          <h3>Appearance</h3>
+          <div class="field"><label>Theme</label><div class="theme-option-row" id="themeRow"></div></div>
+          <div class="field"><label>Accent color</label><div class="swatch-row" id="accentRow"></div></div>
+        </div>
+        <div class="editor-actions">
+          <button class="btn-ghost" id="profileCancel" type="button">Close</button>
+          <button class="btn-primary" id="profileSave" type="button">Save</button>
+        </div>
+      </div>
+    `;
+    let chosen=state.profileAvatar||"🙂";
+    const row=body.querySelector("#avatarRow");
+    row.innerHTML=avatars.map(a=>`<button type="button" class="avatar-opt${a===chosen?" is-active":""}" data-avatar="${a}">${a}</button>`).join("");
+    row.querySelectorAll("[data-avatar]").forEach(b=>b.onclick=()=>{chosen=b.dataset.avatar;row.querySelectorAll("[data-avatar]").forEach(x=>x.classList.toggle("is-active",x===b))});
+    const trow=body.querySelector("#themeRow");
+    trow.innerHTML=themes.map(([id,label])=>`<button type="button" class="theme-option${state.theme===id?" is-active":""}" data-theme-id="${id}">${label}</button>`).join("");
+    trow.querySelectorAll("[data-theme-id]").forEach(b=>b.onclick=()=>{saveTheme(b.dataset.themeId);trow.querySelectorAll("[data-theme-id]").forEach(x=>x.classList.toggle("is-active",x===b))});
+    const arow=body.querySelector("#accentRow");
+    arow.innerHTML=accents.map(c=>`<button type="button" class="swatch${state.accent===c?" is-active":""}" data-accent="${c}" style="background:${c}" aria-label="${c}"></button>`).join("");
+    arow.querySelectorAll("[data-accent]").forEach(b=>b.onclick=()=>{saveAccent(b.dataset.accent);arow.querySelectorAll("[data-accent]").forEach(x=>x.classList.toggle("is-active",x===b))});
+    body.querySelector("#profileCancel").onclick=popPage;
+    body.querySelector("#profileSave").onclick=()=>{
+      saveProfile(body.querySelector("#profileNameInput").value.trim().slice(0,40),chosen);
+      popPage();renderMessages();toast("Profile saved");
+    };
+  });
+}
+
+/* ============================================================
+   PREFERENCES
+   ============================================================ */
+function openPreferences(){
+  const sizes=[["small","Small"],["medium","Medium"],["large","Large"]];
+  const densities=[["compact","Compact"],["comfortable","Comfortable"],["spacious","Spacious"]];
+  pushPage("Preferences",(body)=>{
+    body.innerHTML=`
+      <div class="editor-body">
+        <div class="editor-section">
+          <label>Font size</label>
+          <div class="theme-option-row" id="fontRow"></div>
+        </div>
+        <div class="editor-section">
+          <label>Message density</label>
+          <div class="theme-option-row" id="densityRow"></div>
+        </div>
+      </div>
+    `;
+    const frow=body.querySelector("#fontRow");
+    frow.innerHTML=sizes.map(([id,label])=>`<button type="button" class="theme-option${state.fontSize===id?" is-active":""}" data-size="${id}">${label}</button>`).join("");
+    frow.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{saveFontSize(b.dataset.size);frow.querySelectorAll("[data-size]").forEach(x=>x.classList.toggle("is-active",x===b))});
+    const drow=body.querySelector("#densityRow");
+    drow.innerHTML=densities.map(([id,label])=>`<button type="button" class="theme-option${state.density===id?" is-active":""}" data-dens="${id}">${label}</button>`).join("");
+    drow.querySelectorAll("[data-dens]").forEach(b=>b.onclick=()=>{saveDensity(b.dataset.dens);drow.querySelectorAll("[data-dens]").forEach(x=>x.classList.toggle("is-active",x===b))});
+  });
+}
+
+/* ============================================================
+   PERSONALITIES
+   ============================================================ */
+function openPersonalities(){
+  pushPage("Personalities",(body)=>{
+    const p=state.persona||{text:"",enabled:false};
+    body.innerHTML=`
+      <h3>Persona</h3>
+      <p class="hint-text" style="margin:0 0 14px">Write instructions for how China-GPT should behave, then turn it on. Turn it off (or clear it) any time to get the model's default behavior back.</p>
+
+      <label style="display:flex;align-items:center;gap:8px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);margin-bottom:14px;cursor:pointer">
+        <input type="checkbox" id="personaEnabled" ${p.enabled?"checked":""} style="all:revert;width:18px;height:18px;padding:0">
+        <span style="font-size:13.5px;font-weight:500">Enabled</span>
+      </label>
+
+      <div class="persona-preset-row" id="presetRow"></div>
+
+      <div class="field">
+        <label>Instructions</label>
+        <textarea id="personaText" style="width:100%;min-height:160px;resize:vertical;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px" placeholder="e.g. Answer like a senior backend engineer. Be terse. Always show code first, explanation after.">${escapeHtml(p.text||"")}</textarea>
+      </div>
+
+      <div class="row" style="margin-top:8px">
+        <button class="btn-ghost" id="personaClear" type="button">Clear</button>
+        <button class="btn-primary" id="personaSave" type="button">Save</button>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px">
+        <h3 style="margin:0">Saved prompts</h3>
+        <button class="btn-ghost" id="promptAddBtn" type="button">＋ New</button>
+      </div>
+
+      <div class="field"><input id="promptSearch" placeholder="Search saved prompts"></div>
+      <div id="promptList"></div>
+    `;
+    body.querySelector("#presetRow").innerHTML=PERSONA_PRESETS.map(pr=>`<button type="button" class="persona-preset-chip" data-preset="${escapeHtml(pr.id)}">${escapeHtml(pr.icon)} ${escapeHtml(pr.name)}</button>`).join("");
+    body.querySelector("#presetRow").querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{
+      const preset=PERSONA_PRESETS.find(x=>x.id===b.dataset.preset);if(!preset)return;
+      body.querySelector("#personaText").value=preset.prompt;body.querySelector("#personaEnabled").checked=true;
+    });
+    body.querySelector("#personaClear").onclick=()=>{state.persona={text:"",enabled:false};savePersona();toast("Persona cleared")};
+    body.querySelector("#personaSave").onclick=()=>{
+      state.persona={text:body.querySelector("#personaText").value,enabled:body.querySelector("#personaEnabled").checked};
+      savePersona();toast(state.persona.enabled?"Persona saved and enabled":"Persona saved");
+    };
+    const renderList=()=>{
+      const q=(body.querySelector("#promptSearch").value||"").trim().toLowerCase();
+      const rows=state.savedPrompts.filter(pr=>!q||pr.name.toLowerCase().includes(q)||pr.text.toLowerCase().includes(q));
+      body.querySelector("#promptList").innerHTML=rows.length
+        ? rows.map(pr=>`<div class="saved-prompt-row"><div class="saved-prompt-main"><b>${escapeHtml(pr.name)}</b><span>${escapeHtml(pr.text)}</span></div><div class="saved-prompt-actions"><button type="button" data-prompt-use="${escapeHtml(pr.id)}">Insert</button><button type="button" data-prompt-edit="${escapeHtml(pr.id)}">Edit</button><button type="button" data-prompt-del="${escapeHtml(pr.id)}">Delete</button></div></div>`).join("")
+        : `<div class="admin-empty">No saved prompts yet.</div>`;
+      body.querySelector("#promptList").querySelectorAll("[data-prompt-use]").forEach(b=>b.onclick=()=>{
+        const pr=state.savedPrompts.find(x=>x.id===b.dataset.promptUse);if(!pr)return;
+        const box=$("#prompt");box.value=pr.text;box.dispatchEvent(new Event("input"));
+        closeAllPages();box.focus();
+      });
+      body.querySelector("#promptList").querySelectorAll("[data-prompt-edit]").forEach(b=>b.onclick=()=>openSavedPromptEditor(b.dataset.promptEdit));
+      body.querySelector("#promptList").querySelectorAll("[data-prompt-del]").forEach(b=>b.onclick=()=>{
+        if(!confirm("Delete this saved prompt?"))return;
+        state.savedPrompts=state.savedPrompts.filter(x=>x.id!==b.dataset.promptDel);
+        saveSavedPrompts();renderList();
+      });
+    };
+    renderList();
+    body.querySelector("#promptSearch").addEventListener("input",renderList);
+    body.querySelector("#promptAddBtn").onclick=()=>openSavedPromptEditor(null);
+  });
+}
+
+/* ============================================================
+   SAVED-PROMPT EDITOR
+   ============================================================ */
+function openSavedPromptEditor(id){
+  const existing=id?state.savedPrompts.find(p=>p.id===id):null;
+  pushPage(existing?"Edit prompt":"New prompt",(body)=>{
+    body.innerHTML=`
+      <div class="editor-body">
+        <div class="editor-section">
+          <label for="spName">Name</label>
+          <input id="spName" class="editor-input" value="${escapeHtml(existing?.name||"")}" maxlength="60" placeholder="e.g. Explain like I'm 5">
+          <div class="editor-hint">A short label you'll see in the prompt list.</div>
+        </div>
+        <div class="editor-section">
+          <label for="spText">Prompt text</label>
+          <textarea id="spText" class="editor-textarea" placeholder="Type the full prompt you want to save…">${escapeHtml(existing?.text||"")}</textarea>
+          <div class="editor-hint" id="spCounter"></div>
+        </div>
+        <div class="editor-actions">
+          <button class="btn-ghost" id="spCancel" type="button">Cancel</button>
+          <button class="btn-primary" id="spSave" type="button">${existing?"Save changes":"Create prompt"}</button>
+        </div>
+      </div>
+    `;
+    const ta=body.querySelector("#spText");
+    const counter=body.querySelector("#spCounter");
+    const updateCounter=()=>{counter.textContent=`${ta.value.length} characters`};
+    ta.addEventListener("input",updateCounter);updateCounter();
+    body.querySelector("#spCancel").onclick=popPage;
+    body.querySelector("#spSave").onclick=()=>{
+      const name=body.querySelector("#spName").value.trim(),text=ta.value.trim();
+      if(!name||!text){toast("Name and prompt text are required");return}
+      if(existing){state.savedPrompts=state.savedPrompts.map(p=>p.id===existing.id?{...p,name,text}:p)}
+      else{state.savedPrompts=[...state.savedPrompts,{id:"prompt_"+Date.now().toString(36),name,text}]}
+      saveSavedPrompts();
+      popPage();
+      if(pageStack.length && pageStack[pageStack.length-1].title==="Personalities"){
+        renderTopPage();
+      }
+      toast("Prompt saved");
+    };
+  });
+}
+
+/* ============================================================
+   API KEYS (modern)
+   ============================================================ */
+const COPY_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+const CHECK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
+
+function openApiKeys(){
+  if(!isAuthenticated()){openLogin("apikeys");return}
+  pushPage("API keys",(body)=>{
+    const renderKeysList=async ()=>{
+      const listBox=body.querySelector("#apikeyBody");
+      listBox.innerHTML='<div class="admin-note">Loading…</div>';
+      try{
+        const r=await fetch(WORKER_BASE+"/apikeys/list",{headers:authHeaders(false)});
+        if(!r.ok){
+          if(r.status===404) throw new Error("The API-key service isn't deployed on your backend yet.");
+          const j=await r.json().catch(()=>({}));throw new Error(j.error?.message||"Could not load API keys.");
+        }
+        const j=await r.json();state.apiKeys=j.keys||[];
+        if(!state.apiKeys.length){
+          listBox.innerHTML=`
+            <div class="apikey-empty">
+              <div class="apikey-empty-icon">${COPY_ICON}</div>
+              <h4>No API keys yet</h4>
+              <p>Create your first key to start making API calls from your own apps.</p>
+              <button class="btn-primary" id="apikeyEmptyCreate" type="button">Create your first key</button>
+            </div>`;
+          const eb=listBox.querySelector("#apikeyEmptyCreate");
+          if(eb)eb.onclick=()=>createApiKey(renderKeysList);
+          return;
+        }
+        listBox.innerHTML=`<div class="apikey-list">` + state.apiKeys.map(k=>renderApiKeyCard(k)).join("") + `</div>`;
+        wireApiKeyActions(listBox,renderKeysList);
+      }catch(e){
+        listBox.innerHTML=`<div class="admin-note">${escapeHtml(e.message||"Could not load API keys.")}</div>`;
+      }
+    };
+    body.innerHTML=`
+      <div class="apikeys-hero">
+        <div class="apikeys-hero-main">
+          <h3>API keys</h3>
+          <p>Use these keys to call China-GPT's API from your own websites and apps, separate from your login access key.</p>
+        </div>
+        <button class="btn-primary" id="apikeyNewBtn" type="button">＋ New key</button>
+      </div>
+      <div id="apikeyBody"><div class="admin-note">Loading…</div></div>
+    `;
+    body.querySelector("#apikeyNewBtn").onclick=()=>createApiKey(renderKeysList);
+    renderKeysList();
+  });
+}
+
+function renderApiKeyCard(k){
+  const created = k.createdAt ? new Date(k.createdAt).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"}) : "—";
+  const lastUsed = k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"}) : "Never";
+  const revokedAt = k.revokedAt ? new Date(k.revokedAt).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"}) : null;
+  const cachedFull = getCachedApiKey(k.id);
+  const pill = k.revoked
+    ? `<span class="apikey-pill revoked">Revoked</span>`
+    : `<span class="apikey-pill active">Active</span>`;
+  const keyDisplay = cachedFull ? cachedFull : (k.maskedKey || "crk_live_••••••••");
+  const keyClass = cachedFull ? "apikey-card-key has-full" : "apikey-card-key";
+  const copyBtn = cachedFull
+    ? `<button type="button" class="apikey-copy-icon" data-copy-key-id="${escapeHtml(k.id)}" title="Copy key">${COPY_ICON}</button>`
+    : `<button type="button" class="apikey-copy-icon" data-copy-masked="${escapeHtml(k.maskedKey||"")}" title="Only masked key available — copy masked">${COPY_ICON}</button>`;
+  const actions = [];
+  if(!k.revoked){
+    actions.push(`<button type="button" data-rename-key="${escapeHtml(k.id)}">Rename</button>`);
+    actions.push(`<button type="button" class="danger" data-revoke-key="${escapeHtml(k.id)}">Revoke</button>`);
+  }
+  return `
+    <div class="apikey-card${k.revoked?" is-revoked":""}" data-key-id="${escapeHtml(k.id)}">
+      <div class="apikey-card-head">
+        <div class="apikey-card-title">${escapeHtml(k.label || "Unnamed key")}</div>
+        ${pill}
+      </div>
+      <div class="${keyClass}">
+        <code>${escapeHtml(keyDisplay)}</code>
+        ${copyBtn}
+      </div>
+      <div class="apikey-card-meta">
+        <span>Created <b>${escapeHtml(created)}</b></span>
+        <span>Last used <b>${escapeHtml(lastUsed)}</b></span>
+        ${revokedAt ? `<span>Revoked <b>${escapeHtml(revokedAt)}</b></span>` : ``}
+      </div>
+      ${actions.length ? `<div class="apikey-card-actions">${actions.join("")}</div>` : ``}
+    </div>
+  `;
+}
+
+function wireApiKeyActions(container, rerender){
+  container.querySelectorAll("[data-copy-key-id]").forEach(b=>b.onclick=()=>{
+    const full = getCachedApiKey(b.dataset.copyKeyId);
+    if(!full){toast("Full key not available on this device");return}
+    copyText(full);
+    flashCopyIcon(b);
+  });
+  container.querySelectorAll("[data-copy-masked]").forEach(b=>b.onclick=()=>{
+    copyText(b.dataset.copyMasked);
+    flashCopyIcon(b);
+  });
+  container.querySelectorAll("[data-revoke-key]").forEach(b=>b.onclick=async()=>{
+    if(!confirm("Revoke this API key? Any app using it will stop working immediately."))return;
+    try{
+      const r=await fetch(WORKER_BASE+"/apikeys/revoke",{method:"POST",headers:authHeaders(),body:JSON.stringify({id:b.dataset.revokeKey})});
+      if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error?.message||"Could not revoke key.")}
+      clearCachedApiKey(b.dataset.revokeKey);
+      toast("Key revoked");rerender();
+    }catch(e){toast(e.message||"Could not revoke key.")}
+  });
+  container.querySelectorAll("[data-rename-key]").forEach(b=>b.onclick=async()=>{
+    const card=b.closest(".apikey-card");
+    const currentTitle=card.querySelector(".apikey-card-title").textContent;
+    const newLabel=prompt("Rename this key:",currentTitle);
+    if(newLabel===null)return;
+    const clean=newLabel.trim().slice(0,80);
+    if(!clean){toast("Label required");return}
+    // The backend doesn't expose a rename endpoint — we keep the
+    // new label locally via cached overrides.
+    try{ localStorage.setItem("chinaGPTApiKeyLabel_"+b.dataset.renameKey, clean) }catch{}
+    toast("Label updated locally");
+    rerender();
+  });
+}
+function flashCopyIcon(btn){
+  const orig=btn.innerHTML;
+  btn.classList.add("is-copied");
+  btn.innerHTML=CHECK_ICON;
+  setTimeout(()=>{btn.classList.remove("is-copied");btn.innerHTML=orig},1400);
+}
+
+function createApiKey(rerender){
+  const label=prompt("Label for this key (optional, e.g. \"My website\"):")||"";
+  (async()=>{
+    try{
+      const r=await fetch(WORKER_BASE+"/apikeys/create",{method:"POST",headers:authHeaders(),body:JSON.stringify({label})});
+      if(!r.ok){
+        if(r.status===404){toast("The API-key service isn't deployed on your backend yet.");return}
+        const j=await r.json().catch(()=>({}));throw new Error(j.error?.message||"Could not create key.");
+      }
+      const j=await r.json();
+      if(j.key && j.id) cacheApiKey(j.id, j.key);
+      pushPage("API key created",(body)=>{
+        body.innerHTML=`
+          <div class="apikey-created-warning">
+            <b>Copy this key now.</b> For security, it is only shown once. You can still copy it from this browser later, but not from another device.
+          </div>
+          <div class="apikey-created-value" id="newKeyValue">${escapeHtml(j.key||"")}</div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn-ghost" id="newKeyCopy" type="button">Copy</button>
+            <button class="btn-primary" id="newKeyDone" type="button">Done</button>
+          </div>
+        `;
+        body.querySelector("#newKeyCopy").onclick=()=>{copyText(j.key||"");toast("Copied")};
+        body.querySelector("#newKeyDone").onclick=()=>{
+          popPage();
+          if(typeof rerender==="function") rerender();
+        };
+      });
+    }catch(e){toast(e.message||"Could not create key.")}
+  })();
+}
+
+/* ============================================================
+   API DOCS
+   ============================================================ */
+async function loadApiBaseUrl(){
+  try{
+    const r=await fetch(WORKER_BASE+"/account/prefs",{headers:authHeaders(false)});
+    if(r.ok){
+      const j=await r.json();
+      state.apiBaseUrl = j.apiBaseUrl || "";
+    }
+  }catch(e){ /* offline / not deployed yet */ }
+}
+async function saveApiBaseUrl(url){
+  try{
+    const r=await fetch(WORKER_BASE+"/account/prefs",{method:"POST",headers:authHeaders(),body:JSON.stringify({apiBaseUrl:url})});
+    if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error?.message||"Could not save")}
+    const j=await r.json();
+    state.apiBaseUrl = j.apiBaseUrl || url;
+    return true;
+  }catch(e){
+    toast(e.message||"Could not save base URL");
+    return false;
+  }
+}
+function effectiveBaseUrl(){
+  if(state.apiBaseUrl) return state.apiBaseUrl.replace(/\/+$/,"");
+  return window.location.origin;
+}
+
+function openApiDocs(){
+  pushPage("API documentation",(body)=>{
+    const isAdmin = state.role==="admin";
+    const render=()=>{
+      const base = effectiveBaseUrl();
+      const authLine = `Authorization: Bearer crk_live_your_api_key_here`;
+      body.innerHTML=`
+        <div class="docs-hero">
+          <h3>China-GPT API</h3>
+          <p>OpenAI-compatible REST API. Use the same models that power the chat, from your own apps.</p>
+        </div>
+
+        <div class="docs-baseurl" id="docsBaseUrlBlock">
+          <span class="docs-baseurl-label">Base URL</span>
+          <span class="docs-baseurl-code" id="docsBaseUrlValue">${escapeHtml(base)}</span>
+          <span class="docs-baseurl-actions">
+            <button type="button" class="docs-icon-btn" id="docsCopyBase" title="Copy base URL">${COPY_ICON}</button>
+            ${isAdmin?`<button type="button" class="docs-icon-btn" id="docsEditBase" title="Edit base URL"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>`:``}
+          </span>
+        </div>
+
+        <div class="docs-section-title">Authentication</div>
+        <div class="docs-endpoint">
+          <p>Send your key as a bearer token in the <code style="font-family:var(--mono);font-size:11.5px;color:var(--text);background:var(--panel-3);padding:2px 6px;border-radius:4px">Authorization</code> header.</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-text="${escapeHtml(authLine)}" title="Copy">${COPY_ICON}</button>
+            <pre>${escapeHtml(authLine)}</pre>
+          </div>
+        </div>
+
+        <div class="docs-section-title">Endpoints</div>
+
+        <div class="docs-endpoint method-get">
+          <div class="docs-endpoint-head">
+            <span class="docs-method get">GET</span>
+            <span class="docs-path">/v1/models</span>
+          </div>
+          <p>List every model your account can access.</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
+            <pre>curl ${escapeHtml(base)}/v1/models \\
+  -H "Authorization: Bearer crk_live_your_api_key_here"</pre>
+          </div>
+        </div>
+
+        <div class="docs-endpoint method-post">
+          <div class="docs-endpoint-head">
+            <span class="docs-method post">POST</span>
+            <span class="docs-path">/v1/chat/completions</span>
+          </div>
+          <p>Create a chat completion. Supports streaming via <code style="font-family:var(--mono);font-size:11.5px;color:var(--text);background:var(--panel-3);padding:2px 6px;border-radius:4px">stream: true</code>.</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
+            <pre>curl ${escapeHtml(base)}/v1/chat/completions \\
+  -H "Authorization: Bearer crk_live_your_api_key_here" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "openai/gpt-5",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "stream": false
+  }'</pre>
+          </div>
+        </div>
+
+        <div class="docs-endpoint method-get">
+          <div class="docs-endpoint-head">
+            <span class="docs-method get">GET</span>
+            <span class="docs-path">/v1/me</span>
+          </div>
+          <p>Return the account associated with your key, plus your current rate-limit state.</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
+            <pre>curl ${escapeHtml(base)}/v1/me \\
+  -H "Authorization: Bearer crk_live_your_api_key_here"</pre>
+          </div>
+        </div>
+
+        <div class="docs-section-title">Manage keys</div>
+        <div class="docs-note">
+          Create and revoke API keys from <b style="color:var(--text)">Account &rarr; API keys</b>.
+        </div>
+      `;
+      // Copy base URL
+      body.querySelector("#docsCopyBase").onclick=function(){
+        copyText(base);flashCopyIcon(this);
+      };
+      // Copy code blocks
+      body.querySelectorAll("[data-copy-code]").forEach(btn=>{
+        btn.onclick=function(){
+          const pre=btn.parentElement.querySelector("pre");
+          copyText(pre.innerText);flashCopyIcon(this);
+        };
+      });
+      body.querySelectorAll("[data-copy-text]").forEach(btn=>{
+        btn.onclick=function(){copyText(btn.dataset.copyText);flashCopyIcon(this)};
+      });
+      // Admin: edit base URL
+      const editBtn=body.querySelector("#docsEditBase");
+      if(editBtn){
+        editBtn.onclick=()=>{
+          const block=body.querySelector("#docsBaseUrlBlock");
+          const current=state.apiBaseUrl||"";
+          block.innerHTML=`
+            <span class="docs-baseurl-label">Base URL</span>
+            <div class="docs-edit-row">
+              <input id="docsBaseUrlInput" placeholder="${escapeHtml(window.location.origin)}" value="${escapeHtml(current)}">
+              <button type="button" class="btn-save" id="docsBaseUrlSave">Save</button>
+              <button type="button" class="btn-cancel" id="docsBaseUrlCancel">Cancel</button>
+            </div>
+          `;
+          const input=block.querySelector("#docsBaseUrlInput");
+          input.focus();
+          block.querySelector("#docsBaseUrlCancel").onclick=render;
+          block.querySelector("#docsBaseUrlSave").onclick=async()=>{
+            const url=input.value.trim();
+            if(!url){toast("Enter a URL");return}
+            const ok=await saveApiBaseUrl(url);
+            if(ok){toast("Base URL saved");render()}
+          };
+          input.addEventListener("keydown",e=>{
+            if(e.key==="Enter"){e.preventDefault();block.querySelector("#docsBaseUrlSave").click()}
+            else if(e.key==="Escape"){e.preventDefault();render()}
+          });
+        };
+      }
+    };
+    // Pull fresh from Redis every time the docs open
+    (async()=>{
+      await loadApiBaseUrl();
+      render();
+    })();
+  });
+}
+
+/* ============================================================
+   AUTH FLOWS
+   ============================================================ */
+async function loginWithCode(code){
+  const r=await fetch(WORKER_BASE+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code})});
+  let j={}; try{j=await r.json()}catch{}
+  if(!r.ok||!j.ok)throw new Error(j.error||"Invalid access key");
+  setAuth(j.code,j.role); return j;
+}
+
+function openLogin(reason){
+  openAuthPage(`
+    <div class="auth-head">
+      <div class="auth-brand"><span class="logo logo-sm">${LOGO_SVG}</span><b>China-GPT</b></div>
+      <button class="auth-back" id="loginClose" type="button">Back</button>
+    </div>
+    <h2>Enter your access key</h2>
+    <p class="auth-sub">Use your China-GPT access key to log in.</p>
+    <div class="field">
+      <label for="accessCodeField">Access key</label>
+      <input id="accessCodeField" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXX-XXXX">
+    </div>
+    <button class="auth-primary" id="loginBtn" type="button">Log in</button>
+    <div class="auth-link-row">Don't have an account? <button id="createAccountLink" type="button">Create one</button></div>
+    <p class="auth-error" id="loginError"></p>
+  `);
+  $("#loginClose").onclick=closeAuthPage;
+  $("#createAccountLink").onclick=()=>openCreateAccount();
+  setTimeout(()=>$("#accessCodeField").focus(),80);
+  const submit=async()=>{
+    const code=$("#accessCodeField").value.trim().toUpperCase();
+    if(!code){$("#loginError").textContent="Enter your access key.";return}
+    $("#loginBtn").disabled=true; $("#loginBtn").textContent="Logging in…"; $("#loginError").textContent="";
+    try{
+      const j=await loginWithCode(code);
+      closeAuthPage();
+      toast(j.role==="admin"?"Admin access granted":"Logged in");
+      await loadModels();
+      updateAccountBadge();
+      if(reason==="send")send();
+    }catch(e){$("#loginError").textContent=e.message||"Invalid access key"}
+    finally{const b=$("#loginBtn");if(b){b.disabled=false;b.textContent="Log in"}}
+  };
+  $("#loginBtn").onclick=submit;
+  $("#accessCodeField").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();submit()}});
+}
+
+async function openCreateAccount(){
+  openAuthPage(`
+    <div class="auth-head">
+      <div class="auth-brand"><span class="logo logo-sm">${LOGO_SVG}</span><b>China-GPT</b></div>
+      <button class="auth-back" id="createClose" type="button">Back</button>
+    </div>
+    <h2>Create account</h2>
+    <p class="auth-sub">Generate a free access key. One account per person.</p>
+    <button class="auth-primary" id="generateAccount" type="button">Create account</button>
+    <div id="generatedArea"></div>
+    <div class="auth-link-row">Already have an account? <button id="backLogin" type="button">Log in</button></div>
+  `);
+  $("#createClose").onclick=closeAuthPage;
+  $("#backLogin").onclick=()=>openLogin("login");
+  $("#generateAccount").onclick=async()=>{
+    const btn=$("#generateAccount");btn.disabled=true;btn.textContent="Creating…";
+    try{
+      const r=await fetch(WORKER_BASE+"/auth/create",{method:"POST"});
+      const j=await r.json();
+      if(!r.ok||!j.ok)throw new Error(j.error||"Could not create account");
+      if(j.firstAccount){
+        $("#generatedArea").innerHTML=`<div class="auth-note"><b>Administrator keys — save these securely.</b>${(j.keys||[]).map(k=>`<div class="row" style="margin-top:8px"><input value="${escapeHtml(k)}" readonly style="flex:1;background:var(--panel-3);border:1px solid var(--line);border-radius:8px;padding:10px;font-family:var(--mono);font-size:12.5px"><button class="btn-ghost copy-key" data-key="${escapeHtml(k)}" type="button">Copy</button></div>`).join("")}<div style="margin-top:10px;color:var(--dim)">These three initial administrator keys will not be shown again by this screen.</div></div>`;
+        document.querySelectorAll(".copy-key").forEach(b=>b.onclick=()=>copyText(b.dataset.key));
+      }else{
+        const k=j.key;
+        $("#generatedArea").innerHTML=`<div class="auth-note"><b>Your access key</b><div class="row" style="margin-top:8px"><input value="${escapeHtml(k)}" readonly style="flex:1;background:var(--panel-3);border:1px solid var(--line);border-radius:8px;padding:10px;font-family:var(--mono);font-size:12.5px"><button class="btn-ghost" id="copyUserKey" type="button">Copy</button></div><div style="margin-top:10px;color:var(--dim)">Save this key. You need it to log in.</div></div>`;
+        $("#copyUserKey").onclick=()=>copyText(k);
+      }
+      btn.textContent="Account created";
+    }catch(e){toast(e.message||"Could not create account");btn.disabled=false;btn.textContent="Create account"}
+  };
+}
+
+async function copyText(text){
+  try{await navigator.clipboard.writeText(text)}
+  catch{
+    const ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch{}ta.remove();
+  }
+  toast("Copied");
+}
+
+/* ============================================================
+   ADMIN
+   ============================================================ */
+let adminSection="overview";
+let adminStatusData=null;
+let adminAccountsData=[];
+let adminAccountsSummary={};
+let adminAccountsCursor=null;
+let adminAccountsSearch="";
+let adminAccountsRole="all";
+let adminAccountsStatus="all";
+function closeAdmin(){$("#adminPage").classList.remove("open")}
+function adminStat(label,value,sub){
+  return `<div class="admin-card"><div class="admin-card-label">${escapeHtml(label)}</div><div class="admin-card-value">${escapeHtml(String(value))}</div><div class="admin-card-sub">${escapeHtml(sub||"")}</div></div>`;
+}
+function adminStatusCard(label,value,detail,ok){
+  return `<div class="admin-status"><span class="admin-dot ${ok?"ok":"bad"}"></span><div><b>${escapeHtml(label)}</b><small>${escapeHtml(value)}${detail?" · "+escapeHtml(detail):""}</small></div></div>`;
+}
+function adminActionButton(label,id,action,disabled=false){
+  return `<button class="btn-ghost admin-key-action" data-id="${escapeHtml(id)}" data-action="${action}" ${disabled?"disabled":""}>${escapeHtml(label)}</button>`;
+}
+async function loadAdminAccounts(options={}){
+  if(!isAuthenticated()||state.role!=="admin") throw new Error("Administrator access required");
+  if(options.reset!==false) adminAccountsCursor=null;
+  const params=new URLSearchParams();
+  params.set("limit","100");
+  if(adminAccountsCursor) params.set("cursor",adminAccountsCursor);
+  if(adminAccountsSearch.trim()) params.set("search",adminAccountsSearch.trim());
+  if(adminAccountsRole!=="all") params.set("role",adminAccountsRole);
+  if(adminAccountsStatus!=="all") params.set("status",adminAccountsStatus);
+  const r=await fetch(WORKER_BASE+"/admin/accounts?"+params.toString(),{headers:authHeaders(false)});
+  let j={}; try{j=await r.json()}catch{}
+  if(!r.ok||!j.ok) throw new Error(j.error?.message||j.error||"Could not load accounts");
+  if(options.append) adminAccountsData=adminAccountsData.concat(j.accounts||[]);
+  else adminAccountsData=j.accounts||[];
+  adminAccountsSummary=j.summary||{};
+  adminAccountsCursor=j.nextCursor||null;
+  return j;
+}
+function accountTableRows(){
+  if(!adminAccountsData.length){
+    return `<tr><td colspan="6"><div class="admin-empty">No accounts match the current filters.</div></td></tr>`;
+  }
+  return adminAccountsData.map(a=>{
+    const canRevoke=a.status==="active";
+    const canRestore=a.status==="revoked";
+    return `<tr>
+      <td class="admin-code">${escapeHtml(a.codeMasked||"")}</td>
+      <td>${escapeHtml(a.role||"user")}</td>
+      <td>${escapeHtml(a.status||"active")}</td>
+      <td>${escapeHtml(a.createdAt?new Date(a.createdAt).toLocaleString():"—")}</td>
+      <td>${escapeHtml(a.lastLogin?new Date(a.lastLogin).toLocaleString():"Never")}</td>
+      <td>
+        ${canRevoke?adminActionButton("Revoke",a.id,"revoke"):""}
+        ${canRestore?adminActionButton("Restore",a.id,"restore"):""}
+        ${!canRevoke&&!canRestore?'<span style="color:var(--dim)">—</span>':""}
+      </td>
+    </tr>`;
+  }).join("");
+}
+function bindAdminAccountActions(){
+  document.querySelectorAll(".admin-key-action").forEach(btn=>{
+    btn.onclick=async()=>{
+      const id=btn.dataset.id;
+      const action=btn.dataset.action;
+      const label=action==="revoke"?"Revoke this access key?":"Restore this access key?";
+      if(!confirm(label)) return;
+      btn.disabled=true;
+      try{
+        const endpoint=action==="revoke"?"/admin/keys/revoke":"/admin/keys/restore";
+        const r=await fetch(WORKER_BASE+endpoint,{method:"POST",headers:authHeaders(),body:JSON.stringify({id})});
+        let j={}; try{j=await r.json()}catch{}
+        if(!r.ok||!j.ok) throw new Error(j.error?.message||j.error||"Key operation failed");
+        toast(action==="revoke"?"Access key revoked":"Access key restored");
+        await loadAdminAccounts();
+        renderAdmin();
+      }catch(e){
+        toast(e.message||"Key operation failed");
+        btn.disabled=false;
+      }
+    };
+  });
+}
+async function adminCreateKey(role){
+  if(!isAuthenticated()||state.role!=="admin"){toast("Administrator access required");return}
+  try{
+    const r=await fetch(WORKER_BASE+"/admin/keys/create",{method:"POST",headers:authHeaders(),body:JSON.stringify({role})});
+    let j={}; try{j=await r.json()}catch{}
+    if(!r.ok||!j.ok) throw new Error(j.error?.message||j.error||"Could not create key");
+    const generatedKey=j.key;
+    pushPage(`${role==="admin"?"Admin":"User"} key created`,(body)=>{
+      body.innerHTML=`
+        <p class="hint-text" style="margin-top:0">This is the only time the full access key is returned by the admin dashboard. Save it securely.</p>
+        <div class="field">
+          <label>Access key</label>
+          <div class="row">
+            <input id="createdKeyValue" value="${escapeHtml(generatedKey)}" readonly>
+            <button class="btn-ghost" id="copyCreatedKey" type="button">Copy</button>
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn-primary" id="doneCreatedKey" type="button">Done</button>
+        </div>
+      `;
+      body.querySelector("#copyCreatedKey").onclick=()=>copyText(generatedKey);
+      body.querySelector("#doneCreatedKey").onclick=()=>{
+        popPage();
+        loadAdminAccounts().then(()=>renderAdmin()).catch(()=>{});
+      };
+    });
+    toast("Access key created");
+  }catch(e){toast(e.message||"Could not create key")}
+}
+function renderAccountsPage(){
+  const c=$("#adminContent");
+  c.innerHTML=`
+    <p class="admin-kicker">Live account records. Access keys are masked; management actions use protected account IDs.</p>
+    <div class="admin-grid">
+      ${adminStat("Total",adminAccountsSummary.total||0,"Accounts returned")}
+      ${adminStat("Active",adminAccountsSummary.active||0,"Active keys")}
+      ${adminStat("Revoked",adminAccountsSummary.revoked||0,"Revoked keys")}
+      ${adminStat("Admins",adminAccountsSummary.admins||0,"Administrator keys")}
+    </div>
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>Accounts</h3><span>${adminAccountsSummary.users||0} user keys</span></div>
+      <div class="admin-actions" style="margin-bottom:10px">
+        <input id="adminAccountSearch" value="${escapeHtml(adminAccountsSearch)}" placeholder="Search masked key, role or status" style="flex:1;min-width:200px;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px;outline:0">
+        <select id="adminRoleFilter" style="background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:0 10px;min-height:42px">
+          <option value="all" ${adminAccountsRole==="all"?"selected":""}>All roles</option>
+          <option value="admin" ${adminAccountsRole==="admin"?"selected":""}>Admin</option>
+          <option value="user" ${adminAccountsRole==="user"?"selected":""}>User</option>
+        </select>
+        <select id="adminStatusFilter" style="background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:0 10px;min-height:42px">
+          <option value="all" ${adminAccountsStatus==="all"?"selected":""}>All status</option>
+          <option value="active" ${adminAccountsStatus==="active"?"selected":""}>Active</option>
+          <option value="revoked" ${adminAccountsStatus==="revoked"?"selected":""}>Revoked</option>
+        </select>
+        <button class="btn-ghost" id="adminAccountRefresh">Refresh</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Key</th><th>Role</th><th>Status</th><th>Created</th><th>Last login</th><th>Actions</th></tr></thead>
+          <tbody>${accountTableRows()}</tbody>
+        </table>
+      </div>
+      ${adminAccountsCursor?`<div class="admin-actions" style="margin-top:10px"><button class="btn-ghost" id="adminLoadMore">Load more</button></div>`:""}
+    </div>`;
+  $("#adminAccountSearch").onkeydown=async e=>{
+    if(e.key!=="Enter") return;
+    adminAccountsSearch=e.target.value;
+    try{await loadAdminAccounts();renderAdmin()}catch(err){toast(err.message)}
+  };
+  $("#adminRoleFilter").onchange=async e=>{
+    adminAccountsRole=e.target.value;
+    try{await loadAdminAccounts();renderAdmin()}catch(err){toast(err.message)}
+  };
+  $("#adminStatusFilter").onchange=async e=>{
+    adminAccountsStatus=e.target.value;
+    try{await loadAdminAccounts();renderAdmin()}catch(err){toast(err.message)}
+  };
+  $("#adminAccountRefresh").onclick=async()=>{
+    try{await loadAdminAccounts();renderAdmin();toast("Accounts refreshed")}catch(err){toast(err.message)}
+  };
+  if($("#adminLoadMore")){
+    $("#adminLoadMore").onclick=async()=>{
+      try{await loadAdminAccounts({reset:false,append:true});renderAdmin()}catch(err){toast(err.message)}
+    };
+  }
+  bindAdminAccountActions();
+}
+function renderKeysPage(){
+  const c=$("#adminContent");
+  c.innerHTML=`
+    <p class="admin-kicker">Create, revoke and restore access keys through the protected backend.</p>
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>Key management</h3><span>Admin-only operations</span></div>
+      <div class="admin-actions">
+        <button class="btn-primary" id="adminCreateUserKey">＋ Create User Key</button>
+        <button class="btn-ghost" id="adminCreateAdminKey">＋ Create Admin Key</button>
+        <button class="btn-ghost" id="adminRefreshKeys">Refresh</button>
+      </div>
+    </div>
+    <div class="admin-section">
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Key</th><th>Role</th><th>Status</th><th>Created</th><th>Last login</th><th>Actions</th></tr></thead>
+          <tbody>${accountTableRows()}</tbody>
+        </table>
+      </div>
+    </div>`;
+  $("#adminCreateUserKey").onclick=()=>adminCreateKey("user");
+  $("#adminCreateAdminKey").onclick=()=>adminCreateKey("admin");
+  $("#adminRefreshKeys").onclick=async()=>{
+    try{await loadAdminAccounts();renderAdmin();toast("Keys refreshed")}catch(e){toast(e.message||"Could not refresh keys")}
+  };
+  bindAdminAccountActions();
+}
+function renderApiSettingsPage(){
+  const c=$("#adminContent");
+  c.innerHTML=`
+    <p class="admin-kicker">The base URL shown to everyone on the API documentation page.</p>
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>API base URL</h3></div>
+      <div class="admin-note" style="margin-bottom:14px">
+        Set the public URL of this API. Users see this value on the API documentation page. Leave blank to fall back to the current site's origin (<code style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escapeHtml(window.location.origin)}</code>).
+      </div>
+      <div class="field" style="max-width:520px">
+        <label for="adminApiBaseUrlInput">Base URL</label>
+        <input id="adminApiBaseUrlInput" value="${escapeHtml(state.apiBaseUrl||"")}" placeholder="${escapeHtml(window.location.origin)}">
+      </div>
+      <div class="admin-actions">
+        <button class="btn-primary" id="adminApiBaseUrlSave">Save</button>
+        <button class="btn-ghost" id="adminApiBaseUrlReset">Reset to default</button>
+      </div>
+    </div>`;
+  const input=c.querySelector("#adminApiBaseUrlInput");
+  c.querySelector("#adminApiBaseUrlSave").onclick=async()=>{
+    const url=input.value.trim();
+    const ok=await saveApiBaseUrl(url);
+    if(ok)toast("Base URL saved");
+  };
+  c.querySelector("#adminApiBaseUrlReset").onclick=async()=>{
+    const ok=await saveApiBaseUrl("");
+    if(ok){input.value="";toast("Reset to default")}
+  };
+  // Load fresh
+  (async()=>{await loadApiBaseUrl();input.value=state.apiBaseUrl||""})();
+}
+function renderAdmin(){
+  const c=$("#adminContent"),j=adminStatusData||{},count=state.models.length;
+  if(adminSection==="overview"){
+    c.innerHTML=`<p class="admin-kicker">Control center for authentication, models, gateway health and future usage analytics.</p>
+    <div class="admin-grid">
+      ${adminStat("Models",count,"Loaded in this session")}
+      ${adminStat("Gateway",j.gateway||"Unknown","9Router")}
+      ${adminStat("API key",j.apiKeyConfigured?"Configured":"Missing","Secret remains server-side")}
+      ${adminStat("Auth system",j.authSystemInitialized?"Initialized":"Not initialized","Upstash Redis")}
+    </div>
+    <div class="admin-section"><div class="admin-section-head"><h3>System health</h3><span>Live backend status</span></div>
+      <div class="admin-status-grid">
+        ${adminStatusCard("China-GPT backend","Online","Admin request succeeded",true)}
+        ${adminStatusCard("9Router gateway",j.gateway||"Unknown","Reported by backend",!!j.gateway)}
+        ${adminStatusCard("NINEROUTER_API_KEY",j.apiKeyConfigured?"Configured":"Missing","Never exposed to browser",!!j.apiKeyConfigured)}
+      </div>
+    </div>
+    <div class="admin-section"><div class="admin-section-head"><h3>Quick actions</h3><span>Live protected controls</span></div>
+      <div class="admin-actions">
+        <button class="btn-primary" data-admin-go="accounts">Manage accounts</button>
+        <button class="btn-ghost" data-admin-go="keys">Access keys</button>
+        <button class="btn-ghost" data-admin-go="api-settings">API Settings</button>
+        <button class="btn-ghost" data-admin-go="system">System status</button>
+      </div>
+    </div>
+    <div class="admin-section"><div class="admin-note"><b style="color:var(--text)">Security:</b> the dashboard never displays the private 9Router API key. Existing access keys are masked in account listings. Newly created keys are shown once so the administrator can save them.</div></div>`;
+  }else if(adminSection==="accounts"){
+    renderAccountsPage();return;
+  }else if(adminSection==="keys"){
+    renderKeysPage();return;
+  }else if(adminSection==="models"){
+    c.innerHTML=`<p class="admin-kicker">This catalogue is backed by the live /v1/models response.</p>
+    <div class="admin-section"><div class="admin-section-head"><h3>Loaded model catalogue</h3><span>${count} model${count===1?"":"s"}</span></div>
+    <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Display</th><th>Provider</th><th>Exact model ID</th></tr></thead><tbody>
+    ${state.models.length?state.models.slice(0,100).map(m=>{const maker=makerOf(m.id);return `<tr><td>${escapeHtml(cleanModelName(m.id))}</td><td>${escapeHtml(maker.label)}</td><td class="admin-code">${escapeHtml(m.id)}</td></tr>`}).join(""):`<tr><td colspan="3"><div class="admin-empty">No models loaded.</div></td></tr>`}
+    </tbody></table></div></div>`;
+  }else if(adminSection==="usage"){
+    c.innerHTML=`<p class="admin-kicker">Live server-side usage accounting for the selected period.</p><div id="adminUsageBody"><div class="admin-note">Loading usage…</div></div>`;
+    loadAdminUsage();
+  }else if(adminSection==="compare"){
+    c.innerHTML=`<p class="admin-kicker">Run the same prompt against multiple live models.</p><div class="admin-actions"><button class="btn-primary" id="adminCompareOpen">Open model comparison</button></div>`;
+    $("#adminCompareOpen").onclick=()=>openCompare();
+  }else if(adminSection==="playground"){
+    c.innerHTML=`<p class="admin-kicker">Admin-only model request tester.</p><div class="admin-note">The playground will use the authenticated backend endpoint after key-management and usage tracking are implemented.</div>`;
+  }else if(adminSection==="api-settings"){
+    renderApiSettingsPage();return;
+  }else if(adminSection==="system"){
+    c.innerHTML=`<p class="admin-kicker">Live information returned by <code>/admin/status</code>.</p>
+    <div class="admin-status-grid">
+      ${adminStatusCard("Backend authentication","Admin authorized","Access key accepted",true)}
+      ${adminStatusCard("Gateway",j.gateway||"Unknown","9Router",!!j.gateway)}
+      ${adminStatusCard("API secret",j.apiKeyConfigured?"Configured":"Missing","Backend secret",!!j.apiKeyConfigured)}
+      ${adminStatusCard("Redis",j.authSystemInitialized?"Initialized":"Not initialized","Upstash",!!j.authSystemInitialized)}
+    </div>`;
+  }else if(adminSection==="logs"){
+    c.innerHTML=`<p class="admin-kicker">Operational events will appear here once server-side activity logging is added.</p><div class="admin-note">No fabricated activity is displayed.</div>`;
+  }else if(adminSection==="settings"){
+    c.innerHTML=`<p class="admin-kicker">Administrative settings for China-GPT.</p><div class="admin-note">Registration controls, default model, maintenance mode and other settings require protected backend/KV configuration endpoints before they can be changed here.</div>`;
+  }
+  c.querySelectorAll("[data-admin-go]").forEach(b=>b.onclick=async()=>{
+    adminSection=b.dataset.adminGo;
+    document.querySelectorAll(".admin-nav button[data-admin-section]").forEach(x=>x.classList.toggle("is-active",x.dataset.adminSection===adminSection));
+    if(adminSection==="accounts"||adminSection==="keys"){
+      try{await loadAdminAccounts()}catch(e){toast(e.message||"Could not load accounts")}
+    }
+    renderAdmin();
+  });
+}
+async function loadAdminUsage(){
+  const body=$("#adminUsageBody");if(!body)return;
+  try{
+    const r=await fetch(WORKER_BASE+"/admin/usage?days=30",{headers:authHeaders(false)});
+    const j=await r.json();
+    if(!r.ok)throw new Error(j.error?.message||"Could not load usage");
+    const byModel=Array.isArray(j.byModel)?j.byModel:[];
+    const byAccount=Array.isArray(j.byAccount)?j.byAccount:[];
+    body.innerHTML=`
+      <div class="admin-grid">${adminStat("Requests",j.requests,"Last 30 days")}${adminStat("Prompt tokens",(j.promptTokens||0).toLocaleString(),"")}${adminStat("Completion tokens",(j.completionTokens||0).toLocaleString(),"")}${adminStat("Total tokens",(j.totalTokens||0).toLocaleString(),"")}</div>
+      <div class="admin-section"><div class="admin-section-head"><h3>By model</h3><span>${byModel.length}</span></div>
+      <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Model</th><th>Requests</th><th>Total tokens</th></tr></thead><tbody>
+      ${byModel.length?byModel.map(x=>`<tr><td>${escapeHtml(cleanModelName(x.model||"unknown"))}</td><td>${x.requests}</td><td>${(x.totalTokens||0).toLocaleString()}</td></tr>`).join(""):`<tr><td colspan="3">No usage yet.</td></tr>`}
+      </tbody></table></div></div>
+      <div class="admin-section"><div class="admin-section-head"><h3>By account</h3><span>${byAccount.length}</span></div>
+      <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Account ID</th><th>Requests</th><th>Total tokens</th></tr></thead><tbody>
+      ${byAccount.length?byAccount.map(x=>`<tr><td class="admin-code">${escapeHtml(x.accountId)}</td><td>${x.requests}</td><td>${(x.totalTokens||0).toLocaleString()}</td></tr>`).join(""):`<tr><td colspan="3">No usage yet.</td></tr>`}
+      </tbody></table></div></div>`;
+  }catch(e){body.innerHTML=`<div class="admin-note">${escapeHtml(e.message||"Could not load usage")}</div>`}
+}
+async function refreshAdminStatus(){
+  if(!isAuthenticated()||state.role!=="admin"){toast("Administrator access required");return}
+  try{
+    const r=await fetch(WORKER_BASE+"/admin/status",{headers:authHeaders(false)});
+    const j=await r.json();
+    if(!r.ok)throw new Error(j.error?.message||"Admin request failed");
+    adminStatusData=j;
+    if(adminSection==="accounts"||adminSection==="keys") await loadAdminAccounts();
+    renderAdmin();
+  }catch(e){
+    adminStatusData={};renderAdmin();toast(e.message||"Could not load admin status");
+  }
+}
+async function openAdmin(){
+  if(!isAuthenticated()||state.role!=="admin"){toast("Administrator access required");return}
+  $("#adminPage").classList.add("open");
+  adminSection="overview";
+  document.querySelectorAll(".admin-nav button[data-admin-section]").forEach(b=>b.classList.toggle("is-active",b.dataset.adminSection==="overview"));
+  renderAdmin();
+  await refreshAdminStatus();
+}
+document.querySelectorAll(".admin-nav button[data-admin-section]").forEach(b=>{
+  b.onclick=async()=>{
+    adminSection=b.dataset.adminSection;
+    document.querySelectorAll(".admin-nav button[data-admin-section]").forEach(x=>x.classList.toggle("is-active",x===b));
+    if(adminSection==="accounts"||adminSection==="keys"){
+      try{await loadAdminAccounts()}catch(e){toast(e.message||"Could not load accounts")}
+    }
+    renderAdmin();
+  };
+});
+$("#adminRefreshBtn").onclick=refreshAdminStatus;
+$("#adminCloseBtn").onclick=closeAdmin;
+$("#adminMobileClose").onclick=closeAdmin;
+$("#adminBackBtn").onclick=closeAdmin;
+
+/* ============================================================
+   MODEL CATALOGUE
+   ============================================================ */
+function saveModelPrefs(){
+  localStorage.setItem("chinaGPTFavoriteModels",JSON.stringify(state.favorites));
+  localStorage.setItem("chinaGPTRecentModels",JSON.stringify(state.recentModels.slice(0,20)));
+}
+function isFavorite(id){return state.favorites.includes(id)}
+function toggleFavorite(id){
+  state.favorites=isFavorite(id)?state.favorites.filter(x=>x!==id):[...state.favorites,id];
+  saveModelPrefs();renderCatalog();
+}
+function markModelUsed(id){state.recentModels=[id,...state.recentModels.filter(x=>x!==id)].slice(0,20);saveModelPrefs()}
+function modelCaps(m){
+  const caps=[];
+  const c=m.capabilities||{};
+  if(c.vision) caps.push("Vision");
+  if(c.tools) caps.push("Tools");
+  if(c.reasoning) caps.push("Reasoning");
+  if(c.audioInput) caps.push("Audio");
+  if(!caps.length){
+    const text=JSON.stringify(m).toLowerCase();
+    if(/vision|image|multimodal/.test(text))caps.push("Vision");
+    if(/tool|function/.test(text))caps.push("Tools");
+    if(/reason/.test(text))caps.push("Reasoning");
+  }
+  return caps.slice(0,3);
+}
+function modelSortKey(m,mode){
+  const maker=makerOf(m.id);
+  return mode==="provider"
+    ? (maker.label+" "+cleanModelName(m.id)).toLowerCase()
+    : cleanModelName(m.id).toLowerCase();
+}
+function selectModel(id){
+  if(!isAuthenticated()){openLogin("model");return}
+  state.model=id;localStorage.setItem("chinaGPTModel",id);
+  markModelUsed(id);persistCurrentConversation();updateBadge();closeModelsPage();
+}
+function fmtContext(n){
+  if(!n) return "—";
+  if(n>=1000000) return (n/1000000).toFixed(n%1000000===0?0:2)+"M";
+  if(n>=1000) return Math.round(n/1000)+"K";
+  return String(n);
+}
+function fmtPrice(p){
+  if(p===undefined||p===null||p==="") return "—";
+  const n=Number(p); if(Number.isNaN(n)) return "—";
+  if(n===0) return "Free";
+  if(n<0.01) return "$"+n.toFixed(6).replace(/0+$/,"").replace(/\.$/,"");
+  return "$"+n.toFixed(2);
+}
+let catalogFilter="all", catalogQuery="", catalogSort="name";
+function buildFilters(){
+  const makers=[...new Set(state.models.map(m=>makerOf(m.id).key))].sort((a,b)=>{
+    return providerLabel(a).localeCompare(providerLabel(b));
+  });
+  const box=$("#modelFilters");
+  box.innerHTML=`<button type="button" class="filter${catalogFilter==="all"?" is-active":""}" data-filter="all">All providers</button>`+
+    makers.map(k=>`<button type="button" class="filter${catalogFilter===k?" is-active":""}" data-filter="${escapeHtml(k)}">${renderTile(k,"tile-xs")}${escapeHtml(providerLabel(k))}</button>`).join("");
+  box.querySelectorAll(".filter").forEach(b=>b.onclick=()=>{catalogFilter=b.dataset.filter;buildFilters();renderCatalog()});
+  $("#favoritesOnlyBtn").classList.toggle("is-on",state.favoritesOnly);
+  $("#favoritesOnlyBtn").textContent=state.favoritesOnly?"★ Favorites":"☆ Favorites";
+  $("#recentOnlyBtn").classList.toggle("is-on",state.recentOnly);
+  $("#modelSort").value=catalogSort;
+}
+function renderCatalog(){
+  const q=catalogQuery.trim().toLowerCase();
+  let rows=state.models.filter(m=>{
+    const maker=makerOf(m.id);
+    if(catalogFilter!=="all"&&maker.key!==catalogFilter)return false;
+    if(state.favoritesOnly&&!isFavorite(m.id))return false;
+    if(state.recentOnly&&!state.recentModels.includes(m.id))return false;
+    if(q&&!m.id.toLowerCase().includes(q)&&!cleanModelName(m.id).toLowerCase().includes(q)&&!maker.label.toLowerCase().includes(q))return false;
+    return true;
+  });
+  rows.sort((a,b)=>modelSortKey(a,catalogSort).localeCompare(modelSortKey(b,catalogSort)));
+  $("#catalogCount").textContent=`${rows.length} model${rows.length===1?"":"s"} in the catalog`;
+  const box=$("#modelResults");
+  box.innerHTML=rows.length?rows.map(m=>{
+    const maker=makerOf(m.id),isActive=m.id===state.model,caps=modelCaps(m);
+    const ctx=fmtContext(m.context_length||m.contextWindow);
+    const pin=fmtPrice(m.pricing?.prompt??m.pricing?.input);
+    const pout=fmtPrice(m.pricing?.completion??m.pricing?.output);
+    const lastCell=isActive?'<span class="selected-flag">✓ Selected</span>':pout;
+    const lastLabel=isActive?"Status":"Output / 1M";
+    const c=providerColor(maker.key);
+    return `<div class="model-row${isActive?" is-active":""}">
+      <button type="button" class="model-main" data-model="${escapeHtml(m.id)}">
+        <span class="model-id">
+          ${renderTile(maker.key)}
+          <span class="model-id-text">
+            <b>${escapeHtml(cleanModelName(m.id))}</b>
+            <span class="model-meta">
+              <small style="color:${c}">${escapeHtml(maker.label)}</small>
+              ${caps.map(cap=>`<span class="cap-badge">${escapeHtml(cap)}</span>`).join("")}
+            </span>
+          </span>
+        </span>
+        <span class="model-cell" data-label="Context">${ctx}</span>
+        <span class="model-cell price" data-label="Input / 1M">${pin}</span>
+        <span class="model-cell price" data-label="${lastLabel}">${lastCell}</span>
+      </button>
+      <button type="button" class="model-fav${isFavorite(m.id)?" is-on":""}" data-fav-model="${escapeHtml(m.id)}" aria-label="Favorite model" title="Favorite">${isFavorite(m.id)?"★":"☆"}</button>
+    </div>`;
+  }).join(""):`<div class="side-empty" style="padding:20px">No models match the selected filters.</div>`;
+  box.querySelectorAll("[data-model]").forEach(b=>b.onclick=()=>selectModel(b.dataset.model));
+  box.querySelectorAll("[data-fav-model]").forEach(b=>b.onclick=e=>{e.stopPropagation();toggleFavorite(b.dataset.favModel)});
+}
+function openModelsPage(){buildFilters();renderCatalog();$("#modelSearch").value=catalogQuery;$("#modelsPage").classList.add("open")}
+function closeModelsPage(){$("#modelsPage").classList.remove("open")}
+
+/* ============================================================
+   QUICK MODEL SWITCH
+   ============================================================ */
+let quickSwitchMaker="all", quickSwitchQuery="";
+function openQuickModelSwitch(){
+  if(!isAuthenticated()){openLogin("model");return}
+  const backdrop=$("#qsBackdrop");
+  const sheet=$("#qsSheet");
+  sheet.innerHTML=`
+    <div class="qs-sheet-handle"></div>
+    <div class="qs-sheet-head">
+      <div class="qs-sheet-title" id="qsSheetTitle"><span class="dot"></span><span id="qsSheetTitleText">All providers</span></div>
+      <label class="qs-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.6"/><path d="m16 16 4.4 4.4"/></svg>
+        <input id="qsSearchInput" placeholder="Search models" autocomplete="off">
+      </label>
+    </div>
+    <div class="qs-sheet-providers" id="qsProviders"></div>
+    <div class="qs-sheet-body" id="qsList"></div>
+  `;
+  quickSwitchMaker="all";
+  quickSwitchQuery="";
+  renderQuickSwitch();
+  backdrop.classList.add("open");
+  requestAnimationFrame(()=>sheet.classList.add("open"));
+  const input=sheet.querySelector("#qsSearchInput");
+  input.addEventListener("input",()=>{quickSwitchQuery=input.value;renderQuickSwitchList()});
+  setTimeout(()=>{if(!("ontouchstart" in window)) input.focus()},120);
+}
+function closeQuickModelSwitch(){
+  const backdrop=$("#qsBackdrop");
+  const sheet=$("#qsSheet");
+  if(sheet)sheet.classList.remove("open");
+  if(backdrop)backdrop.classList.remove("open");
+  setTimeout(()=>{if(sheet&&!sheet.classList.contains("open"))sheet.innerHTML=""},320);
+}
+function renderQuickSwitch(){
+  const sheet=$("#qsSheet");if(!sheet)return;
+  const makers=[...new Set(state.models.map(m=>makerOf(m.id).key))].sort((a,b)=>providerLabel(a).localeCompare(providerLabel(b)));
+  const provRow=sheet.querySelector("#qsProviders");
+  const titleText=sheet.querySelector("#qsSheetTitleText");
+  const titleDot=sheet.querySelector("#qsSheetTitle .dot");
+  if(!provRow||!titleText)return;
+
+  if(quickSwitchMaker==="all"){
+    titleText.textContent="All providers";
+    if(titleDot)titleDot.style.background="var(--accent)";
+  }else{
+    titleText.textContent=providerLabel(quickSwitchMaker);
+    if(titleDot)titleDot.style.background=providerColor(quickSwitchMaker);
+  }
+
+  provRow.innerHTML=`<button type="button" class="qs-prov-tile${quickSwitchMaker==="all"?" is-active":""}" data-qs-maker="all" title="All providers" ${quickSwitchMaker==="all"?'style="background:var(--accent);color:#fff;border-color:transparent"':''}>All</button>`+
+    makers.map(k=>{
+      const c=providerColor(k);
+      const active=quickSwitchMaker===k;
+      const st=active
+        ? `background:${c};color:#fff;border-color:transparent`
+        : `background:${hexToRgba(c,.14)};color:${c};border-color:${hexToRgba(c,.3)}`;
+      const url=providerIconUrl(k);
+      const letter=safeLetter(k);
+      const inner = url
+        ? `<img src="${url}" alt="" loading="lazy" onerror="this.parentNode.setAttribute('data-letter','${letter}')">`
+        : letter;
+      return `<button type="button" class="qs-prov-tile${active?" is-active":""}" data-qs-maker="${escapeHtml(k)}" title="${escapeHtml(providerLabel(k))}" style="${st}">${inner}</button>`;
+    }).join("");
+  provRow.querySelectorAll("[data-qs-maker]").forEach(b=>b.onclick=()=>{quickSwitchMaker=b.dataset.qsMaker;renderQuickSwitch()});
+  renderQuickSwitchList();
+}
+function renderQuickSwitchList(){
+  const sheet=$("#qsSheet");if(!sheet)return;
+  const list=sheet.querySelector("#qsList");if(!list)return;
+  const q=(quickSwitchQuery||"").trim().toLowerCase();
+  let rows=state.models.filter(m=>{
+    const maker=makerOf(m.id);
+    if(quickSwitchMaker!=="all" && maker.key!==quickSwitchMaker) return false;
+    if(q && !m.id.toLowerCase().includes(q) && !cleanModelName(m.id).toLowerCase().includes(q) && !maker.label.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  rows.sort((a,b)=>cleanModelName(a.id).localeCompare(cleanModelName(b.id)));
+  list.innerHTML=rows.length?rows.map(m=>{
+    const maker=makerOf(m.id),isActive=m.id===state.model;
+    const ctx=fmtContext(m.context_length||m.contextWindow);
+    const c=providerColor(maker.key);
+    return `<button type="button" class="qs-row${isActive?" is-active":""}" data-qs-model="${escapeHtml(m.id)}">
+      ${renderTile(maker.key,"tile-sm")}
+      <span class="qs-row-main">
+        <b>${escapeHtml(cleanModelName(m.id))}</b>
+        <small><span class="prov-dot" style="background:${c}"></span>${escapeHtml(maker.label)} · ${ctx} ctx</small>
+      </span>
+      <span class="qs-radio"></span>
+    </button>`;
+  }).join(""):`<div class="qs-empty">No models match.</div>`;
+  list.querySelectorAll("[data-qs-model]").forEach(b=>b.onclick=()=>{
+    selectModel(b.dataset.qsModel);
+    closeQuickModelSwitch();
+  });
+}
+
+/* ============================================================
+   WIRING
+   ============================================================ */
+$("#brandLogo").innerHTML=LOGO_SVG;
+
+$("#modelsClose").onclick=closeModelsPage;
+$("#modelSearch").addEventListener("input",e=>{catalogQuery=e.target.value;renderCatalog()});
+$("#favoritesOnlyBtn").onclick=()=>{state.favoritesOnly=!state.favoritesOnly;state.recentOnly=false;buildFilters();renderCatalog()};
+$("#recentOnlyBtn").onclick=()=>{state.recentOnly=!state.recentOnly;state.favoritesOnly=false;buildFilters();renderCatalog()};
+$("#modelSort").onchange=e=>{catalogSort=e.target.value;renderCatalog()};
+
+$("#sendBtn").onclick=send;
+$("#stopBtn").onclick=stopGeneration;
+$("#prompt").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
+$("#prompt").addEventListener("input",e=>{e.target.style.height="";e.target.style.height=Math.min(200,e.target.scrollHeight)+"px"});
+$("#newChat").onclick=()=>{
+  if(state.generating){toast("Wait for the response to finish.");return}
+  if(state.messages.length&&!confirm("Start a new chat? Your current conversation will remain saved."))return;
+  state.messages=[];state.attachments=[];state.conversationId="";
+  localStorage.removeItem("chinaGPTConversationId");
+  renderAttachments();renderMessages();renderRecent();
+  $("#prompt").focus();$("#shell").classList.remove("nav-open");
+};
+$("#navModels").onclick=openModelsPage;
+$("#navChats").onclick=openChatManager;
+$("#apiDocsBtn").onclick=openApiDocs;
+$("#accountBtn").onclick=openAccountPage;
+$("#fileInput").addEventListener("change",e=>{handleFiles(e.target.files);e.target.value=""});
+const composerDrop=$("#composer");
+["dragenter","dragover"].forEach(ev=>composerDrop.addEventListener(ev,e=>{e.preventDefault();composerDrop.classList.add("is-dragging")}));
+["dragleave","drop"].forEach(ev=>composerDrop.addEventListener(ev,e=>{e.preventDefault();composerDrop.classList.remove("is-dragging")}));
+composerDrop.addEventListener("drop",e=>{if(e.dataTransfer?.files?.length)handleFiles(e.dataTransfer.files)});
+$("#modelBtn").onclick=openModelsPage;
+$("#composerModelChip").onclick=()=>openQuickModelSwitch();
+$("#personalitiesBtn").onclick=openPersonalities;
+$("#menuBtn").onclick=()=>$("#shell").classList.add("nav-open");
+$("#drawerClose").onclick=()=>$("#shell").classList.remove("nav-open");
+$("#scrim").onclick=()=>$("#shell").classList.remove("nav-open");
+$("#searchBtn").onclick=toggleWebSearch;
+$("#qsBackdrop").addEventListener("click",closeQuickModelSwitch);
+
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){
+    if($("#qsSheet").classList.contains("open")){closeQuickModelSwitch();return}
+    if($("#authPage").classList.contains("open")){closeAuthPage();return}
+    if(pageStack.length>0){popPage();return}
+    if($("#modelsPage").classList.contains("open")){closeModelsPage();return}
+    if($("#adminPage").classList.contains("open")){closeAdmin();return}
+    $("#shell").classList.remove("nav-open");
+  }
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+updateAccountBadge();
+if(isAuthenticated())loadApiBaseUrl();
+renderRecent();
+if(isAuthenticated()) loadModels(); else updateBadge();
+if(state.conversationId) loadConversation(state.conversationId);
+renderAttachments();
+renderMessages();
+</script>
+</body>
+</html>
