@@ -9,6 +9,10 @@ import * as admin from "./lib/admin.js";
 import * as usage from "./lib/usage.js";
 import * as proxy from "./lib/proxy.js";
 import * as ratelimit from "./lib/ratelimit.js";
+import * as providerIcons from "./lib/provider-icons.js";
+import * as modelHealth from "./lib/model-health.js";
+import * as searchConfig from "./lib/search-config.js";
+import * as providerOverrides from "./lib/provider-overrides.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,6 +71,33 @@ app.post("/admin/keys/restore", auth.requireAdmin, admin.restoreKey);
 app.get("/admin/apikeys", auth.requireAdmin, apikeys.adminList);
 app.get("/admin/usage", auth.requireAdmin, usage.adminUsage);
 
+// ---- Provider icon overrides ----
+app.get("/provider-icons", auth.requireAuth, providerIcons.list);
+app.get("/admin/provider-icons", auth.requireAdmin, providerIcons.adminList);
+app.post("/admin/provider-icons", auth.requireAdmin, providerIcons.setIcon);
+
+// ---- Model health ----
+app.get("/admin/model-health", auth.requireAdmin, modelHealth.get);
+app.get("/admin/model-health/all-models", auth.requireAdmin, modelHealth.allModels);
+app.post("/admin/model-health/test", auth.requireAdmin, modelHealth.testOne);
+app.post("/admin/model-health/disable-model", auth.requireAdmin, modelHealth.disableModel);
+app.post("/admin/model-health/enable-model", auth.requireAdmin, modelHealth.enableModel);
+app.post("/admin/model-health/disable-provider", auth.requireAdmin, modelHealth.disableProvider);
+app.post("/admin/model-health/enable-provider", auth.requireAdmin, modelHealth.enableProvider);
+
+// ---- Web search configuration ----
+app.get("/search-config", auth.requireAuth, searchConfig.publicGet);
+app.get("/admin/search-config", auth.requireAdmin, searchConfig.adminGet);
+app.post("/admin/search-config", auth.requireAdmin, searchConfig.adminSave);
+
+// ---- Provider overrides (model relabelling) ----
+app.get("/provider-overrides", auth.requireAuth, providerOverrides.publicGet);
+app.get("/admin/provider-overrides", auth.requireAdmin, providerOverrides.adminGet);
+app.post("/admin/provider-overrides/pattern/add", auth.requireAdmin, providerOverrides.adminAddPattern);
+app.post("/admin/provider-overrides/pattern/remove", auth.requireAdmin, providerOverrides.adminRemovePattern);
+app.post("/admin/provider-overrides/model/add", auth.requireAdmin, providerOverrides.adminAddModelId);
+app.post("/admin/provider-overrides/model/remove", auth.requireAdmin, providerOverrides.adminRemoveModelId);
+
 // ---- Usage ----
 app.get("/usage/me", auth.requireAuth, usage.me);
 
@@ -74,6 +105,7 @@ app.get("/usage/me", auth.requireAuth, usage.me);
 app.get("/v1/me", auth.requireAuth, auth.meEndpoint);
 app.get("/v1/models", auth.requireAuth, ratelimit.check, proxy.models);
 app.post("/v1/chat/completions", auth.requireAuth, ratelimit.check, proxy.chat);
+app.post("/v1/search", auth.requireAuth, ratelimit.check, proxy.search);
 
 // ---- Static HTML ----
 app.use(express.static(path.join(__dirname, "public"), {
