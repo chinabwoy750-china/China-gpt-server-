@@ -1587,6 +1587,91 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
   font-size:14px;
   border-radius:10px;
 }
+
+/* ============ Tool activity pills (visible during generation) ============ */
+.tool-pill-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin:0 0 10px;
+  max-width:min(100%,640px);
+}
+.tool-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:4px 10px;
+  border-radius:99px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  color:var(--muted);
+  font-size:11.5px;
+  font-weight:500;
+  line-height:1.2;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.tool-pill.running{ color:var(--muted); border-color:var(--line-strong); }
+.tool-pill.running .spark{ display:inline-block; animation:think-pulse 1.2s ease-in-out infinite; }
+.tool-pill.done{ color:var(--ok); border-color:rgba(86,211,100,.3); background:rgba(86,211,100,.06); }
+.tool-pill.failed{ color:var(--danger); border-color:rgba(242,97,97,.3); background:rgba(242,97,97,.06); }
+
+/* ============ Three-dots tool log button ============ */
+.msg-action-tools{
+  display:grid;place-items:center;width:28px;height:28px;
+  border-radius:var(--r-sm);color:var(--muted);background:transparent;border:0;
+  cursor:pointer;transition:color var(--t-base),background-color var(--t-base);
+}
+.msg-action-tools:hover{ color:var(--text); background:var(--panel-3); }
+.msg-action-tools svg{ width:15px; height:15px; }
+
+/* ============ Tool log dialog ============ */
+.dialog-wide{ width:min(560px,96vw); }
+.tl-section{ margin:0 0 20px; }
+.tl-section:last-child{ margin-bottom:0; }
+.tl-section h4{
+  margin:0 0 8px;font-size:11.5px;color:var(--muted);font-weight:600;
+  letter-spacing:.05em;text-transform:uppercase;
+}
+.tl-sources{ list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px; }
+.tl-sources li{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;
+  background:var(--panel-2);border:1px solid var(--line);border-radius:8px;font-size:12.5px;
+}
+.tl-sources li .tl-idx{ color:var(--dim);font-family:var(--mono);font-size:11px;flex:0 0 auto; }
+.tl-sources li a{
+  flex:1;color:var(--accent);text-decoration:none;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
+}
+.tl-sources li a:hover{ text-decoration:underline; }
+.tl-answer{
+  padding:12px 14px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;
+  color:var(--muted);font-size:12.5px;line-height:1.6;white-space:pre-wrap;
+  overflow-wrap:anywhere;max-height:9em;overflow:hidden;position:relative;
+}
+.tl-answer.expanded{ max-height:none; }
+.tl-answer:not(.expanded)::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:2.6em;
+  background:linear-gradient(transparent,var(--panel-2));pointer-events:none;
+}
+.tl-expand{
+  display:block;margin-top:6px;padding:0;background:none;border:0;
+  color:var(--accent);font-size:11.5px;cursor:pointer;
+}
+.tl-expand:hover{ text-decoration:underline; }
+.tl-file-row{
+  display:flex;align-items:center;gap:10px;padding:9px 11px;
+  background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+  font-size:12.5px;margin-bottom:6px;
+}
+.tl-file-row:last-child{ margin-bottom:0; }
+.tl-file-row .tl-name{
+  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.tl-file-row .tl-size{ color:var(--dim);font-family:var(--mono);font-size:11px;flex:0 0 auto; }
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs" type="module" id="pdfjs-module"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js" defer></script>
@@ -1652,6 +1737,7 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
           <div class="composer-bar">
             <label class="chip-btn" aria-label="Attach files" title="Attach files">＋<input id="fileInput" type="file" hidden multiple accept="image/*,.pdf,.txt,.md,.markdown,.json,.csv,.js,.ts,.html,.css,.xml,.yaml,.yml,.log,.py,.java,.c,.cpp,.h,.hpp,.sql,.sh,.go,.rs,.php,.jsx,.tsx,.vue"></label>
             <button class="chip-btn" id="searchBtn" aria-label="Web search" title="Web search">⌕</button>
+            <button class="chip-btn" id="readUrlBtn" aria-label="Read URL" title="Read a URL">🔗</button>
             <button class="search-provider-pill" id="searchProviderPill" type="button" style="display:none" title="Change search provider">
               <span id="searchProviderLabel">Gemini</span>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10.2 4 4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
@@ -1776,7 +1862,13 @@ const state = {
   apiBaseUrl:"",
   apiKeys:[],
   searchProvider: localStorage.getItem("chinaGPTSearchProvider") || "",
-  searchConfig: { providers: ["gemini"], defaultProvider: "gemini" },
+  searchConfig: {
+    providers: ["gemini"],
+    defaultProvider: "gemini",
+    autoFetchUrls: true,
+    fetchTopN: 2,
+    fetchModel: "jina-reader"
+  },
   providerOverrides: { byPattern: [], byModelId: {} }
 };
 function safeJsonEarly(k,fallback){try{const v=JSON.parse(localStorage.getItem(k));return v===null||v===undefined?fallback:v}catch{return fallback}}
@@ -2367,73 +2459,156 @@ function renderMessages(){
       who.innerHTML=`${escapeHtml(state.profileName)}<span class="avatar-emoji">${escapeHtml(state.profileAvatar||"🙂")}</span>`;
       row.appendChild(who);
     }
-    // Search badge above the user's message when web context was captured.
-    if (m.role === "user" && m._search) {
-      const badge = document.createElement("div");
-      badge.className = "search-context-badge";
-      badge.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg> Web search`;
-      row.appendChild(badge);
+
+    if (m.role === "assistant" && Array.isArray(m._toolLog) && m._toolLog.length && m.streaming) {
+      const pills = document.createElement("div");
+      pills.className = "tool-pill-row";
+      pills.innerHTML = m._toolLog.map(e => {
+        const cls = e.status === "running" ? "running" : e.status === "failed" ? "failed" : "done";
+        const icon = e.status === "running" ? '<span class="spark">✦</span>'
+                    : e.status === "failed" ? '<span>✕</span>'
+                    : '<span>✓</span>';
+        const txt = e.status === "running" ? e.label + "…"
+                    : e.status === "failed" ? e.label + (e.detail ? " · " + e.detail : "")
+                    : (e.detail || e.label);
+        return `<span class="tool-pill ${cls}">${icon}${escapeHtml(txt)}</span>`;
+      }).join("");
+      row.appendChild(pills);
     }
-    // Show a "searching" pulse while the search call is in flight.
-    if (m.role === "assistant" && m._searching) {
-      const s = document.createElement("div");
-      s.className = "searching-indicator";
-      s.innerHTML = `<span class="spin">✦</span><span>Searching the web…</span>`;
-      row.appendChild(s);
-    }
-    const text=typeof m.content==="string"?(m.content||""):(m.displayText||"[Attached image]");
-    if(m.role==="assistant"&&m.streaming&&!text&&!m.error){
-      const think=document.createElement("div");think.className="thinking-row";
-      think.innerHTML='<span class="thinking-spark">✦</span><span>Thinking</span><span class="thinking-dots"><span></span><span></span><span></span></span>';
-      row.appendChild(think);
-    }else{
-      if(m.role==="assistant"&&m.reasoning){
-        const rb=document.createElement("div");rb.className="reasoning-block";
-        let label="Thinking…";
-        if(!m.streaming && m.reasoningStartedAt){
-          const endedAt=m.reasoningEndedAt||Date.now();
-          const ms=Math.max(0,endedAt-m.reasoningStartedAt);
-          const sec=ms<1000?(ms/1000).toFixed(1):Math.round(ms/1000);
-          label="Thought for "+sec+"s";
+
+    const text = typeof m.content === "string" ? (m.content || "") : (m.displayText || "[Attached image]");
+
+    if (m.role === "assistant" && m.streaming && !text && !m.error) {
+      if (!Array.isArray(m._toolLog) || !m._toolLog.length) {
+        const think = document.createElement("div");think.className="thinking-row";
+        think.innerHTML='<span class="thinking-spark">✦</span><span>Thinking</span><span class="thinking-dots"><span></span><span></span><span></span></span>';
+        row.appendChild(think);
+      }
+    } else {
+      if (m.role === "assistant" && m.reasoning) {
+        const rb = document.createElement("div");rb.className="reasoning-block";
+        let label = "Thinking…";
+        if (!m.streaming && m.reasoningStartedAt) {
+          const endedAt = m.reasoningEndedAt || Date.now();
+          const ms = Math.max(0, endedAt - m.reasoningStartedAt);
+          const sec = ms < 1000 ? (ms / 1000).toFixed(1) : Math.round(ms / 1000);
+          label = "Thought for " + sec + "s";
         }
-        rb.innerHTML=`<button type="button" class="reasoning-toggle"><span class="reasoning-caret">▸</span> ${escapeHtml(label)}</button><div class="reasoning-body"></div>`;
-        rb.querySelector(".reasoning-body").textContent=m.reasoning;
-        rb.querySelector(".reasoning-toggle").onclick=()=>rb.classList.toggle("open");
+        rb.innerHTML = `<button type="button" class="reasoning-toggle"><span class="reasoning-caret">▸</span> ${escapeHtml(label)}</button><div class="reasoning-body"></div>`;
+        rb.querySelector(".reasoning-body").textContent = m.reasoning;
+        rb.querySelector(".reasoning-toggle").onclick = () => rb.classList.toggle("open");
         row.appendChild(rb);
       }
-      const b=document.createElement("div");b.className="bubble";
-      if(m.role==="assistant"&&!m.streaming&&!m.error){
-        const html=renderMarkdownSafe(text);
-        if(html!==null){b.classList.add("md");b.innerHTML=html;enhanceRenderedMarkdown(b)}
-        else b.textContent=text;
-      }else{
-        b.textContent=text;
+      const b = document.createElement("div");b.className="bubble";
+      if (m.role === "assistant" && !m.streaming && !m.error) {
+        const html = renderMarkdownSafe(text);
+        if (html !== null) { b.classList.add("md"); b.innerHTML = html; enhanceRenderedMarkdown(b); }
+        else b.textContent = text;
+      } else {
+        b.textContent = text;
       }
       row.appendChild(b);
     }
-    if (m.role === "user" && m._search && m._search.sources && m._search.sources.length) {
-      const sources = document.createElement("div");
-      sources.className = "search-sources";
-      sources.innerHTML = `<b>Sources</b><ol>${m._search.sources.map(s =>
-        `<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title)}</a></li>`
-      ).join("")}</ol>`;
-      row.appendChild(sources);
+
+    const controls = document.createElement("div");controls.className="msg-controls";
+    if (m.role === "assistant" && m.content && !m.streaming && !m.error) {
+      const regen = document.createElement("button");regen.className="msg-action";regen.setAttribute("aria-label","Regenerate response");regen.title="Regenerate";regen.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16m0 5v-5h5"/></svg>';regen.onclick=()=>regenerate(i);controls.appendChild(regen);
+      const cont = document.createElement("button");cont.className="msg-action";cont.setAttribute("aria-label","Continue generating");cont.title="Continue";cont.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 4 9 8-9 8V4Z"/><path d="M18 4v16"/></svg>';cont.onclick=()=>continueGeneration(i);controls.appendChild(cont);
     }
-    const controls=document.createElement("div");controls.className="msg-controls";
-    if(m.role==="assistant" && m.content && !m.streaming && !m.error){
-      const regen=document.createElement("button");regen.className="msg-action";regen.setAttribute("aria-label","Regenerate response");regen.title="Regenerate";regen.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16m0 5v-5h5"/></svg>';regen.onclick=()=>regenerate(i);controls.appendChild(regen);
-      const cont=document.createElement("button");cont.className="msg-action";cont.setAttribute("aria-label","Continue generating");cont.title="Continue";cont.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 4 9 8-9 8V4Z"/><path d="M18 4v16"/></svg>';cont.onclick=()=>continueGeneration(i);controls.appendChild(cont);
+    if (m.role === "assistant" && m.error && !m.streaming) {
+      const retry = document.createElement("button");retry.className="msg-action";retry.setAttribute("aria-label","Retry request");retry.title="Retry";retry.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16m0 5v-5h5"/></svg>';retry.onclick=()=>regenerate(i);controls.appendChild(retry);
     }
-    if(m.role==="assistant" && m.error && !m.streaming){
-      const retry=document.createElement("button");retry.className="msg-action";retry.setAttribute("aria-label","Retry request");retry.title="Retry";retry.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16m0 5v-5h5"/></svg>';retry.onclick=()=>regenerate(i);controls.appendChild(retry);
+    if (m.role === "assistant" && !m.streaming && Array.isArray(m._toolLog) && m._toolLog.some(e => e.status === "done")) {
+      const tools = document.createElement("button");tools.className="msg-action-tools";tools.setAttribute("aria-label","View search & sources");tools.title="View details";tools.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg>';tools.onclick=()=>openToolLogDialog(m);controls.appendChild(tools);
     }
-    if(m.role==="user"&&!state.generating){
-      const edit=document.createElement("button");edit.className="msg-action";edit.setAttribute("aria-label","Edit and resend message");edit.title="Edit & resend";edit.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';edit.onclick=()=>editAndResend(i);controls.appendChild(edit);
+    if (m.role === "user" && !state.generating) {
+      const edit = document.createElement("button");edit.className="msg-action";edit.setAttribute("aria-label","Edit and resend message");edit.title="Edit & resend";edit.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';edit.onclick=()=>editAndResend(i);controls.appendChild(edit);
     }
-    if(controls.children.length) row.appendChild(controls);
+    if (controls.children.length) row.appendChild(controls);
     box.appendChild(row);
   });
   scrollToBottom(true);
+}
+
+
+function openToolLogDialog(m){
+  const log = Array.isArray(m._toolLog) ? m._toolLog : [];
+  if (!log.length) return;
+
+  const searchEvt = log.find(e => e.kind === "search" && e.status === "done");
+  const fetches = log.filter(e => e.kind === "fetch" && e.status === "done" && e.data);
+  const failures = log.filter(e => e.status === "failed");
+
+  pushPage("Search & sources", (body) => {
+    const sections = [];
+
+    if (searchEvt) {
+      const srcs = (searchEvt.data && Array.isArray(searchEvt.data.sources)) ? searchEvt.data.sources : [];
+      const answer = (searchEvt.data && searchEvt.data.answer) ? searchEvt.data.answer : "";
+      sections.push(`
+        <div class="tl-section">
+          <h4>Web search</h4>
+          <div class="tl-answer" id="tlAnswer">${escapeHtml(answer || "No summary returned.")}</div>
+          ${answer.length > 300 ? `<button type="button" class="tl-expand" id="tlExpand">Show more</button>` : ""}
+        </div>
+      `);
+      if (srcs.length) {
+        sections.push(`
+          <div class="tl-section">
+            <h4>Sources</h4>
+            <ul class="tl-sources">
+              ${srcs.map((s, i) => `<li><span class="tl-idx">${i + 1}</span><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title || shortHost(s.url))}</a></li>`).join("")}
+            </ul>
+          </div>
+        `);
+      }
+    }
+
+    if (fetches.length) {
+      sections.push(`
+        <div class="tl-section">
+          <h4>Pages read</h4>
+          ${fetches.map(f => `<div class="tl-file-row"><span class="tl-name">${escapeHtml((f.data && f.data.title) || shortHost(f.url))}</span><span class="tl-size">${escapeHtml(f.detail || "")}</span></div>`).join("")}
+        </div>
+      `);
+    }
+
+    if (failures.length) {
+      sections.push(`
+        <div class="tl-section">
+          <h4>Failed</h4>
+          ${failures.map(f => `<div class="tl-file-row"><span class="tl-name" style="color:var(--danger)">${escapeHtml(f.label)}</span><span class="tl-size">${escapeHtml(f.detail || "Failed")}</span></div>`).join("")}
+        </div>
+      `);
+    }
+
+    body.innerHTML = sections.join("") || `<div class="admin-note">No activity recorded.</div>`;
+
+    const expandBtn = body.querySelector("#tlExpand");
+    if (expandBtn) {
+      expandBtn.onclick = () => {
+        const el = body.querySelector("#tlAnswer");
+        if (!el) return;
+        el.classList.toggle("expanded");
+        expandBtn.textContent = el.classList.contains("expanded") ? "Show less" : "Show more";
+      };
+    }
+  });
+}
+
+async function readUrlIntoComposer(url){
+  toast("Reading URL…");
+  const res = await performWebFetch(url);
+  if (!res) { toast("Could not read that URL"); return; }
+  const box = $("#prompt");
+  const header = `[Fetched: ${res.title || shortHost(url)}]\n`;
+  const body = res.content.slice(0, 8000);
+  const footer = res.content.length > 8000 ? "\n…[truncated]" : "";
+  const insertion = header + body + footer;
+  box.value = box.value ? (box.value + "\n\n" + insertion) : insertion;
+  box.dispatchEvent(new Event("input"));
+  box.focus();
+  toast("Added to composer");
 }
 
 function updateStreamingMessage(ai){
@@ -2470,7 +2645,22 @@ function persistCurrentConversation(){
       role:m.role,
       content:typeof m.content==="string"?m.content:(m.displayText||"[Attached image]"),
       model:m.model||null,
-      search:m._search||null
+      tools:Array.isArray(m._toolLog) && m._toolLog.length
+        ? m._toolLog.map(e => ({
+            kind:e.kind,
+            status:e.status,
+            label:e.label,
+            detail:e.detail,
+            url:e.url,
+            query:e.query,
+            sources:(e.kind==="search" && e.data && Array.isArray(e.data.sources))
+              ? e.data.sources.slice(0, 10)
+              : null,
+            answer:(e.kind==="search" && e.data && e.data.answer)
+              ? e.data.answer.slice(0, 3000)
+              : null
+          }))
+        : null
     })),
     model:state.model||"",createdAt:old?.createdAt||now,updatedAt:now,pinned:!!old?.pinned
   };
@@ -2485,7 +2675,15 @@ function loadConversation(id){
         role:m.role,
         content:m.content||"",
         model:m.model||null,
-        _search:m.search||null
+        _toolLog:Array.isArray(m.tools) ? m.tools.map(e => ({
+          kind:e.kind,
+          status:e.status,
+          label:e.label,
+          detail:e.detail,
+          url:e.url,
+          query:e.query,
+          data: (e.sources || e.answer) ? { sources: e.sources || [], answer: e.answer || "" } : null
+        })) : []
       }))
     :[];
   if(c.model&&state.models.some(m=>m.id===c.model)){state.model=c.model;markModelUsed(state.model)}
@@ -2581,10 +2779,34 @@ function activeSystemPrompt(){
   if(state.persona&&state.persona.enabled&&state.persona.text&&state.persona.text.trim()) return state.persona.text.trim();
   return "";
 }
-function chatMessages(){
-  const base=state.messages.filter(m=>m.role==="user"||m.role==="assistant").map(m=>({role:m.role,content:m.content||m.displayText||""}));
-  const sys=activeSystemPrompt();
-  return sys?[{role:"system",content:sys},...base]:base;
+function chatMessages(uptoIndex){
+  const slice = typeof uptoIndex === "number"
+    ? state.messages.slice(0, uptoIndex)
+    : state.messages;
+
+  let lastUserIdx = -1;
+  for (let i = slice.length - 1; i >= 0; i--) {
+    if (slice[i].role === "user") { lastUserIdx = i; break; }
+  }
+
+  const sys = activeSystemPrompt();
+  const out = [];
+  if (sys) out.push({ role: "system", content: sys });
+
+  for (let i = 0; i < slice.length; i++) {
+    const m = slice[i];
+    if (m.role === "user") {
+      if (i === lastUserIdx && Array.isArray(m._toolContext) && m._toolContext.length) {
+        for (const ctx of m._toolContext) {
+          out.push({ role: "system", content: ctx.text });
+        }
+      }
+      out.push({ role: "user", content: m._multimodal || m.content || "" });
+    } else if (m.role === "assistant") {
+      if (m.content) out.push({ role: "assistant", content: m.content });
+    }
+  }
+  return out;
 }
 async function readCompletionResponse(response,onChunk,onReasoning){
   if(!response.ok){let msg="";try{msg=await response.text()}catch{};throw new Error("HTTP "+response.status+(msg?" — "+msg:""))}
@@ -2672,76 +2894,158 @@ function stopGeneration(){
   updateGeneratingUI();persistCurrentConversation();renderMessages();toast("Generation stopped");
 }
 async function send(){
-  const input=$("#prompt"),text=input.value.trim();
-  if(!text&&!state.attachments.length)return;
-  if(!isAuthenticated()){openLogin("send");return}
-  if(!state.model){toast("No model selected.");return}
-  if(state.generating){toast("A response is already generating.");return}
+  const input = $("#prompt"), text = input.value.trim();
+  if (!text && !state.attachments.length) return;
+  if (!isAuthenticated()) { openLogin("send"); return; }
+  if (!state.model) { toast("No model selected."); return; }
+  if (state.generating) { toast("A response is already generating."); return; }
 
-  const attachmentText=state.attachments.filter(a=>a.text).map(a=>`\n\n[Attached file: ${a.name}]\n${a.text}`).join("");
-  const finalText=(text+attachmentText).trim();
-  if(!finalText){toast("This file type cannot be sent as text.");return}
+  const attachmentText = state.attachments
+    .filter(a => a.text)
+    .map(a => `\n\n[Attached file: ${a.name}]\n${a.text}`).join("");
+  const finalText = (text + attachmentText).trim();
+  if (!finalText) { toast("This file type cannot be sent as text."); return; }
 
-  // Build the user's persisted message first.
-  const userMsg = { role:"user", content: finalText };
+  const imageAttachments = state.attachments.filter(a => a.dataUrl);
+  const multimodalContent = imageAttachments.length
+    ? [
+        { type: "text", text: finalText },
+        ...imageAttachments.map(a => ({ type: "image_url", image_url: { url: a.dataUrl } }))
+      ]
+    : null;
+
+  const userMsg = {
+    role: "user",
+    content: finalText,
+    _multimodal: multimodalContent,
+    _toolContext: []
+  };
+  const ai = {
+    role: "assistant",
+    content: "",
+    streaming: true,
+    reasoningStartedAt: null,
+    reasoningEndedAt: null,
+    _toolLog: []
+  };
 
   ensureConversation();
-  input.value="";input.style.height="";
+  input.value = ""; input.style.height = "";
   state.messages.push(userMsg);
-  const ai={role:"assistant",content:"",streaming:true,reasoningStartedAt:null,reasoningEndedAt:null};
   state.messages.push(ai);
-  state.attachments=[];renderAttachments();
+  state.attachments = [];
+  renderAttachments();
+  renderMessages();
+  persistCurrentConversation();
 
-  // If web search is on, insert a "searching" placeholder into the
-  // assistant bubble so the user sees progress.
-  if (state.webSearch && text) {
-    ai._searching = true;
+  const loneUrl = /^https?:\/\/\S+$/i.test(text.trim()) ? text.trim() : null;
+
+  // A) Auto-fetch lone URL
+  if (loneUrl && state.searchConfig.autoFetchUrls !== false) {
+    const evt = {
+      kind: "fetch",
+      status: "running",
+      label: `Reading ${shortHost(loneUrl)}`,
+      url: loneUrl,
+      detail: null,
+      data: null
+    };
+    ai._toolLog.push(evt);
+    renderMessages();
+    const res = await performWebFetch(loneUrl);
+    if (res) {
+      evt.status = "done";
+      evt.detail = formatBytes(res.length);
+      evt.data = { url: res.url, title: res.title, length: res.length };
+      userMsg._toolContext.push({ kind: "fetch", text: buildFetchContextMessage(res) });
+    } else {
+      evt.status = "failed";
+      evt.detail = "Failed";
+    }
+    renderMessages();
+  }
+
+  // B) Web search (skipped for lone URLs)
+  if (state.webSearch && text && !loneUrl) {
+    const sEvt = {
+      kind: "search",
+      status: "running",
+      label: "Searching the web",
+      query: text,
+      detail: null,
+      data: null
+    };
+    ai._toolLog.push(sEvt);
     renderMessages();
     const result = await performWebSearch(text);
-    ai._searching = false;
     if (result && (result.answer || result.sources.length)) {
-      userMsg._search = {
-        answer: result.answer,
-        sources: result.sources
-      };
+      sEvt.status = "done";
+      sEvt.detail = `${result.sources.length} source${result.sources.length === 1 ? "" : "s"}`;
+      sEvt.data = { answer: result.answer, sources: result.sources };
+      userMsg._toolContext.push({
+        kind: "search",
+        text: buildSearchContextMessage(text, result)
+      });
+
+      const topN = Math.min(
+        result.sources.length,
+        Number(state.searchConfig.fetchTopN) || 0
+      );
+      if (topN > 0) {
+        await Promise.all(result.sources.slice(0, topN).map(async (src) => {
+          const host = shortHost(src.url);
+          const fEvt = {
+            kind: "fetch",
+            status: "running",
+            label: `Reading ${host}`,
+            url: src.url,
+            detail: null,
+            data: null
+          };
+          ai._toolLog.push(fEvt);
+          renderMessages();
+          const res = await performWebFetch(src.url);
+          if (res) {
+            fEvt.status = "done";
+            fEvt.detail = formatBytes(res.length);
+            fEvt.data = { url: res.url, title: res.title, length: res.length };
+            userMsg._toolContext.push({
+              kind: "fetch",
+              text: buildFetchContextMessage(res)
+            });
+          } else {
+            fEvt.status = "failed";
+            fEvt.detail = "Failed";
+          }
+          renderMessages();
+        }));
+      }
     } else {
-      toast("Web search returned no usable results — sending anyway");
+      sEvt.status = "failed";
+      sEvt.detail = "No results";
     }
+    renderMessages();
   }
 
-  renderMessages();persistCurrentConversation();
-
-  state.generating=true;updateGeneratingUI();
-  try{await requestCompletion(ai, chatMessagesWithSearch())}
-  catch(e){
-    if(e.name!=="AbortError"){
+  state.generating = true;
+  updateGeneratingUI();
+  try {
+    await requestCompletion(ai, chatMessages());
+  } catch (e) {
+    if (e.name !== "AbortError") {
       ai.error = true;
-      ai.content = isAdminAccount() ? ("Error: " + e.message) : friendlyErrorText(e.message);
+      ai.content = isAdminAccount()
+        ? ("Error: " + e.message)
+        : friendlyErrorText(e.message);
       toast("Request failed");
     }
+  } finally {
+    finalizeAssistantMessage(ai);
+    state.generating = false;
+    updateGeneratingUI();
+    persistCurrentConversation();
+    renderMessages();
   }
-  finally{finalizeAssistantMessage(ai);state.generating=false;updateGeneratingUI();persistCurrentConversation();renderMessages()}
-}
-
-/* Like chatMessages(), but injects any captured web-search
-   context as a system message before the user's turn. */
-function chatMessagesWithSearch(){
-  const base = [];
-  for (const m of state.messages) {
-    if (m.role === "user") {
-      if (m._search && (m._search.answer || (m._search.sources && m._search.sources.length))) {
-        base.push({
-          role: "system",
-          content: buildSearchContextMessage(m.content, m._search)
-        });
-      }
-      base.push({ role: "user", content: m.content });
-    } else if (m.role === "assistant") {
-      base.push({ role: "assistant", content: m.content || "" });
-    }
-  }
-  const sys = activeSystemPrompt();
-  return sys ? [{ role:"system", content: sys }, ...base] : base;
 }
 
 /* ============================================================
@@ -2793,7 +3097,12 @@ async function loadSearchConfig(){
       if (Array.isArray(j.providers) && j.providers.length) {
         state.searchConfig = {
           providers: j.providers,
-          defaultProvider: j.defaultProvider || j.providers[0]
+          defaultProvider: j.defaultProvider || j.providers[0],
+          autoFetchUrls: j.autoFetchUrls !== false,
+          fetchTopN: Number.isFinite(Number(j.fetchTopN))
+            ? Math.max(0, Math.min(5, Number(j.fetchTopN)))
+            : 2,
+          fetchModel: j.fetchModel || "jina-reader"
         };
       }
     }
@@ -2903,14 +3212,69 @@ function buildSearchContextMessage(query, searchResult){
   return lines.join("\n");
 }
 
+/* ============================================================
+   URL READER (via 9Router's /v1/web/fetch)
+   ============================================================ */
+async function performWebFetch(url){
+  try {
+    const r = await fetch(API_BASE + "/web/fetch", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        model: state.searchConfig.fetchModel || "jina-reader",
+        url,
+        format: "markdown",
+        max_characters: 0
+      })
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (!j || !j.content || typeof j.content.text !== "string") return null;
+    return {
+      url: j.url || url,
+      title: j.title || url,
+      content: j.content.text,
+      length: j.content.length || j.content.text.length
+    };
+  } catch {
+    return null;
+  }
+}
+
+function buildFetchContextMessage(result){
+  const lines = [];
+  lines.push(`[Fetched page]`);
+  lines.push(`URL: ${result.url}`);
+  if (result.title && result.title !== result.url) lines.push(`Title: ${result.title}`);
+  lines.push("");
+  lines.push("Content:");
+  const text = result.content.slice(0, 15000);
+  lines.push(text);
+  if (result.content.length > 15000) lines.push("…[content truncated]");
+  lines.push(`[End fetched page]`);
+  return lines.join("\n");
+}
+
+function shortHost(url){
+  try { return new URL(url).hostname.replace(/^www\./, ""); }
+  catch { return url.slice(0, 40); }
+}
+
+function formatBytes(n){
+  if (!n) return "";
+  if (n < 1024) return n + " B";
+  if (n < 1024 * 1024) return Math.round(n / 102.4) / 10 + " KB";
+  return Math.round(n / 104857.6) / 10 + " MB";
+}
+
 async function regenerate(index){
   if(state.generating||!isAuthenticated()||state.messages[index]?.role!=="assistant")return;
   const prior=state.messages.slice(0,index).filter(m=>m.role==="user"||m.role==="assistant");
   if(!prior.length)return;
   state.messages=state.messages.slice(0,index);
-  const ai={role:"assistant",content:"",streaming:true,reasoningStartedAt:null,reasoningEndedAt:null};state.messages.push(ai);renderMessages();
+  const ai={role:"assistant",content:"",streaming:true,reasoningStartedAt:null,reasoningEndedAt:null,_toolLog:[]};state.messages.push(ai);renderMessages();
   state.generating=true;updateGeneratingUI();
-  try{await requestCompletion(ai,prior)}
+  try{await requestCompletion(ai,chatMessages())}
   catch(e){
     if(e.name!=="AbortError"){
       ai.error = true;
@@ -2944,7 +3308,7 @@ function editAndResend(index){
       state.messages=state.messages.slice(0,index);
       state.messages.push({role:"user",content:text});
       ensureConversation();persistCurrentConversation();
-      const ai={role:"assistant",content:"",streaming:true,reasoningStartedAt:null,reasoningEndedAt:null};state.messages.push(ai);renderMessages();
+      const ai={role:"assistant",content:"",streaming:true,reasoningStartedAt:null,reasoningEndedAt:null,_toolLog:[]};state.messages.push(ai);renderMessages();
       state.generating=true;updateGeneratingUI();
       try{await requestCompletion(ai,chatMessages())}
       catch(e){
@@ -2961,10 +3325,11 @@ function editAndResend(index){
 async function continueGeneration(index){
   if(state.generating||!isAuthenticated()||state.messages[index]?.role!=="assistant"||!state.messages[index].content)return;
   const ai=state.messages[index];ai.streaming=true;ai.error=false;
+  if(!Array.isArray(ai._toolLog)) ai._toolLog=[];
   const prior=state.messages.slice(0,index+1).filter(m=>m.role==="user"||m.role==="assistant");
   const continuation={role:"user",content:"Continue the previous answer from exactly where it stopped. Do not repeat content already given."};
   state.generating=true;updateGeneratingUI();renderMessages();
-  try{await requestCompletion(ai,[...prior,continuation])}
+  try{await requestCompletion(ai,chatMessages())}
   catch(e){
     if(e.name!=="AbortError"){
       ai.error = true;
@@ -4137,13 +4502,22 @@ async function renderSearchConfigPage(){
   const c = $("#adminContent");
   c.innerHTML = `<p class="admin-kicker">Loading…</p>`;
 
-  let config = { providers: [], defaultProvider: "" };
+  let config = {
+    providers: [],
+    defaultProvider: "",
+    autoFetchUrls: true,
+    fetchTopN: 2,
+    fetchModel: "jina-reader"
+  };
   try {
     const r = await fetch(WORKER_BASE + "/admin/search-config", { headers: authHeaders(false) });
     if (r.ok) {
       const j = await r.json();
       config.providers = Array.isArray(j.providers) ? j.providers : [];
       config.defaultProvider = j.defaultProvider || "";
+      config.autoFetchUrls = j.autoFetchUrls !== false;
+      config.fetchTopN = Number.isFinite(Number(j.fetchTopN)) ? Number(j.fetchTopN) : 2;
+      config.fetchModel = j.fetchModel || "jina-reader";
     }
   } catch (e) {
     c.innerHTML = `<p class="admin-kicker">Could not load config: ${escapeHtml(e.message)}</p>`;
@@ -4151,13 +4525,14 @@ async function renderSearchConfigPage(){
   }
 
   c.innerHTML = `
-    <p class="admin-kicker">Define the web search providers users can pick from. Enter one slug per line. These slugs are passed to your gateway's <code>/v1/search</code> endpoint as <code>model</code>.</p>
+    <p class="admin-kicker">Configure web search providers and the URL reader. Search providers are passed to your gateway's <code>/v1/search</code> endpoint as <code>model</code>. The reader uses <code>/v1/web/fetch</code>.</p>
+
     <div class="admin-section">
-      <div class="admin-section-head"><h3>Allowed providers</h3><span>${config.providers.length} configured</span></div>
+      <div class="admin-section-head"><h3>Search providers</h3><span>${config.providers.length} configured</span></div>
       <div class="field" style="max-width:520px">
         <label for="scProviders">Providers (one per line)</label>
-        <textarea id="scProviders" class="editor-textarea" style="min-height:140px" placeholder="gemini&#10;openai&#10;perplexity">${escapeHtml(config.providers.join("\n"))}</textarea>
-        <div class="editor-hint">Common slugs: <code style="font-family:var(--mono)">gemini</code>, <code style="font-family:var(--mono)">openai</code>, <code style="font-family:var(--mono)">perplexity</code>, <code style="font-family:var(--mono)">exa</code>, <code style="font-family:var(--mono)">tavily</code>. Not all are guaranteed on your gateway — test with a live search after saving.</div>
+        <textarea id="scProviders" class="editor-textarea" style="min-height:120px" placeholder="gemini&#10;openai&#10;perplexity">${escapeHtml(config.providers.join("\n"))}</textarea>
+        <div class="editor-hint">Common slugs: <code style="font-family:var(--mono)">gemini</code>, <code style="font-family:var(--mono)">openai</code>, <code style="font-family:var(--mono)">perplexity</code>, <code style="font-family:var(--mono)">exa</code>, <code style="font-family:var(--mono)">tavily</code>.</div>
       </div>
       <div class="field" style="max-width:320px">
         <label for="scDefault">Default provider</label>
@@ -4166,10 +4541,31 @@ async function renderSearchConfigPage(){
           ${config.providers.map(p => `<option value="${escapeHtml(p)}" ${p === config.defaultProvider ? "selected" : ""}>${escapeHtml(p)}</option>`).join("")}
         </select>
       </div>
-      <div class="admin-actions">
-        <button class="btn-primary" id="scSave">Save</button>
-        <button class="btn-ghost" id="scReset">Reset to Gemini only</button>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>URL reader</h3><span>Fetches pages via <code style="font-family:var(--mono);font-size:11px;color:var(--muted)">/v1/web/fetch</code></span></div>
+      <div class="field" style="max-width:520px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="scAutoFetch" ${config.autoFetchUrls ? "checked" : ""} style="all:revert;width:16px;height:16px;padding:0">
+          Auto-fetch lone URLs — when a message is just a URL, read it before answering
+        </label>
       </div>
+      <div class="field" style="max-width:320px">
+        <label for="scFetchTopN">Fetch top N search results</label>
+        <input id="scFetchTopN" type="number" min="0" max="5" value="${config.fetchTopN}" style="background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px;color:var(--text);outline:0">
+        <div class="editor-hint">0 = don't fetch; 1–5 = read the top N sources from search.</div>
+      </div>
+      <div class="field" style="max-width:320px">
+        <label for="scFetchModel">Fetch model slug</label>
+        <input id="scFetchModel" value="${escapeHtml(config.fetchModel)}" style="background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px;color:var(--text);outline:0;font-family:var(--mono);font-size:12.5px">
+        <div class="editor-hint">Default: <code style="font-family:var(--mono)">jina-reader</code>.</div>
+      </div>
+    </div>
+
+    <div class="admin-actions">
+      <button class="btn-primary" id="scSave">Save</button>
+      <button class="btn-ghost" id="scReset">Reset to defaults</button>
     </div>
   `;
 
@@ -4188,20 +4584,29 @@ async function renderSearchConfigPage(){
     const providers = ta.value.split(/\r?\n/).map(s => s.trim().toLowerCase()).filter(Boolean);
     if (!providers.length) { toast("Add at least one provider"); return; }
     const defaultProvider = sel.value || providers[0];
+    const autoFetchUrls = c.querySelector("#scAutoFetch").checked;
+    const fetchTopN = Math.max(0, Math.min(5, Number(c.querySelector("#scFetchTopN").value) || 0));
+    const fetchModel = (c.querySelector("#scFetchModel").value || "").trim().toLowerCase() || "jina-reader";
     try {
       const r = await fetch(WORKER_BASE + "/admin/search-config", {
         method: "POST", headers: authHeaders(),
-        body: JSON.stringify({ providers, defaultProvider })
+        body: JSON.stringify({ providers, defaultProvider, autoFetchUrls, fetchTopN, fetchModel })
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) throw new Error(j.error || "Save failed");
-      state.searchConfig = { providers: j.providers, defaultProvider: j.defaultProvider };
+      state.searchConfig = {
+        providers: j.providers,
+        defaultProvider: j.defaultProvider,
+        autoFetchUrls: j.autoFetchUrls !== false,
+        fetchTopN: Number(j.fetchTopN) || 0,
+        fetchModel: j.fetchModel || "jina-reader"
+      };
       if (state.searchProvider && !j.providers.includes(state.searchProvider)) {
         state.searchProvider = "";
         localStorage.removeItem("chinaGPTSearchProvider");
       }
       updateSearchProviderUI();
-      toast("Search providers saved");
+      toast("Settings saved");
       renderSearchConfigPage();
     } catch (e) { toast(e.message || "Could not save"); }
   };
@@ -4210,13 +4615,13 @@ async function renderSearchConfigPage(){
     try {
       const r = await fetch(WORKER_BASE + "/admin/search-config", {
         method: "POST", headers: authHeaders(),
-        body: JSON.stringify({ providers: ["gemini"], defaultProvider: "gemini" })
+        body: JSON.stringify({ providers: ["gemini"], defaultProvider: "gemini", autoFetchUrls: true, fetchTopN: 2, fetchModel: "jina-reader" })
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) throw new Error(j.error || "Reset failed");
-      state.searchConfig = { providers: ["gemini"], defaultProvider: "gemini" };
+      state.searchConfig = { providers: ["gemini"], defaultProvider: "gemini", autoFetchUrls: true, fetchTopN: 2, fetchModel: "jina-reader" };
       updateSearchProviderUI();
-      toast("Reset to Gemini only");
+      toast("Reset to defaults");
       renderSearchConfigPage();
     } catch (e) { toast(e.message || "Could not reset"); }
   };
@@ -5191,6 +5596,13 @@ $("#menuBtn").onclick=()=>$("#shell").classList.add("nav-open");
 $("#drawerClose").onclick=()=>$("#shell").classList.remove("nav-open");
 $("#scrim").onclick=()=>$("#shell").classList.remove("nav-open");
 $("#searchBtn").onclick=toggleWebSearch;
+$("#readUrlBtn").onclick = () => {
+  const url = prompt("Paste a URL to read:");
+  if (!url) return;
+  const trimmed = url.trim();
+  if (!/^https?:\/\//i.test(trimmed)) { toast("Enter a URL starting with http:// or https://"); return; }
+  readUrlIntoComposer(trimmed);
+};
 $("#searchProviderPill").onclick = (e) => {
   e.stopPropagation();
   openSearchProviderMenu($("#searchProviderPill"));
