@@ -108,6 +108,24 @@ app.get("/v1/me", auth.requireAuth, auth.meEndpoint);
 app.get("/v1/models", auth.requireAuth, ratelimit.check, proxy.models);
 app.post("/v1/chat/completions", auth.requireAuth, ratelimit.check, proxy.chat);
 app.post("/v1/search", auth.requireAuth, ratelimit.check, proxy.search);
+app.post("/v1/web/fetch", auth.requireAuth, ratelimit.check, proxy.webFetch);
+
+// ---- Icon proxy (CORS-safe image fetch for provider tiles) ----
+app.get("/icon-proxy", async (req, res) => {
+  const url = String(req.query.url || "");
+  if (!/^https?:\/\//i.test(url)) return res.status(400).end();
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return res.status(r.status).end();
+    const buf = Buffer.from(await r.arrayBuffer());
+    res.setHeader("Content-Type", r.headers.get("content-type") || "image/svg+xml");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.send(buf);
+  } catch {
+    res.status(502).end();
+  }
+});
 
 // ---- Static HTML ----
 app.use(express.static(path.join(__dirname, "public"), {
