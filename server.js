@@ -50,6 +50,24 @@ app.get("/health", (req, res) => {
   res.json({ ok: true, service: "China-GPT", status: "online", ts: Date.now() });
 });
 
+app.get("/debug/auth", async (req, res) => {
+  const raw =
+    req.headers["x-china-gpt-key"] ||
+    req.headers["authorization"] ||
+    (req.headers.cookie && req.headers.cookie.match(/china_gpt_key=([^;]+)/)?.[1]) ||
+    null;
+  const stripped = raw ? String(raw).replace(/^Bearer\s+/i, "") : null;
+  res.json({
+    ok: true,
+    sawHeader: !!req.headers["x-china-gpt-key"],
+    sawAuth: !!req.headers["authorization"],
+    sawCookie: !!(req.headers.cookie && req.headers.cookie.includes("china_gpt_key=")),
+    valueFirst4: stripped ? decodeURIComponent(stripped).slice(0, 4) : null,
+    valueLength: stripped ? decodeURIComponent(stripped).length : 0
+  });
+});
+
+
 // Public lock status. Reports whether the caller is an admin so the
 // frontend knows whether to show the takeover or the app-with-banner.
 app.get("/site-lock", async (req, res) => {
@@ -78,6 +96,7 @@ app.get("/site-lock", async (req, res) => {
 });
 
 app.post("/auth/login", auth.login);
+app.post("/auth/logout", auth.logout);
 
 // ---- Site Lock middleware ----
 // Only applies to API surface. Static files and the open routes
@@ -88,6 +107,8 @@ function isLockedPath(p) {
   if (p === "/health") return false;
   if (p === "/site-lock") return false;
   if (p === "/auth/login") return false;
+  if (p === "/auth/logout") return false;
+  if (p === "/debug/auth") return false;
   if (p === "/telegram/webhook") return false;
   if (p === "/auth/create") return true;
   const prefixes = ["/v1", "/admin", "/apikeys", "/account", "/usage",
