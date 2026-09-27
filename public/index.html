@@ -2801,7 +2801,7 @@ async function warmIconCache(){
 /* Called once at boot: fetch admin overrides before warming. */
 async function loadProviderIconOverrides(){
   try {
-    const r = await fetch(WORKER_BASE + "/provider-icons", { headers: authHeaders(false) });
+    const r = await apiFetch(WORKER_BASE + "/provider-icons", { headers: authHeaders(false) });
     if (r.ok) {
       const j = await r.json();
       adminIconOverrides = (j && j.icons) || {};
@@ -2980,6 +2980,10 @@ function key(){
   if (l && l !== "undefined" && l !== "null") return l;
   return "";
 }
+function apiFetch(url, options = {}) {
+  return fetch(url, { credentials: "same-origin", ...options });
+}
+
 function authHeaders(json=true){
   const h={};
   if(key())h["X-China-GPT-Key"]=key();
@@ -2990,7 +2994,7 @@ function isAuthenticated(){return !!key()}
 function setAuth(code, role){
   const clean = String(code || "").trim();
   if (!clean || clean === "undefined" || clean === "null") {
-    // Loud failure so we never store a bad value silently
+    console.error("setAuth called with invalid code:", code);
     throw new Error("Login response did not include a valid access code");
   }
   state.accessCode = clean;
@@ -2998,12 +3002,22 @@ function setAuth(code, role){
   try {
     localStorage.setItem("chinaGPTAccessCode", clean);
     localStorage.setItem("chinaGPTRole", state.role);
-  } catch {}
+    console.log("[setAuth] stored code:", clean.slice(0, 4) + "..." + clean.slice(-4));
+  } catch (e) {
+    // localStorage can throw in private mode on some browsers.
+    // The cookie set by the server still keeps you logged in.
+    console.warn("[setAuth] localStorage failed, relying on cookie:", e.message);
+  }
 }
 function clearAuth(){
-  state.accessCode=""; state.role="";
-  localStorage.removeItem("chinaGPTAccessCode");
-  localStorage.removeItem("chinaGPTRole");
+  state.accessCode = "";
+  state.role = "";
+  try {
+    localStorage.removeItem("chinaGPTAccessCode");
+    localStorage.removeItem("chinaGPTRole");
+  } catch {}
+  // Also clear the HttpOnly cookie via logout endpoint (fire-and-forget)
+  try { fetch(WORKER_BASE + "/auth/logout", { method: "POST", credentials: "same-origin" }); } catch {}
 }
 function escapeHtml(s){
   return String(s===undefined||s===null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
@@ -3043,8 +3057,39 @@ $("#screenPageClose").onclick=popPage;
    ============================================================ */
 async function loadModels(){
   try{
-    const r=await fetch(API_BASE+"/models",{headers:authHeaders(false)});
-    if(r.status===401||r.status===403){clearAuth();updateBadge();openLogin("models");return}
+    const r=await apiFetch(API_BASE+"/models",{headers:authHeaders(false)});
+    if(r.status===401||r.status===403){
+      const errBody = await r.json().catch(()=>({}));
+      console.warn("[loadModels] 401:", errBody);
+      // Give the cookie one shot before giving up
+      const retry = await apiFetch(API_BASE+"/models",{headers:authHeaders(false)}).catch(()=>null);
+      if (retry && retry.ok) {
+        const j = await retry.json();
+        state.models = Array.isArray(j.data) ? j.data : [];
+        if (Array.isArray(j.groups) && j.groups.length) {
+          state.modelGroups = j.groups.map(g => ({
+            canonical: g.canonical,
+            primary: g.primary || (g.variants && g.variants[0] && (g.variants[0].id || g.variants[0])),
+            variants: (g.variants || []).map(v => typeof v === "string" ? { id: v } : v),
+            hasFree: !!g.hasFree,
+            providers: g.providers || [],
+            pinned: g.pinned || null
+          }));
+        } else {
+          state.modelGroups = [];
+        }
+        if (!state.model || !state.models.some(m => m.id === state.model)) {
+          state.model = state.models[0]?.id || "";
+        }
+        localStorage.setItem("chinaGPTModel", state.model);
+        updateBadge();
+        return;
+      }
+      clearAuth();
+      updateBadge();
+      openLogin("models");
+      return;
+    }
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j=await r.json(); state.models=Array.isArray(j.data)?j.data:[];
     if (Array.isArray(j.groups) && j.groups.length) {
@@ -3899,7 +3944,7 @@ async function requestCompletion(target, messages, model=state.model){
   const streamState = newStreamState();
 
   try{
-    const r=await fetch(API_BASE+"/chat/completions",{
+    const r=await apiFetch(API_BASE+"/chat/completions",{
       method:"POST",headers:authHeaders(),body:JSON.stringify(body),signal:state.abortController.signal
     });
     const actualVariant = r.headers.get("X-China-GPT-Variant");
@@ -4204,7 +4249,7 @@ async function performWebSearch(query){
    ============================================================ */
 async function loadSearchConfig(){
   try{
-    const r = await fetch(WORKER_BASE + "/search-config", { headers: authHeaders(false) });
+    const r = await apiFetch(WORKER_BASE + "/search-config", { headers: authHeaders(false) });
     if (r.ok) {
       const j = await r.json();
       if (Array.isArray(j.providers) && j.providers.length) {
@@ -4290,7 +4335,7 @@ function openSearchProviderMenu(anchorEl){
    ============================================================ */
 async function loadProviderOverrides(){
   try {
-    const r = await fetch(WORKER_BASE + "/provider-overrides", { headers: authHeaders(false) });
+    const r = await apiFetch(WORKER_BASE + "/provider-overrides", { headers: authHeaders(false) });
     if (r.ok) {
       const j = await r.json();
       state.providerOverrides = {
@@ -4653,7 +4698,7 @@ function openUsage(){
     body.innerHTML='<div class="admin-note">Loading…</div>';
     (async()=>{
       try{
-        const r=await fetch(WORKER_BASE+"/usage/me?days=30",{headers:authHeaders(false)});
+        const r=await apiFetch(WORKER_BASE+"/usage/me?days=30",{headers:authHeaders(false)});
         const j=await r.json();
         if(!r.ok)throw new Error(j.error?.message||"Could not load usage");
         const byModel=Array.isArray(j.byModel)?j.byModel:[];
@@ -4702,7 +4747,7 @@ async function openCompare(prefillPrompt=""){
         const el=body.querySelector("#cmp-"+encodeURIComponent(m));
         let text="";
         try{
-          const r=await fetch(API_BASE+"/chat/completions",{method:"POST",headers:authHeaders(),body:JSON.stringify({model:m,messages:[{role:"user",content:prompt}],stream:true})});
+          const r=await apiFetch(API_BASE+"/chat/completions",{method:"POST",headers:authHeaders(),body:JSON.stringify({model:m,messages:[{role:"user",content:prompt}],stream:true})});
           await readCompletionResponse(r,c=>{text+=c;el.textContent=text});
           el.textContent=text||"No response";
         }catch(e){el.textContent="Error: "+e.message}
@@ -5096,7 +5141,7 @@ function openApiKeys(){
       const listBox=body.querySelector("#apikeyBody");
       listBox.innerHTML='<div class="admin-note">Loading…</div>';
       try{
-        const r=await fetch(WORKER_BASE+"/apikeys/list",{headers:authHeaders(false)});
+        const r=await apiFetch(WORKER_BASE+"/apikeys/list",{headers:authHeaders(false)});
         if(!r.ok){
           if(r.status===404) throw new Error("The API-key service isn't deployed on your backend yet.");
           const j=await r.json().catch(()=>({}));throw new Error(j.error?.message||"Could not load API keys.");
@@ -5187,7 +5232,7 @@ function wireApiKeyActions(container, rerender){
   container.querySelectorAll("[data-revoke-key]").forEach(b=>b.onclick=async()=>{
     if(!confirm("Revoke this API key? Any app using it will stop working immediately."))return;
     try{
-      const r=await fetch(WORKER_BASE+"/apikeys/revoke",{method:"POST",headers:authHeaders(),body:JSON.stringify({id:b.dataset.revokeKey})});
+      const r=await apiFetch(WORKER_BASE+"/apikeys/revoke",{method:"POST",headers:authHeaders(),body:JSON.stringify({id:b.dataset.revokeKey})});
       if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error?.message||"Could not revoke key.")}
       clearCachedApiKey(b.dataset.revokeKey);
       toast("Key revoked");rerender();
@@ -5211,7 +5256,7 @@ function createApiKey(rerender){
   const label=prompt("Label for this key (optional, e.g. \"My website\"):")||"";
   (async()=>{
     try{
-      const r=await fetch(WORKER_BASE+"/apikeys/create",{method:"POST",headers:authHeaders(),body:JSON.stringify({label})});
+      const r=await apiFetch(WORKER_BASE+"/apikeys/create",{method:"POST",headers:authHeaders(),body:JSON.stringify({label})});
       if(!r.ok){
         if(r.status===404){toast("The API-key service isn't deployed on your backend yet.");return}
         const j=await r.json().catch(()=>({}));throw new Error(j.error?.message||"Could not create key.");
@@ -5244,7 +5289,7 @@ function createApiKey(rerender){
    ============================================================ */
 async function loadApiBaseUrl(){
   try{
-    const r=await fetch(WORKER_BASE+"/account/prefs",{headers:authHeaders(false)});
+    const r=await apiFetch(WORKER_BASE+"/account/prefs",{headers:authHeaders(false)});
     if(r.ok){
       const j=await r.json();
       state.apiBaseUrl = j.apiBaseUrl || "";
@@ -5253,7 +5298,7 @@ async function loadApiBaseUrl(){
 }
 async function saveApiBaseUrl(url){
   try{
-    const r=await fetch(WORKER_BASE+"/account/prefs",{method:"POST",headers:authHeaders(),body:JSON.stringify({apiBaseUrl:url})});
+    const r=await apiFetch(WORKER_BASE+"/account/prefs",{method:"POST",headers:authHeaders(),body:JSON.stringify({apiBaseUrl:url})});
     if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error?.message||"Could not save")}
     const j=await r.json();
     state.apiBaseUrl = j.apiBaseUrl || url;
@@ -5408,18 +5453,20 @@ function openApiDocs(){
 async function loginWithCode(code){
   const r = await fetch(WORKER_BASE + "/auth/login", {
     method: "POST",
+    credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ code })
   });
   let j = {};
   try { j = await r.json(); } catch {}
 
-  if (!r.ok || !j.ok) {
-    throw new Error(j.error || "Invalid access key");
-  }
+  console.log("[login] status:", r.status, "body:", j);
+
+  if (!r.ok || !j.ok) throw new Error(j.error || "Invalid access key");
+
   const c = String(j.code || "").trim();
   if (!c) {
-    console.error("Login succeeded but response had no code:", j);
+    console.error("Login succeeded but response has no code:", j);
     throw new Error("Server did not return an access code");
   }
   setAuth(c, j.role);
@@ -5483,7 +5530,7 @@ async function openCreateAccount(){
   $("#generateAccount").onclick=async()=>{
     const btn=$("#generateAccount");btn.disabled=true;btn.textContent="Creating…";
     try{
-      const r=await fetch(WORKER_BASE+"/auth/create",{method:"POST"});
+      const r=await apiFetch(WORKER_BASE+"/auth/create",{method:"POST"});
       const j=await r.json();
       if(!r.ok||!j.ok)throw new Error(j.error||"Could not create account");
       if(j.firstAccount){
@@ -5538,7 +5585,7 @@ async function loadAdminAccounts(options={}){
   if(adminAccountsSearch.trim()) params.set("search",adminAccountsSearch.trim());
   if(adminAccountsRole!=="all") params.set("role",adminAccountsRole);
   if(adminAccountsStatus!=="all") params.set("status",adminAccountsStatus);
-  const r=await fetch(WORKER_BASE+"/admin/accounts?"+params.toString(),{headers:authHeaders(false)});
+  const r=await apiFetch(WORKER_BASE+"/admin/accounts?"+params.toString(),{headers:authHeaders(false)});
   let j={}; try{j=await r.json()}catch{}
   if(!r.ok||!j.ok) throw new Error(j.error?.message||j.error||"Could not load accounts");
   if(options.append) adminAccountsData=adminAccountsData.concat(j.accounts||[]);
@@ -5594,7 +5641,7 @@ function bindAdminAccountActions(){
 async function adminCreateKey(role){
   if(!isAuthenticated()||state.role!=="admin"){toast("Administrator access required");return}
   try{
-    const r=await fetch(WORKER_BASE+"/admin/keys/create",{method:"POST",headers:authHeaders(),body:JSON.stringify({role})});
+    const r=await apiFetch(WORKER_BASE+"/admin/keys/create",{method:"POST",headers:authHeaders(),body:JSON.stringify({role})});
     let j={}; try{j=await r.json()}catch{}
     if(!r.ok||!j.ok) throw new Error(j.error?.message||j.error||"Could not create key");
     const generatedKey=j.key;
@@ -5715,7 +5762,7 @@ async function renderProviderIconsPage(){
   }
   // Pull the current overrides from the backend.
   try {
-    const r = await fetch(WORKER_BASE + "/admin/provider-icons", { headers: authHeaders(false) });
+    const r = await apiFetch(WORKER_BASE + "/admin/provider-icons", { headers: authHeaders(false) });
     if (r.ok) {
       const j = await r.json();
       adminIconOverrides = (j && j.icons) || {};
@@ -5769,7 +5816,7 @@ async function renderProviderIconsPage(){
     const input = c.querySelector(`[data-provider-input="${CSS.escape(provider)}"]`);
     const url = (input?.value || "").trim();
     try {
-      const r = await fetch(WORKER_BASE + "/admin/provider-icons", {
+      const r = await apiFetch(WORKER_BASE + "/admin/provider-icons", {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ provider, url })
@@ -5801,7 +5848,7 @@ async function renderProviderIconsPage(){
   c.querySelectorAll("[data-clear-icon]").forEach(btn => btn.onclick = async () => {
     const provider = btn.dataset.clearIcon;
     try {
-      const r = await fetch(WORKER_BASE + "/admin/provider-icons", {
+      const r = await apiFetch(WORKER_BASE + "/admin/provider-icons", {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ provider, url: "" })
@@ -5866,7 +5913,7 @@ async function renderSearchConfigPage(){
     fetchModel: "jina-reader"
   };
   try {
-    const r = await fetch(WORKER_BASE + "/admin/search-config", { headers: authHeaders(false) });
+    const r = await apiFetch(WORKER_BASE + "/admin/search-config", { headers: authHeaders(false) });
     if (r.ok) {
       const j = await r.json();
       config.providers = Array.isArray(j.providers) ? j.providers : [];
@@ -5944,7 +5991,7 @@ async function renderSearchConfigPage(){
     const fetchTopN = Math.max(0, Math.min(5, Number(c.querySelector("#scFetchTopN").value) || 0));
     const fetchModel = (c.querySelector("#scFetchModel").value || "").trim().toLowerCase() || "jina-reader";
     try {
-      const r = await fetch(WORKER_BASE + "/admin/search-config", {
+      const r = await apiFetch(WORKER_BASE + "/admin/search-config", {
         method: "POST", headers: authHeaders(),
         body: JSON.stringify({ providers, defaultProvider, autoFetchUrls, fetchTopN, fetchModel })
       });
@@ -5969,7 +6016,7 @@ async function renderSearchConfigPage(){
 
   c.querySelector("#scReset").onclick = async () => {
     try {
-      const r = await fetch(WORKER_BASE + "/admin/search-config", {
+      const r = await apiFetch(WORKER_BASE + "/admin/search-config", {
         method: "POST", headers: authHeaders(),
         body: JSON.stringify({ providers: ["gemini"], defaultProvider: "gemini", autoFetchUrls: true, fetchTopN: 2, fetchModel: "jina-reader" })
       });
@@ -6114,7 +6161,7 @@ async function renderProviderMappingPage(){
     };
     listBox.querySelectorAll("[data-remove-pattern]").forEach(b => b.onclick = async () => {
       try {
-        const r = await fetch(WORKER_BASE + "/admin/provider-overrides/pattern/remove", {
+        const r = await apiFetch(WORKER_BASE + "/admin/provider-overrides/pattern/remove", {
           method: "POST", headers: authHeaders(),
           body: JSON.stringify({ pattern: b.dataset.removePattern })
         });
@@ -6128,7 +6175,7 @@ async function renderProviderMappingPage(){
     });
     listBox.querySelectorAll("[data-remove-model]").forEach(b => b.onclick = async () => {
       try {
-        const r = await fetch(WORKER_BASE + "/admin/provider-overrides/model/remove", {
+        const r = await apiFetch(WORKER_BASE + "/admin/provider-overrides/model/remove", {
           method: "POST", headers: authHeaders(),
           body: JSON.stringify({ modelId: b.dataset.removeModel })
         });
@@ -6155,7 +6202,7 @@ async function renderProviderMappingPage(){
       if (!confirm(`Move ${matches} model${matches===1?"":"s"} matching "${pattern}" to ${providerLabel(provider)}?`)) return;
     }
     try {
-      const r = await fetch(WORKER_BASE + "/admin/provider-overrides/pattern/add", {
+      const r = await apiFetch(WORKER_BASE + "/admin/provider-overrides/pattern/add", {
         method: "POST", headers: authHeaders(),
         body: JSON.stringify({ pattern, provider })
       });
@@ -6204,7 +6251,7 @@ async function renderTelegramPage(){
   c.innerHTML = `<p class="admin-kicker">Loading…</p>`;
 
   try {
-    const r = await fetch(WORKER_BASE + "/admin/telegram", { headers: authHeaders(false) });
+    const r = await apiFetch(WORKER_BASE + "/admin/telegram", { headers: authHeaders(false) });
     const j = await r.json();
     if (!r.ok || !j.ok) throw new Error(j.error || "Could not load config");
     tgState.config = j.config;
@@ -6298,12 +6345,12 @@ async function renderTelegramPage(){
   $f("tgVerify").onclick = async () => {
     const tok = $f("tgToken").value.trim();
     try {
-      const save = await fetch(WORKER_BASE + "/admin/telegram", {
+      const save = await apiFetch(WORKER_BASE + "/admin/telegram", {
         method: "POST", headers: authHeaders(),
         body: JSON.stringify({ botToken: tok || undefined })
       });
       if (!save.ok) throw new Error((await save.json().catch(()=>({}))).error || "Invalid token");
-      const r = await fetch(WORKER_BASE + "/admin/telegram/get-me", { headers: authHeaders(false) });
+      const r = await apiFetch(WORKER_BASE + "/admin/telegram/get-me", { headers: authHeaders(false) });
       const j = await r.json();
       if (!r.ok || !j.ok) throw new Error(j.error || "Could not verify");
       tgState.botInfo = j.bot;
@@ -6325,7 +6372,7 @@ async function renderTelegramPage(){
       adminUserIds: $f("tgAdmins").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
     };
     try {
-      const r = await fetch(WORKER_BASE + "/admin/telegram", {
+      const r = await apiFetch(WORKER_BASE + "/admin/telegram", {
         method: "POST", headers: authHeaders(), body: JSON.stringify(payload)
       });
       const j = await r.json().catch(() => ({}));
@@ -6340,7 +6387,7 @@ async function renderTelegramPage(){
   $f("tgSetWebhook").onclick = async () => {
     await $f("tgSave").onclick();
     try {
-      const r = await fetch(WORKER_BASE + "/admin/telegram/set-webhook", {
+      const r = await apiFetch(WORKER_BASE + "/admin/telegram/set-webhook", {
         method: "POST", headers: authHeaders()
       });
       const j = await r.json().catch(() => ({}));
@@ -6354,7 +6401,7 @@ async function renderTelegramPage(){
   $f("tgDeleteWebhook").onclick = async () => {
     if (!confirm("Remove the Telegram webhook? Messages will stop arriving.")) return;
     try {
-      const r = await fetch(WORKER_BASE + "/admin/telegram/delete-webhook", {
+      const r = await apiFetch(WORKER_BASE + "/admin/telegram/delete-webhook", {
         method: "POST", headers: authHeaders()
       });
       const j = await r.json().catch(() => ({}));
@@ -6371,7 +6418,7 @@ async function renderModelGroupsPage(){
   c.innerHTML = `<p class="admin-kicker">Loading model groups…</p>`;
 
   try {
-    const r = await fetch(WORKER_BASE + "/admin/model-groups", { headers: authHeaders(false) });
+    const r = await apiFetch(WORKER_BASE + "/admin/model-groups", { headers: authHeaders(false) });
     const j = await r.json();
     if (!r.ok || !j.ok) throw new Error(j.error || "Could not load groups");
     mgState.groups = Array.isArray(j.groups) ? j.groups : [];
@@ -6525,7 +6572,7 @@ async function pinVariant(canonical, variant){
   if (g) g.pinned = variant || null;
 
   try {
-    const r = await fetch(WORKER_BASE + "/admin/model-groups/pin", {
+    const r = await apiFetch(WORKER_BASE + "/admin/model-groups/pin", {
       method: "POST", headers: authHeaders(),
       body: JSON.stringify({ canonical, variant })
     });
@@ -6542,7 +6589,7 @@ async function pinVariant(canonical, variant){
 
 async function clearCooldown(variant){
   try {
-    const r = await fetch(WORKER_BASE + "/admin/model-groups/clear-cooldown", {
+    const r = await apiFetch(WORKER_BASE + "/admin/model-groups/clear-cooldown", {
       method: "POST", headers: authHeaders(),
       body: JSON.stringify({ variant })
     });
@@ -6561,8 +6608,8 @@ async function renderModelHealthPage(){
 
   try {
     const [stateRes, modelsRes] = await Promise.all([
-      fetch(WORKER_BASE + "/admin/model-health", { headers: authHeaders(false) }),
-      fetch(WORKER_BASE + "/admin/model-health/all-models", { headers: authHeaders(false) })
+      apiFetch(WORKER_BASE + "/admin/model-health", { headers: authHeaders(false) }),
+      apiFetch(WORKER_BASE + "/admin/model-health/all-models", { headers: authHeaders(false) })
     ]);
     if (stateRes.ok) {
       const j = await stateRes.json();
@@ -6756,7 +6803,7 @@ async function mhTestOne(modelId) {
   const btn = row?.querySelector("[data-mh-test]");
   if (btn) { btn.disabled = true; btn.textContent = "…"; }
   try {
-    const r = await fetch(WORKER_BASE + "/admin/model-health/test", {
+    const r = await apiFetch(WORKER_BASE + "/admin/model-health/test", {
       method: "POST", headers: authHeaders(), body: JSON.stringify({ modelId })
     });
     const j = await r.json();
@@ -6787,7 +6834,7 @@ async function startMhTestAll() {
       const id = queue.shift();
       if (!id) break;
       try {
-        const r = await fetch(WORKER_BASE + "/admin/model-health/test", {
+        const r = await apiFetch(WORKER_BASE + "/admin/model-health/test", {
           method: "POST", headers: authHeaders(), body: JSON.stringify({ modelId: id })
         });
         if (r.ok) {
@@ -6812,7 +6859,7 @@ async function startMhTestAll() {
 
 async function mhDisableModel(modelId) {
   try {
-    const r = await fetch(WORKER_BASE + "/admin/model-health/disable-model", {
+    const r = await apiFetch(WORKER_BASE + "/admin/model-health/disable-model", {
       method: "POST", headers: authHeaders(), body: JSON.stringify({ modelId })
     });
     const j = await r.json();
@@ -6825,7 +6872,7 @@ async function mhDisableModel(modelId) {
 
 async function mhEnableModel(modelId) {
   try {
-    const r = await fetch(WORKER_BASE + "/admin/model-health/enable-model", {
+    const r = await apiFetch(WORKER_BASE + "/admin/model-health/enable-model", {
       method: "POST", headers: authHeaders(), body: JSON.stringify({ modelId })
     });
     const j = await r.json();
@@ -6839,7 +6886,7 @@ async function mhEnableModel(modelId) {
 async function mhDisableProvider(provider) {
   if (!confirm(`Disable every model from ${provider}? Users will stop seeing them.`)) return;
   try {
-    const r = await fetch(WORKER_BASE + "/admin/model-health/disable-provider", {
+    const r = await apiFetch(WORKER_BASE + "/admin/model-health/disable-provider", {
       method: "POST", headers: authHeaders(), body: JSON.stringify({ provider })
     });
     const j = await r.json();
@@ -6852,7 +6899,7 @@ async function mhDisableProvider(provider) {
 
 async function mhEnableProvider(provider) {
   try {
-    const r = await fetch(WORKER_BASE + "/admin/model-health/enable-provider", {
+    const r = await apiFetch(WORKER_BASE + "/admin/model-health/enable-provider", {
       method: "POST", headers: authHeaders(), body: JSON.stringify({ provider })
     });
     const j = await r.json();
@@ -6878,7 +6925,7 @@ async function mhDisableAllFailing() {
   if (!confirm(`Disable ${failing.length} failing model${failing.length === 1 ? "" : "s"}? Users will stop seeing them.`)) return;
 
   try {
-    const r = await fetch(WORKER_BASE + "/admin/model-health/disable-batch", {
+    const r = await apiFetch(WORKER_BASE + "/admin/model-health/disable-batch", {
       method: "POST", headers: authHeaders(),
       body: JSON.stringify({ modelIds: failing })
     });
@@ -6899,7 +6946,7 @@ async function mhEnableAll() {
   if (!confirm(`Enable all ${count} disabled model${count === 1 ? "" : "s"}? They'll appear for users again on the next test.`)) return;
 
   try {
-    const r = await fetch(WORKER_BASE + "/admin/model-health/enable-all", {
+    const r = await apiFetch(WORKER_BASE + "/admin/model-health/enable-all", {
       method: "POST", headers: authHeaders()
     });
     const j = await r.json().catch(() => ({}));
@@ -7001,7 +7048,7 @@ function renderAdmin(){
 async function loadAdminUsage(){
   const body=$("#adminUsageBody");if(!body)return;
   try{
-    const r=await fetch(WORKER_BASE+"/admin/usage?days=30",{headers:authHeaders(false)});
+    const r=await apiFetch(WORKER_BASE+"/admin/usage?days=30",{headers:authHeaders(false)});
     const j=await r.json();
     if(!r.ok)throw new Error(j.error?.message||"Could not load usage");
     const byModel=Array.isArray(j.byModel)?j.byModel:[];
@@ -7021,7 +7068,7 @@ async function loadAdminUsage(){
 async function refreshAdminStatus(){
   if(!isAuthenticated()||state.role!=="admin"){toast("Administrator access required");return}
   try{
-    const r=await fetch(WORKER_BASE+"/admin/status",{headers:authHeaders(false)});
+    const r=await apiFetch(WORKER_BASE+"/admin/status",{headers:authHeaders(false)});
     const j=await r.json();
     if(!r.ok)throw new Error(j.error?.message||"Admin request failed");
     adminStatusData=j;
@@ -7440,7 +7487,7 @@ let _lockCountdownTimer = null;
 
 async function checkSiteLock(){
   try{
-    const r = await fetch(WORKER_BASE + "/site-lock", { headers: authHeaders(false) });
+    const r = await apiFetch(WORKER_BASE + "/site-lock", { headers: authHeaders(false) });
     if(!r.ok) return false;
     const j = await r.json();
     if(!j.locked) return false;
@@ -7532,7 +7579,7 @@ function showAdminLockBanner(j){
 
 async function refreshAdminLockBanner(){
   try{
-    const r = await fetch(WORKER_BASE + "/site-lock", { headers: authHeaders(false) });
+    const r = await apiFetch(WORKER_BASE + "/site-lock", { headers: authHeaders(false) });
     const j = await r.json();
     const existing = document.getElementById("adminLockBanner");
     if(j.locked && state.role === "admin"){
@@ -7549,7 +7596,7 @@ async function renderSiteLockAdminPage(){
 
   let lock = null;
   try{
-    const r = await fetch(WORKER_BASE + "/admin/site-lock", { headers: authHeaders(false) });
+    const r = await apiFetch(WORKER_BASE + "/admin/site-lock", { headers: authHeaders(false) });
     if(r.ok){ const j = await r.json(); if(j.locked) lock = j; }
   }catch{}
 
@@ -7597,7 +7644,7 @@ async function renderSiteLockAdminPage(){
       document.getElementById("slaUnlock").onclick = async () => {
         if(!confirm("Unlock the site now?")) return;
         try{
-          const r = await fetch(WORKER_BASE + "/admin/site-lock/unlock", { method:"POST", headers:authHeaders() });
+          const r = await apiFetch(WORKER_BASE + "/admin/site-lock/unlock", { method:"POST", headers:authHeaders() });
           const j = await r.json().catch(()=>({}));
           if(!r.ok || !j.ok) throw new Error(j.error?.message || "Unlock failed");
           toast("Site unlocked");
@@ -7644,7 +7691,7 @@ async function renderSiteLockAdminPage(){
           : `Lock the site for ${minutes} minute${minutes===1?"":"s"}? Non-admin users will be blocked.`;
         if(!confirm(confirmMsg)) return;
         try{
-          const r = await fetch(WORKER_BASE + "/admin/site-lock/lock", {
+          const r = await apiFetch(WORKER_BASE + "/admin/site-lock/lock", {
             method:"POST", headers:authHeaders(),
             body: JSON.stringify({ durationMinutes: minutes, message, indefinite })
           });
