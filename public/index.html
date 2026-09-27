@@ -548,16 +548,7 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
 }
 .search-context-badge svg{width:11px;height:11px}
 
-.searching-indicator{
-  display:flex;align-items:center;gap:8px;
-  color:var(--muted);
-  font-size:13px;
-  padding:2px 0;
-}
-.searching-indicator .spin{
-  display:inline-block;
-  animation:think-spin 1.1s linear infinite;
-}
+/* searching styles replaced below */
 
 .search-sources{
   margin:0 0 10px;
@@ -1458,12 +1449,7 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
 :root[data-density="spacious"] .msg-user .bubble{padding:14px 18px}
 
 /* ============ Thinking / reasoning ============ */
-.thinking-row{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;padding:2px 0}
-.thinking-dots{display:inline-flex;gap:3px}
-.thinking-dots span{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:think-pulse 1.1s ease-in-out infinite}
-.thinking-dots span:nth-child(2){animation-delay:.15s}
-.thinking-dots span:nth-child(3){animation-delay:.3s}
-@keyframes think-pulse{0%,60%,100%{opacity:.25;transform:scale(.85)}30%{opacity:1;transform:scale(1)}}
+/* thinking styles replaced below */30%{opacity:1;transform:scale(1)}}
 .thinking-spark{display:inline-block;animation:think-spin 1.6s linear infinite}
 @keyframes think-spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){
@@ -1490,9 +1476,86 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
 .md a{color:var(--accent);text-decoration:underline}
 .md hr{border:0;border-top:1px solid var(--line);margin:16px 0}
 .md code{font-family:var(--mono);font-size:.9em;background:var(--panel-3);padding:2px 5px;border-radius:4px}
-.md pre{margin:0 0 12px;background:#0d0d0d;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.md pre{
+  margin:0 0 12px;
+  background:#0d0d0d;
+  border:1px solid var(--line);
+  border-radius:var(--r-md);
+  overflow:hidden;
+}
 :root[data-theme="light"] .md pre{background:#f4f4f5}
-.md pre code{display:block;background:none;padding:12px 14px;overflow-x:auto;font-size:12.5px;line-height:1.55;border-radius:0;-webkit-overflow-scrolling:touch}
+.md pre code{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  padding:0;
+  background:none;
+  border-radius:0;
+  font-family:var(--mono);
+  font-size:12.5px;
+  line-height:1.55;
+  color:var(--text);
+}
+.md pre code .code-gutter{
+  padding:12px 10px 12px 14px;
+  text-align:right;
+  color:var(--dim);
+  user-select:none;
+  -webkit-user-select:none;
+  background:rgba(255,255,255,.02);
+  border-right:1px solid var(--line);
+  white-space:pre;
+  font:inherit;
+  min-width:2.5em;
+}
+:root[data-theme="light"] .md pre code .code-gutter{background:rgba(0,0,0,.03)}
+.md pre code .code-text{
+  display:block;
+  padding:12px 14px;
+  white-space:pre;
+  min-width:0;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.md pre code.code-wrapped{
+  grid-template-columns:minmax(0,1fr);
+}
+.md pre code.code-wrapped .code-gutter{display:none}
+.md pre code.code-wrapped .code-text{
+  white-space:pre-wrap;
+  overflow-x:visible;
+  word-break:break-word;
+}
+@media (max-width:640px){
+  .md pre code .code-gutter{display:none}
+  .md pre code{grid-template-columns:minmax(0,1fr)}
+}
+
+/* Refined hljs overrides — matches app palette */
+.hljs{color:var(--text);background:transparent}
+.hljs-comment,.hljs-quote{color:#6b7280;font-style:italic}
+.hljs-keyword,.hljs-selector-tag,.hljs-built_in,.hljs-name{color:#c4b5fd}
+.hljs-string,.hljs-attr,.hljs-addition{color:#a5d6a7}
+.hljs-number,.hljs-literal,.hljs-symbol,.hljs-bullet{color:#f0b378}
+.hljs-title,.hljs-title.class_,.hljs-title.function_,.hljs-section{color:#7ab8ff}
+.hljs-variable,.hljs-template-variable,.hljs-params{color:#e5e7eb}
+.hljs-type,.hljs-class .hljs-title{color:#f7c948}
+.hljs-meta,.hljs-doctag{color:#9a9a9a}
+.hljs-tag{color:#8b8b8f}
+.hljs-tag .hljs-name{color:#c4b5fd}
+.hljs-tag .hljs-attr{color:#f0b378}
+.hljs-deletion{color:#f26161}
+.hljs-emphasis{font-style:italic}
+.hljs-strong{font-weight:600}
+:root[data-theme="light"] .hljs-comment,
+:root[data-theme="light"] .hljs-quote{color:#8b8b92}
+:root[data-theme="light"] .hljs-keyword,
+:root[data-theme="light"] .hljs-selector-tag{color:#7c3aed}
+:root[data-theme="light"] .hljs-string,
+:root[data-theme="light"] .hljs-attr{color:#059669}
+:root[data-theme="light"] .hljs-number,
+:root[data-theme="light"] .hljs-literal{color:#d97706}
+:root[data-theme="light"] .hljs-title,
+:root[data-theme="light"] .hljs-section{color:#2563eb}
 .code-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;background:var(--panel-3);border-bottom:1px solid var(--line);font-size:11px;color:var(--dim)}
 .code-toolbar-actions{display:flex;gap:4px}
 .code-toolbar button{padding:4px 8px;border-radius:5px;color:var(--muted);font-size:11px}
@@ -1672,6 +1735,538 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
 }
 .tl-file-row .tl-size{ color:var(--dim);font-family:var(--mono);font-size:11px;flex:0 0 auto; }
 
+
+/* ============ Capability badges ============ */
+.composer-model-chip .cmc-caps{
+  display:inline-flex;
+  align-items:center;
+  gap:3px;
+  margin-left:2px;
+  flex:0 0 auto;
+}
+.composer-model-chip .cmc-cap{
+  display:inline-flex;
+  align-items:center;
+  height:14px;
+  padding:0 5px;
+  border-radius:4px;
+  background:var(--panel-3);
+  border:1px solid var(--line);
+  color:var(--dim);
+  font-size:9px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+  white-space:nowrap;
+}
+@media (max-width:520px){
+  .composer-model-chip .cmc-caps{ display:none; }
+}
+
+.qs-row-caps{
+  display:inline-flex;
+  flex-wrap:wrap;
+  gap:3px;
+  margin-top:3px;
+}
+.qs-cap{
+  display:inline-flex;
+  align-items:center;
+  height:15px;
+  padding:0 5px;
+  border-radius:4px;
+  background:var(--panel-3);
+  border:1px solid var(--line);
+  color:var(--dim);
+  font-size:9px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
+
+/* ============ Vision routing note (admin only) ============ */
+.vision-route-note{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  margin-top:6px;
+  padding:4px 9px;
+  border-radius:6px;
+  background:var(--panel-3);
+  border:1px solid var(--line);
+  color:var(--dim);
+  font-family:var(--mono);
+  font-size:10.5px;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.vision-route-note b{
+  color:var(--muted);
+  font-weight:500;
+}
+
+
+/* ============ Tool file download chip (PR 3 minimal version) ============ */
+.tool-file-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:9px 12px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:10px;
+  color:var(--text);
+  text-decoration:none;
+  font-size:12.5px;
+  max-width:min(100%,340px);
+  margin-top:8px;
+  cursor:pointer;
+  transition:background-color var(--t-base),border-color var(--t-base);
+}
+.tool-file-chip:hover{ background:var(--panel-3); border-color:var(--line-strong); }
+.tool-file-chip .tfc-icon{ font-size:16px; flex:0 0 auto; }
+.tool-file-chip .tfc-main{
+  flex:1; min-width:0;
+  display:flex; flex-direction:column; gap:1px;
+}
+.tool-file-chip .tfc-name{
+  font-size:12.5px;
+  font-weight:500;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.tool-file-chip .tfc-size{
+  font-size:10.5px;
+  color:var(--dim);
+}
+.tool-file-chip .tfc-arrow{
+  color:var(--dim);
+  font-size:15px;
+  flex:0 0 auto;
+}
+
+
+/* ============ File preview ============ */
+.tool-file-chip-btn{ border:1px solid var(--line); background:var(--panel-2); cursor:pointer; text-align:left; font:inherit; }
+.file-preview-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 0 14px;margin-bottom:12px;border-bottom:1px solid var(--line);
+  position:sticky;top:0;background:var(--bg);z-index:2;
+}
+.file-preview-meta{min-width:0;flex:1}
+.file-preview-meta b{display:block;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-preview-meta span{display:block;font-size:11.5px;color:var(--dim);margin-top:2px}
+.file-preview-body{min-height:120px}
+.file-preview-iframe{
+  width:100%;height:min(70vh,560px);border:1px solid var(--line);border-radius:10px;background:#fff;
+}
+.file-preview-svg{padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);overflow:auto}
+.file-preview-code{
+  margin:0;padding:14px;background:#0d0d0d;border:1px solid var(--line);border-radius:10px;
+  overflow:auto;max-height:min(70vh,560px);font-family:var(--mono);font-size:12.5px;line-height:1.55;
+  white-space:pre-wrap;word-break:break-word;
+}
+:root[data-theme="light"] .file-preview-code{background:#f4f4f5}
+
+/* ============ Site Lock — takeover screen ============ */
+body.is-locked .shell,
+body.is-locked .admin-page,
+body.is-locked .page-view,
+body.is-locked .qs-sheet,
+body.is-locked .qs-backdrop,
+body.is-locked .auth-page{ display:none !important; }
+
+.lock-takeover{
+  position:fixed;inset:0;z-index:9999;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 20%,rgba(242,97,97,.10),transparent 60%),var(--bg);
+  padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b));
+  overflow-y:auto;
+}
+.lock-card{
+  width:min(440px,100%);
+  background:var(--panel);
+  border:1px solid var(--line-strong);
+  border-radius:18px;
+  padding:28px 22px;
+  text-align:center;
+  box-shadow:0 24px 70px -20px rgba(0,0,0,.8);
+  animation:authIn 220ms cubic-bezier(.2,.8,.2,1);
+}
+.lock-icon{font-size:42px;line-height:1;margin-bottom:14px}
+.lock-title{margin:0 0 8px;font-size:22px;font-weight:600;letter-spacing:-.02em}
+.lock-message{
+  margin:0 0 18px;color:var(--muted);font-size:13.5px;line-height:1.55;
+  max-width:340px;margin-left:auto;margin-right:auto;
+}
+.lock-timer{
+  display:inline-block;
+  font-family:var(--mono);font-size:20px;font-weight:500;
+  letter-spacing:.02em;
+  padding:10px 18px;border-radius:10px;
+  background:var(--panel-2);border:1px solid var(--line);
+  color:var(--text);
+  margin:0 0 20px;
+  min-width:140px;
+}
+.lock-card .auth-primary{margin-top:0}
+.lock-foot{
+  margin-top:16px;padding-top:14px;
+  border-top:1px solid var(--line);
+  color:var(--dim);font-size:11.5px;line-height:1.5;
+}
+
+/* ============ Site Lock — admin banner ============ */
+.admin-lock-banner{
+  position:fixed;top:calc(8px + var(--safe-t));left:50%;transform:translateX(-50%);
+  z-index:76;
+  display:flex;align-items:center;gap:12px;
+  padding:10px 12px 10px 16px;
+  background:rgba(242,97,97,.14);
+  border:1px solid rgba(242,97,97,.45);
+  color:var(--danger);
+  border-radius:99px;
+  font-size:12.5px;font-weight:500;
+  box-shadow:0 12px 32px -12px rgba(0,0,0,.6);
+  max-width:calc(100vw - 24px);
+}
+.admin-lock-banner button{
+  padding:6px 12px;border-radius:99px;
+  background:var(--danger);color:#fff;
+  font-size:11.5px;font-weight:600;
+  flex:0 0 auto;
+}
+.admin-lock-banner button:hover{filter:brightness(1.08)}
+@media(max-width:520px){
+  .admin-lock-banner{font-size:11.5px;padding:8px 10px 8px 12px;gap:8px}
+  .admin-lock-banner button{padding:5px 10px;font-size:11px}
+}
+
+/* ============ Site Lock — admin page ============ */
+.admin-nav button.admin-nav-danger{ color:#ff8f8f; }
+.admin-nav button.admin-nav-danger.is-active,
+.admin-nav button.admin-nav-danger:hover{ color:var(--danger); border-color:rgba(242,97,97,.4); background:rgba(242,97,97,.08); }
+
+.site-lock-status{
+  display:flex;align-items:center;gap:16px;
+  padding:18px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:14px;
+}
+.site-lock-status.is-locked{
+  border-color:rgba(242,97,97,.4);
+  background:linear-gradient(180deg,rgba(242,97,97,.08),transparent 70%),var(--panel-2);
+}
+.site-lock-status-icon{
+  font-size:32px;line-height:1;
+  width:56px;height:56px;flex:0 0 auto;
+  display:grid;place-items:center;
+  border-radius:14px;
+  background:var(--panel-3);border:1px solid var(--line);
+}
+.site-lock-status.is-locked .site-lock-status-icon{
+  background:rgba(242,97,97,.12);border-color:rgba(242,97,97,.3);
+}
+.site-lock-status-body{flex:1;min-width:0}
+.site-lock-status-body b{display:block;font-size:15px;font-weight:600;margin-bottom:3px}
+.site-lock-status-body small{display:block;font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:8px;overflow-wrap:anywhere}
+.site-lock-meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:11.5px;color:var(--dim)}
+.site-lock-meta b{display:inline;font-size:11.5px;color:var(--text);margin:0}
+.site-lock-meta span{display:inline-flex;align-items:baseline;gap:5px}
+.site-lock-unlock{background:var(--danger)!important}
+.site-lock-lock{background:#d4a72c!important}
+.site-lock-indefinite{color:var(--danger)!important;border-color:rgba(242,97,97,.3)!important}
+.site-lock-indefinite:hover{background:rgba(242,97,97,.1)!important;border-color:rgba(242,97,97,.5)!important}
+
+@media(max-width:520px){
+  .site-lock-status{flex-direction:column;align-items:flex-start;gap:12px;padding:16px}
+  .site-lock-status-icon{width:48px;height:48px;font-size:26px}
+  .admin-actions > button{flex:1 1 100%}
+}
+
+
+/* ============ Model groups + variant sheet ============ */
+.group-variants-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  height:18px;padding:0 7px;border-radius:99px;
+  background:var(--panel-3);border:1px solid var(--line);
+  color:var(--muted);font-size:10.5px;font-weight:600;
+  cursor:pointer;vertical-align:middle;
+}
+.group-variants-chip:hover{color:var(--text);border-color:var(--line-strong)}
+.group-variants-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--ok);flex:0 0 auto}
+.group-variants-chip.is-cooling .dot{background:var(--warn,#f0b378)}
+.group-variants-chip.is-failing .dot{background:var(--danger)}
+
+.variant-sheet-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.variant-row{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--panel-2);border:1px solid var(--line);border-radius:10px;
+  cursor:pointer;text-align:left;width:100%;font:inherit;color:var(--text);
+}
+.variant-row:hover{background:var(--panel-3);border-color:var(--line-strong)}
+.variant-row.is-active{border-color:rgba(61,125,255,.5);background:var(--accent-soft)}
+.variant-row-main{flex:1;min-width:0}
+.variant-row-main b{display:block;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.variant-row-main small{display:block;font-size:11px;color:var(--dim);margin-top:2px}
+.variant-badge{
+  display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:4px;
+  background:var(--panel-3);border:1px solid var(--line);color:var(--dim);
+  font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;margin-right:4px;
+}
+.variant-badge.primary{color:var(--accent);border-color:rgba(61,125,255,.35)}
+.variant-badge.ok{color:var(--ok);border-color:rgba(86,211,100,.3)}
+.variant-badge.failing{color:var(--danger);border-color:rgba(242,97,97,.3)}
+.variant-badge.cooling{color:#f0b378;border-color:rgba(240,179,120,.35)}
+
+.mg-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px}
+.mg-toolbar input{flex:1 1 180px;min-width:0;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px;color:var(--text);outline:0}
+.mg-list{display:flex;flex-direction:column;gap:8px}
+.mg-group{border:1px solid var(--line);border-radius:12px;background:var(--panel-2);overflow:hidden}
+.mg-head{
+  display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;
+  background:transparent;border:0;color:var(--text);font:inherit;cursor:pointer;text-align:left;
+}
+.mg-head:hover{background:var(--panel-3)}
+.mg-caret{flex:0 0 auto;transition:transform .15s;color:var(--dim)}
+.mg-group.is-open .mg-caret{transform:rotate(90deg)}
+.mg-head-main{flex:1;min-width:0}
+.mg-head-main b{display:block;font-size:13.5px;font-weight:500}
+.mg-head-main small{display:block;font-size:11.5px;color:var(--dim);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mg-head-meta{display:flex;flex-wrap:wrap;gap:4px;flex:0 0 auto}
+.mg-variants{display:none;padding:0 10px 12px;flex-direction:column;gap:6px}
+.mg-group.is-open .mg-variants{display:flex}
+.mg-variant{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:var(--panel-3);border:1px solid var(--line)}
+.mg-variant-radio{
+  width:16px;height:16px;border-radius:50%;border:2px solid var(--line-strong);
+  background:transparent;flex:0 0 auto;cursor:pointer;padding:0;
+}
+.mg-variant-radio.is-on{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 3px var(--panel-3)}
+.mg-variant-main{flex:1;min-width:0}
+.mg-variant-main b{display:block;font-size:12px;font-weight:500;font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mg-variant-main small{display:block;margin-top:3px}
+.mg-variant-actions{display:flex;gap:4px;flex:0 0 auto}
+.mg-variant-actions button{font-size:11px;padding:5px 8px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+.mg-variant-actions button:hover{color:var(--text);border-color:var(--line-strong)}
+.mg-variant-actions button.danger{color:var(--danger);border-color:rgba(242,97,97,.3)}
+@media(max-width:640px){
+  .mg-head{flex-wrap:wrap}
+  .mg-head-meta{width:100%}
+  .mg-variant{flex-wrap:wrap}
+  .mg-variant-actions{width:100%;margin-top:6px}
+  .mg-variant-actions button{flex:1}
+}
+
+
+/* Auto-decorated text in responses */
+.md .auto-link{
+  color:var(--accent);
+  text-decoration:none;
+  border-bottom:1px dashed rgba(61,125,255,.35);
+  padding-bottom:1px;
+  word-break:break-all;
+  transition:border-color var(--t-base),color var(--t-base);
+}
+.md .auto-link:hover{border-bottom-style:solid;border-bottom-color:var(--accent);color:#7aa9ff}
+:root[data-theme="light"] .md .auto-link{color:#2563eb}
+
+.md .cmd-token{
+  display:inline-block;
+  padding:1px 6px;
+  border-radius:5px;
+  background:var(--panel-3);
+  border:1px solid var(--line);
+  font-family:var(--mono);
+  font-size:.88em;
+  color:var(--text);
+}
+
+.md .http-method{
+  display:inline-block;
+  padding:1px 6px;
+  border-radius:5px;
+  font-family:var(--mono);
+  font-size:.82em;
+  font-weight:700;
+  letter-spacing:.03em;
+  background:rgba(61,125,255,.14);
+  color:#7aa9ff;
+  border:1px solid rgba(61,125,255,.3);
+}
+:root[data-theme="light"] .md .http-method{color:#2563eb;background:rgba(37,99,235,.1)}
+
+.md .file-path{
+  display:inline-block;
+  padding:1px 6px;
+  border-radius:5px;
+  font-family:var(--mono);
+  font-size:.88em;
+  color:#c4b5fd;
+  background:rgba(139,92,246,.1);
+  border:1px solid rgba(139,92,246,.25);
+}
+:root[data-theme="light"] .md .file-path{color:#7c3aed;background:rgba(124,58,237,.08)}
+
+/* ============ Composer attachment chips ============ */
+.attachment-strip{display:flex;gap:8px;flex-wrap:wrap;padding:4px 2px 0}
+.attach-chip{
+  position:relative;
+  display:flex;align-items:center;gap:8px;
+  max-width:min(240px,60vw);
+  padding:6px 30px 6px 6px;
+  background:var(--panel-3);
+  border:1px solid var(--line);
+  border-radius:12px;
+  transition:border-color var(--t-base),background-color var(--t-base);
+}
+.attach-chip:hover{border-color:var(--line-strong);background:var(--raised)}
+.attach-thumb{
+  width:34px;height:34px;flex:0 0 auto;
+  border-radius:8px;
+  overflow:hidden;
+  background:var(--panel);
+  display:grid;place-items:center;
+}
+.attach-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.attach-thumb-icon{font-size:18px;line-height:1}
+.attach-meta{min-width:0;display:flex;flex-direction:column;gap:2px}
+.attach-name{
+  font-size:12px;font-weight:500;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  max-width:140px;
+}
+.attach-sub{font-size:10.5px;color:var(--dim)}
+.attach-remove{
+  position:absolute;top:2px;right:2px;
+  width:20px;height:20px;border-radius:50%;
+  display:grid;place-items:center;
+  background:var(--panel);border:1px solid var(--line);
+  color:var(--muted);font-size:14px;line-height:1;
+  cursor:pointer;
+  transition:background-color var(--t-base),color var(--t-base),border-color var(--t-base);
+}
+.attach-remove:hover{color:var(--danger);border-color:rgba(242,97,97,.4);background:rgba(242,97,97,.1)}
+@media (max-width:520px){
+  .attach-chip{max-width:100%}
+  .attach-name{max-width:110px}
+}
+
+.msg-action.is-copied{color:var(--ok)}
+
+/* ============ Thinking indicator (modern) ============ */
+.thinking-row{
+  display:flex;align-items:center;gap:10px;
+  color:var(--muted);font-size:13.5px;
+  padding:4px 0;
+  user-select:none;
+}
+.thinking-orb{
+  position:relative;
+  width:18px;height:18px;
+  flex:0 0 auto;
+  display:grid;place-items:center;
+}
+.thinking-orb::before,
+.thinking-orb::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, #c4b5fd, #7c3aed 70%, transparent 75%);
+  opacity:.75;
+  animation:orbPulse 1.8s cubic-bezier(.5,0,.5,1) infinite;
+}
+.thinking-orb::after{
+  inset:3px;
+  background:radial-gradient(circle at 60% 40%, #e9d5ff, #a855f7 60%, transparent 75%);
+  animation-delay:.9s;
+  opacity:.55;
+}
+@keyframes orbPulse{
+  0%,100%{transform:scale(.7);opacity:.35}
+  50%{transform:scale(1.05);opacity:.95}
+}
+.thinking-shimmer{
+  font-weight:500;
+  background:linear-gradient(90deg,
+    var(--muted) 0%,
+    var(--muted) 35%,
+    var(--text) 50%,
+    var(--muted) 65%,
+    var(--muted) 100%);
+  background-size:220% 100%;
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  color:transparent;
+  animation:shimmerText 2.4s linear infinite;
+  letter-spacing:.01em;
+}
+@keyframes shimmerText{
+  0%{background-position:180% 0}
+  100%{background-position:-80% 0}
+}
+.thinking-trail{
+  display:inline-flex;gap:4px;align-items:center;
+  margin-left:2px;
+}
+.thinking-trail span{
+  width:4px;height:4px;border-radius:50%;
+  background:var(--muted);
+  animation:trailFade 1.4s ease-in-out infinite;
+}
+.thinking-trail span:nth-child(2){animation-delay:.16s}
+.thinking-trail span:nth-child(3){animation-delay:.32s}
+@keyframes trailFade{
+  0%,80%,100%{opacity:.15;transform:translateY(0)}
+  40%{opacity:1;transform:translateY(-1.5px)}
+}
+
+.searching-indicator{
+  display:flex;align-items:center;gap:8px;
+  color:var(--muted);
+  font-size:13px;
+  padding:2px 0;
+}
+.searching-indicator .spin{
+  display:inline-block;
+  animation:think-spin 1.6s linear infinite;
+  font-size:14px;
+}
+.searching-indicator .label{
+  background:linear-gradient(90deg,
+    var(--muted) 0%, var(--muted) 35%,
+    var(--accent) 50%,
+    var(--muted) 65%, var(--muted) 100%);
+  background-size:220% 100%;
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  color:transparent;
+  animation:shimmerText 2.6s linear infinite;
+}
+
+/* ============ Telegram admin ============ */
+.tg-status{
+  display:flex;align-items:center;gap:12px;
+  padding:16px;margin-bottom:18px;
+  border:1px solid var(--line);border-radius:12px;
+  background:var(--panel-2);
+}
+.tg-status-dot{
+  width:10px;height:10px;border-radius:50%;flex:0 0 auto;
+  background:var(--dim);
+}
+.tg-status.is-on{border-color:rgba(86,211,100,.35);background:rgba(86,211,100,.06)}
+.tg-status.is-on .tg-status-dot{background:var(--ok);box-shadow:0 0 0 4px rgba(86,211,100,.14)}
+.tg-status.is-off{border-color:rgba(242,97,97,.25)}
+.tg-status.is-off .tg-status-dot{background:var(--danger);box-shadow:0 0 0 4px rgba(242,97,97,.14)}
+.tg-status-main{flex:1;min-width:0}
+.tg-status-main b{display:block;font-size:14px;font-weight:600}
+.tg-status-main small{display:block;color:var(--dim);font-size:12px;margin-top:3px;font-family:var(--mono);overflow-wrap:anywhere}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs" type="module" id="pdfjs-module"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js" defer></script>
@@ -1730,6 +2325,7 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
           <button class="composer-model-chip" id="composerModelChip" type="button" title="Switch model">
             <span class="cmc-icon" id="composerChipIcon"></span>
             <span class="cmc-text" id="composerChipText">Pick a model</span>
+              <span class="cmc-caps" id="composerChipCaps"></span>
             <svg class="cmc-caret" viewBox="0 0 24 24"><path d="m8 10.2 4 4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
           </button>
           <textarea id="prompt" placeholder="Ask China-GPT anything" rows="1" aria-label="Message"></textarea>
@@ -1777,9 +2373,12 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
       <button data-admin-section="playground">◇ Playground</button>
       <button data-admin-section="provider-icons">✦ Provider Icons</button>
       <button data-admin-section="api-settings">⌗ API Settings</button>
+      <button data-admin-section="model-groups">⧉ Model Groups</button>
       <button data-admin-section="model-health">⚕ Model Health</button>
       <button data-admin-section="search-config">⌕ Search Providers</button>
+      <button data-admin-section="telegram">✈ Telegram Bot</button>
       <button data-admin-section="provider-map">⌘ Provider Mapping</button>
+      <button data-admin-section="site-lock" class="admin-nav-danger">🔒 Site Lock</button>
       <button data-admin-section="system">◌ System</button>
       <button data-admin-section="logs">☷ Activity Logs</button>
       <button data-admin-section="settings">⚙ Settings</button>
@@ -1869,8 +2468,82 @@ const state = {
     fetchTopN: 2,
     fetchModel: "jina-reader"
   },
-  providerOverrides: { byPattern: [], byModelId: {} }
+  
 };
+
+/* ============================================================
+   TOOL DEFINITIONS
+   Sent to the model when the selected model supports tools.
+   The backend executes web_search and web_fetch; create_file is
+   a stub — the actual download is handled client-side. */
+const TOOL_DEFS = [
+  {
+    type: "function",
+    function: {
+      name: "web_search",
+      description: "Search the web for current information. Use this when the user asks about recent events, current data, or facts that may have changed. Returns a synthesized answer and a list of source URLs.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "The search query" },
+          max_results: { type: "integer", description: "Number of results (1–10). Default 5." }
+        },
+        required: ["query"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_fetch",
+      description: "Fetch a specific URL and return its content as clean markdown. Use this to read a page the user linked, or to read sources returned by web_search when you need the full details.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "The full URL to fetch, including https://" }
+        },
+        required: ["url"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_file",
+      description: "Create a downloadable file. Supported extensions: .txt, .md, .html, .css, .js, .ts, .py, .java, .c, .cpp, .rs, .go, .rb, .php, .sql, .sh, .json, .csv, .xml, .yaml, .yml, .svg, .tex, .pdf, .docx, .xlsx, .zip. Use this whenever the user asks for a document, report, code file, or any deliverable.",
+      parameters: {
+        type: "object",
+        properties: {
+          filename: { type: "string", description: "Filename with extension, e.g. report.md" },
+          mime: { type: "string", description: "MIME type, e.g. text/markdown, application/pdf" },
+          content: { type: "string", description: "Full file content as a string" }
+        },
+        required: ["filename", "content"]
+      }
+    }
+  }
+];
+
+function toolLabel(name, args){
+  if (name === "web_search") {
+    const q = String(args.query || "").slice(0, 40);
+    return q ? `Searching "${q}"` : "Searching the web";
+  }
+  if (name === "web_fetch") return `Reading ${shortHost(args.url || "")}`;
+  if (name === "create_file") return `Writing ${args.filename || "file"}`;
+  return name;
+}
+function toolDetail(name, result){
+  if (!result) return "";
+  if (name === "web_search") {
+    const n = Array.isArray(result.sources) ? result.sources.length : 0;
+    return `${n} source${n === 1 ? "" : "s"}`;
+  }
+  if (name === "web_fetch") return formatBytes(result.length || 0);
+  if (name === "create_file") return formatBytes(result.size || 0);
+  return "";
+}
+
 function safeJsonEarly(k,fallback){try{const v=JSON.parse(localStorage.getItem(k));return v===null||v===undefined?fallback:v}catch{return fallback}}
 
 /* ============================================================
@@ -2299,7 +2972,14 @@ function saveProfile(name,avatar){
 loadTheme();
 
 function toast(t){const x=$("#toast");x.textContent=t;x.classList.add("show");clearTimeout(x._t);x._t=setTimeout(()=>x.classList.remove("show"),2600)}
-function key(){return state.accessCode||localStorage.getItem("chinaGPTAccessCode")||""}
+function key(){
+  const s = String(state.accessCode || "").trim();
+  if (s && s !== "undefined" && s !== "null") return s;
+  let l = "";
+  try { l = String(localStorage.getItem("chinaGPTAccessCode") || "").trim(); } catch {}
+  if (l && l !== "undefined" && l !== "null") return l;
+  return "";
+}
 function authHeaders(json=true){
   const h={};
   if(key())h["X-China-GPT-Key"]=key();
@@ -2307,10 +2987,18 @@ function authHeaders(json=true){
   return h;
 }
 function isAuthenticated(){return !!key()}
-function setAuth(code,role){
-  state.accessCode=code; state.role=role||"user";
-  localStorage.setItem("chinaGPTAccessCode",code);
-  localStorage.setItem("chinaGPTRole",state.role);
+function setAuth(code, role){
+  const clean = String(code || "").trim();
+  if (!clean || clean === "undefined" || clean === "null") {
+    // Loud failure so we never store a bad value silently
+    throw new Error("Login response did not include a valid access code");
+  }
+  state.accessCode = clean;
+  state.role = role || "user";
+  try {
+    localStorage.setItem("chinaGPTAccessCode", clean);
+    localStorage.setItem("chinaGPTRole", state.role);
+  } catch {}
 }
 function clearAuth(){
   state.accessCode=""; state.role="";
@@ -2359,7 +3047,22 @@ async function loadModels(){
     if(r.status===401||r.status===403){clearAuth();updateBadge();openLogin("models");return}
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j=await r.json(); state.models=Array.isArray(j.data)?j.data:[];
-    if(!state.model || !state.models.some(m=>m.id===state.model)) state.model=state.models[0]?.id||"";
+    if (Array.isArray(j.groups) && j.groups.length) {
+      state.modelGroups = j.groups.map(g => ({
+        canonical: g.canonical,
+        primary: g.primary || (g.variants && g.variants[0] && (g.variants[0].id || g.variants[0])),
+        variants: (g.variants || []).map(v => typeof v === "string" ? { id: v } : v),
+        hasFree: !!g.hasFree,
+        providers: g.providers || [],
+        pinned: g.pinned || null
+      }));
+    } else {
+      state.modelGroups = [];
+    }
+    if(!state.model || !state.models.some(m=>m.id===state.model)) {
+      if (state.modelGroups.length) state.model = state.modelGroups[0].primary;
+      else state.model=state.models[0]?.id||"";
+    }
     localStorage.setItem("chinaGPTModel",state.model); updateBadge(); refreshCatalogIfOpen();
     if (typeof warmIconCache === "function") warmIconCache();
   }catch(e){updateBadge();toast("Could not load models.")}
@@ -2369,7 +3072,12 @@ function updateBadge(){
   if(label) label.textContent=state.model?cleanModelName(state.model):"Pick a model";
   const chipText=$("#composerChipText");
   const chipIcon=$("#composerChipIcon");
-  if(chipText) chipText.textContent=state.model?cleanModelName(state.model):"Pick a model";
+  const activeGroup = state.model ? groupForModelId(state.model) : null;
+  if (chipText) {
+    if (!state.model) chipText.textContent = "Pick a model";
+    else if (activeGroup) chipText.textContent = groupDisplayName(activeGroup);
+    else chipText.textContent = cleanModelName(state.model);
+  }
   if(chipIcon){
     chipIcon.removeAttribute("data-letter");
     if(state.model){
@@ -2380,6 +3088,15 @@ function updateBadge(){
     } else {
       chipIcon.style.color="";
       chipIcon.innerHTML="?";
+    }
+  }
+  const chipCaps = $("#composerChipCaps");
+  if (chipCaps) {
+    if (state.model) {
+      const m = state.models.find(x => x.id === state.model);
+      chipCaps.innerHTML = m ? capsHtml(m, "cmc-cap") : "";
+    } else {
+      chipCaps.innerHTML = "";
     }
   }
   updateAccountBadge();
@@ -2403,35 +3120,195 @@ const CODE_EXT_MAP={javascript:".js",js:".js",typescript:".ts",ts:".ts",html:".h
 function extFor(lang){return CODE_EXT_MAP[(lang||"").toLowerCase()]||".txt"}
 function enhanceRenderedMarkdown(container){
   container.querySelectorAll("pre code").forEach(block=>{
-    try{if(window.hljs)hljs.highlightElement(block)}catch(e){}
-    const pre=block.parentElement;
-    if(!pre||!pre.parentElement||pre.parentElement.classList.contains("code-block-wrap"))return;
-    const lang=(block.className.match(/language-(\S+)/)||[])[1]||"";
-    const wrap=document.createElement("div");wrap.className="code-block-wrap";
-    const toolbar=document.createElement("div");toolbar.className="code-toolbar";
-    toolbar.innerHTML=`<span>${escapeHtml(lang||"code")}</span><span class="code-toolbar-actions"><button type="button" data-copy-code>Copy</button><button type="button" data-download-code data-lang="${escapeHtml(lang)}">Download</button></span>`;
-    pre.parentElement.insertBefore(wrap,pre);wrap.appendChild(toolbar);wrap.appendChild(pre);
+    const pre = block.parentElement;
+    if (!pre || !pre.parentElement) return;
+    if (pre.parentElement.classList.contains("code-block-wrap")) return;
+
+    const rawText = block.textContent || "";
+    let lang = (block.className.match(/language-(\S+)/) || [])[1] || "";
+    const fileMatch = lang.match(/^file:(\S+)$/i);
+    const fileFilename = fileMatch ? fileMatch[1] : null;
+    if (fileMatch) lang = "";  // don't try to highlight file: blocks
+
+    // Highlight, or auto-detect language if missing
+    try {
+      if (window.hljs) {
+        if (lang && hljs.getLanguage(lang)) {
+          hljs.highlightElement(block);
+        } else if (!lang && rawText.length > 20) {
+          const result = hljs.highlightAuto(rawText);
+          block.innerHTML = result.value;
+          block.classList.add("hljs");
+          lang = result.language || "text";
+        }
+      }
+    } catch (e) {}
+
+    // Line numbers + text split
+    const lines = rawText.split("\n");
+    const highlightedHtml = block.innerHTML;
+    if (lines.length >= 3) {
+      const gutter = document.createElement("span");
+      gutter.className = "code-gutter";
+      gutter.setAttribute("aria-hidden", "true");
+      gutter.textContent = lines.map((_, i) => String(i + 1)).join("\n");
+
+      const textSpan = document.createElement("span");
+      textSpan.className = "code-text";
+      textSpan.innerHTML = highlightedHtml;
+
+      block.innerHTML = "";
+      block.appendChild(gutter);
+      block.appendChild(textSpan);
+    } else {
+      const textSpan = document.createElement("span");
+      textSpan.className = "code-text";
+      textSpan.innerHTML = highlightedHtml;
+      block.innerHTML = "";
+      block.appendChild(textSpan);
+    }
+
+    // Toolbar
+    const wrap = document.createElement("div");
+    wrap.className = "code-block-wrap";
+    const toolbar = document.createElement("div");
+    toolbar.className = "code-toolbar";
+    toolbar.innerHTML = `<span>${escapeHtml(lang || "code")}</span><span class="code-toolbar-actions">
+      <button type="button" data-copy-code>Copy</button>
+      <button type="button" data-download-code data-lang="${escapeHtml(lang)}">Download</button>
+      <button type="button" data-toggle-wrap>Wrap</button>
+    </span>`;
+    pre.parentElement.insertBefore(wrap, pre);
+    wrap.appendChild(toolbar);
+    wrap.appendChild(pre);
+
+    if (fileFilename) {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "tool-file-chip tool-file-chip-btn";
+      card.innerHTML = `<span class="tfc-icon">📄</span><span class="tfc-main"><span class="tfc-name">${escapeHtml(fileFilename)}</span><span class="tfc-size">${escapeHtml(formatBytes(rawText.length))}</span></span><span class="tfc-arrow">↓</span>`;
+      card.onclick = () => openFilePreview(fileFilename, rawText);
+      wrap.appendChild(card);
+    }
   });
+
+  // Table wrappers (unchanged)
   container.querySelectorAll(":scope table").forEach(t=>{
     if(t.parentElement.classList.contains("md-table-wrap"))return;
     const w=document.createElement("div");w.className="md-table-wrap";
     t.parentElement.insertBefore(w,t);w.appendChild(t);
   });
+
+  // Copy
   container.querySelectorAll("[data-copy-code]").forEach(b=>b.onclick=()=>{
-    const wrapEl=b.closest(".code-block-wrap");
-    const code=wrapEl?wrapEl.querySelector("code").innerText:"";
-    copyText(code);b.textContent="Copied ✓";setTimeout(()=>{b.textContent="Copy"},1500);
+    const wrapEl = b.closest(".code-block-wrap");
+    const codeEl = wrapEl ? wrapEl.querySelector("code") : null;
+    const code = codeEl ? codeEl.innerText : "";
+    copyText(code);
+    b.textContent = "Copied ✓";
+    setTimeout(()=>{b.textContent="Copy"},1500);
   });
+
+  // Download
   container.querySelectorAll("[data-download-code]").forEach(b=>b.onclick=()=>{
-    const wrapEl=b.closest(".code-block-wrap");
-    const code=wrapEl?wrapEl.querySelector("code").innerText:"";
+    const wrapEl = b.closest(".code-block-wrap");
+    const codeEl = wrapEl ? wrapEl.querySelector("code") : null;
+    const code = codeEl ? codeEl.innerText : "";
     try{
-      const blob=new Blob([code],{type:"text/plain"});const a=document.createElement("a");
-      a.href=URL.createObjectURL(blob);a.download="snippet"+extFor(b.dataset.lang);a.click();
+      const blob = new Blob([code], { type: "text/plain" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "snippet" + extFor(b.dataset.lang);
+      a.click();
       setTimeout(()=>URL.revokeObjectURL(a.href),1000);
     }catch(e){toast("Download failed")}
   });
+
+  // Wrap toggle
+  container.querySelectorAll("[data-toggle-wrap]").forEach(b=>b.onclick=()=>{
+    const wrapEl = b.closest(".code-block-wrap");
+    const codeEl = wrapEl ? wrapEl.querySelector("code") : null;
+    if (!codeEl) return;
+    codeEl.classList.toggle("code-wrapped");
+    b.textContent = codeEl.classList.contains("code-wrapped") ? "Unwrap" : "Wrap";
+  });
+
+  // Math
   try{if(window.renderMathInElement)renderMathInElement(container,{delimiters:[{left:"$$",right:"$$",display:true},{left:"$",right:"$",display:false},{left:"\\(",right:"\\)",display:false},{left:"\\[",right:"\\]",display:true}],throwOnError:false})}catch(e){}
+  // ---- Auto-link URLs and commands in text nodes ----
+  autoDecorateTextNodes(container);
+
+}
+
+/* Walks text nodes, skipping code/pre/a/style/script */
+function autoDecorateTextNodes(root){
+  const SKIP = new Set(["CODE","PRE","A","STYLE","SCRIPT","TEXTAREA"]);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node){
+      if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+      let p = node.parentNode;
+      while (p && p !== root) {
+        if (SKIP.has(p.tagName)) return NodeFilter.FILTER_REJECT;
+        p = p.parentNode;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+
+  const nodes = [];
+  let n;
+  while ((n = walker.nextNode())) nodes.push(n);
+
+  for (const node of nodes) {
+    const text = node.nodeValue;
+    const pattern = /(\b(?:curl|wget)\s+\S+)|(https?:\/\/[^\s<>"'`]+)|(\b(?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\b(?=\s+[\/\w]))|((?:^|\s)(?:\.{0,2}\/)[\w./\-]+)/g;
+    if (!pattern.test(text)) continue;
+    pattern.lastIndex = 0;
+
+    const frag = document.createDocumentFragment();
+    let last = 0;
+    let m;
+    while ((m = pattern.exec(text)) !== null) {
+      if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+      if (m[1]) {
+        const cmd = m[1];
+        const urlMatch = cmd.match(/https?:\/\/\S+/);
+        if (urlMatch) {
+          const before = cmd.slice(0, cmd.indexOf(urlMatch[0]));
+          frag.appendChild(elSpan("cmd-token", before.trim()));
+          frag.appendChild(document.createTextNode(" "));
+          frag.appendChild(anchorFor(urlMatch[0]));
+        } else {
+          frag.appendChild(elSpan("cmd-token", cmd));
+        }
+      } else if (m[2]) {
+        frag.appendChild(anchorFor(m[2]));
+      } else if (m[3]) {
+        frag.appendChild(elSpan("http-method", m[3]));
+      } else if (m[4]) {
+        frag.appendChild(elSpan("file-path", m[4]));
+      }
+      last = pattern.lastIndex;
+    }
+    if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  }
+}
+
+function elSpan(cls, text){
+  const s = document.createElement("span");
+  s.className = cls;
+  s.textContent = text;
+  return s;
+}
+function anchorFor(url){
+  const a = document.createElement("a");
+  a.className = "auto-link";
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  a.textContent = url;
+  return a;
 }
 
 function scrollToBottom(force){
@@ -2468,9 +3345,10 @@ function renderMessages(){
         const icon = e.status === "running" ? '<span class="spark">✦</span>'
                     : e.status === "failed" ? '<span>✕</span>'
                     : '<span>✓</span>';
+        const isFetch = e.kind === "fetch" || e.kind === "web_fetch";
         const txt = e.status === "running" ? e.label + "…"
                     : e.status === "failed" ? e.label + (e.detail ? " · " + e.detail : "")
-                    : (e.detail || e.label);
+                    : (isFetch ? e.label : (e.detail || e.label));
         return `<span class="tool-pill ${cls}">${icon}${escapeHtml(txt)}</span>`;
       }).join("");
       row.appendChild(pills);
@@ -2480,9 +3358,23 @@ function renderMessages(){
 
     if (m.role === "assistant" && m.streaming && !text && !m.error) {
       if (!Array.isArray(m._toolLog) || !m._toolLog.length) {
-        const think = document.createElement("div");think.className="thinking-row";
-        think.innerHTML='<span class="thinking-spark">✦</span><span>Thinking</span><span class="thinking-dots"><span></span><span></span><span></span></span>';
+        const think = document.createElement("div");
+        think.className = "thinking-row";
+        think.innerHTML = '<span class="thinking-orb"></span>' +
+                          '<span class="thinking-shimmer" id="thinkLabel">Thinking</span>' +
+                          '<span class="thinking-trail"><span></span><span></span><span></span></span>';
         row.appendChild(think);
+        if (!m._thinkCycleStarted) {
+          m._thinkCycleStarted = true;
+          const phrases = ["Thinking", "Analyzing", "Considering", "Working through it"];
+          let i = 0;
+          m._thinkTimer = setInterval(() => {
+            if (!m.streaming) { clearInterval(m._thinkTimer); return; }
+            i = (i + 1) % phrases.length;
+            const el = document.querySelector("#thinkLabel");
+            if (el) el.textContent = phrases[i];
+          }, 2200);
+        }
       }
     } else {
       if (m.role === "assistant" && m.reasoning) {
@@ -2508,6 +3400,39 @@ function renderMessages(){
         b.textContent = text;
       }
       row.appendChild(b);
+
+      if (m.role === "assistant" && isAdminAccount() && m._actualModel && m.requestedModel && m._actualModel !== m.requestedModel) {
+        const note = document.createElement("div");
+        note.className = "vision-route-note";
+        const kind = m._routingKind || "failover";
+        const label = kind === "failover"
+          ? "Failover"
+          : kind === "vision"
+            ? "Vision Adapter"
+            : "Routing";
+        note.innerHTML = `${label} → <b>${escapeHtml(m._actualModel)}</b>`;
+        row.appendChild(note);
+      }
+
+      // Render download chips for any files created via tool calls
+      if (m.role === "assistant" && !m.streaming && Array.isArray(m._toolLog)) {
+        for (const entry of m._toolLog) {
+          if (entry.kind !== "create_file") continue;
+          if (entry.status !== "done") continue;
+          const args = entry.args || {};
+          const filename = String(args.filename || "file.txt");
+          const mime = String(args.mime || "text/plain");
+          const content = String(args.content || "");
+          const size = content.length;
+
+          const chip = document.createElement("button");
+          chip.type = "button";
+          chip.className = "tool-file-chip tool-file-chip-btn";
+          chip.innerHTML = `<span class="tfc-icon">📄</span><span class="tfc-main"><span class="tfc-name">${escapeHtml(filename)}</span><span class="tfc-size">${escapeHtml(formatBytes(size))}</span></span><span class="tfc-arrow">↓</span>`;
+          chip.onclick = () => openFilePreview(filename, content, mime);
+          row.appendChild(chip);
+        }
+      }
     }
 
     const controls = document.createElement("div");controls.className="msg-controls";
@@ -2524,6 +3449,25 @@ function renderMessages(){
     if (m.role === "user" && !state.generating) {
       const edit = document.createElement("button");edit.className="msg-action";edit.setAttribute("aria-label","Edit and resend message");edit.title="Edit & resend";edit.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';edit.onclick=()=>editAndResend(i);controls.appendChild(edit);
     }
+    // Copy button — on every message (user and assistant)
+    if (typeof m.content === "string" && m.content.trim() && !m.streaming) {
+      const copy = document.createElement("button");
+      copy.className = "msg-action";
+      copy.setAttribute("aria-label", "Copy message");
+      copy.title = "Copy";
+      copy.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+      copy.onclick = () => {
+        const text = m.content || "";
+        copyText(text);
+        copy.classList.add("is-copied");
+        copy.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+        setTimeout(() => {
+          copy.classList.remove("is-copied");
+          copy.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+        }, 1400);
+      };
+      controls.appendChild(copy);
+    }
     if (controls.children.length) row.appendChild(controls);
     box.appendChild(row);
   });
@@ -2535,8 +3479,9 @@ function openToolLogDialog(m){
   const log = Array.isArray(m._toolLog) ? m._toolLog : [];
   if (!log.length) return;
 
-  const searchEvt = log.find(e => e.kind === "search" && e.status === "done");
-  const fetches = log.filter(e => e.kind === "fetch" && e.status === "done" && e.data);
+  const searchEvt = log.find(e => (e.kind === "search" || e.kind === "web_search") && e.status === "done");
+  const fetches = log.filter(e => (e.kind === "fetch" || e.kind === "web_fetch") && e.status === "done" && e.data);
+  const files = log.filter(e => e.kind === "create_file" && e.status === "done");
   const failures = log.filter(e => e.status === "failed");
 
   pushPage("Search & sources", (body) => {
@@ -2569,6 +3514,18 @@ function openToolLogDialog(m){
         <div class="tl-section">
           <h4>Pages read</h4>
           ${fetches.map(f => `<div class="tl-file-row"><span class="tl-name">${escapeHtml((f.data && f.data.title) || shortHost(f.url))}</span><span class="tl-size">${escapeHtml(f.detail || "")}</span></div>`).join("")}
+        </div>
+      `);
+    }
+
+    if (files.length) {
+      sections.push(`
+        <div class="tl-section">
+          <h4>Files created</h4>
+          ${files.map(f => {
+            const args = f.args || {};
+            return `<div class="tl-file-row"><span class="tl-name">${escapeHtml(args.filename || "file.txt")}</span><span class="tl-size">${escapeHtml(formatBytes((args.content || "").length))}</span></div>`;
+          }).join("")}
         </div>
       `);
     }
@@ -2633,7 +3590,51 @@ function updateStreamingMessage(ai){
 const CHAT_STORE_KEY="chinaGPTConversationsV2",MAX_CONVERSATIONS=100;
 function safeJson(key,fallback){try{return JSON.parse(localStorage.getItem(key)||"")??fallback}catch{return fallback}}
 function conversations(){const a=safeJson(CHAT_STORE_KEY,[]);return Array.isArray(a)?a:[]}
-function makeConversationTitle(messages){const f=messages.find(m=>m.role==="user"&&m.content);return ((f?.content||"New conversation").replace(/\s+/g," ").trim()).slice(0,80)||"New conversation"}
+function makeConversationTitle(messages){
+  const firstUser = messages.find(m => m.role === "user" && typeof m.content === "string" && m.content.trim());
+  if (!firstUser) return "New conversation";
+
+  const fullText = messages
+    .filter(m => m.role === "user" && typeof m.content === "string")
+    .slice(0, 3)
+    .map(m => m.content)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return smartTitle(fullText || firstUser.content);
+}
+
+function smartTitle(text){
+  const t = String(text || "").replace(/\s+/g, " ").trim();
+  if (!t) return "New conversation";
+
+  const greetingOnly = /^(hi|hey|hello|yo|sup|howdy|good\s+(morning|afternoon|evening|night)|greetings|hiya|heya|hi there|hello there|hey there)[\s!,.?]*(?:deepseek|gpt|claude|gemini|chatgpt|ai|bot|assistant|buddy|friend)?[\s!,.?]*$/i;
+  if (greetingOnly.test(t)) {
+    return t.length > 18 ? "Casual greeting" : "Friendly greeting";
+  }
+
+  if (!/[a-z0-9]/i.test(t)) return "Casual chat";
+
+  let clean = t
+    .replace(/^(hi|hey|hello|yo|sup|howdy|greetings)[\s,!.]*/i, "")
+    .replace(/^(please|pls|can you|could you|would you|will you|i want to|i'd like to|i would like to|i need to|i need|help me(?: to)?|i was wondering(?: if)?|do you know(?: how)?(?: to)?)\s+/i, "")
+    .replace(/^(tell me about|explain|show me|give me|write me|create|generate|make)\s+/i, "")
+    .trim();
+
+  if (!clean || clean.length < 3) clean = t;
+
+  clean = clean.replace(/[.!?]+$/, "").trim();
+  clean = clean.charAt(0).toUpperCase() + clean.slice(1);
+
+  const MAX = 46;
+  if (clean.length > MAX) {
+    const truncated = clean.slice(0, MAX);
+    const lastSpace = truncated.lastIndexOf(" ");
+    clean = (lastSpace > 20 ? truncated.slice(0, lastSpace) : truncated).trim() + "…";
+  }
+  return clean;
+}
 function ensureConversation(){if(!state.conversationId){state.conversationId="chat_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8);localStorage.setItem("chinaGPTConversationId",state.conversationId)}return state.conversationId}
 function persistCurrentConversation(){
   if(!state.messages.length||!state.conversationId)return;
@@ -2645,6 +3646,9 @@ function persistCurrentConversation(){
       role:m.role,
       content:typeof m.content==="string"?m.content:(m.displayText||"[Attached image]"),
       model:m.model||null,
+      requestedModel:m.requestedModel||null,
+      actualModel:m._actualModel||null,
+      hadImages:!!m._multimodal,
       tools:Array.isArray(m._toolLog) && m._toolLog.length
         ? m._toolLog.map(e => ({
             kind:e.kind,
@@ -2653,10 +3657,14 @@ function persistCurrentConversation(){
             detail:e.detail,
             url:e.url,
             query:e.query,
-            sources:(e.kind==="search" && e.data && Array.isArray(e.data.sources))
+            id:e.id||null,
+            args:(e.kind==="create_file" && e.args)
+              ? { filename:e.args.filename, mime:e.args.mime, content:(e.args.content||"").slice(0, 50000) }
+              : null,
+            sources:((e.kind==="search"||e.kind==="web_search") && e.data && Array.isArray(e.data.sources))
               ? e.data.sources.slice(0, 10)
               : null,
-            answer:(e.kind==="search" && e.data && e.data.answer)
+            answer:((e.kind==="search"||e.kind==="web_search") && e.data && e.data.answer)
               ? e.data.answer.slice(0, 3000)
               : null
           }))
@@ -2682,8 +3690,12 @@ function loadConversation(id){
           detail:e.detail,
           url:e.url,
           query:e.query,
-          data: (e.sources || e.answer) ? { sources: e.sources || [], answer: e.answer || "" } : null
-        })) : []
+          id:e.id||null,
+          args:e.args||null,
+          data: (e.sources || e.answer) ? { sources: e.sources || [], answer: e.answer || "" } : (e.data||null)
+        })) : [],
+        requestedModel:m.requestedModel||null,
+        _actualModel:m.actualModel||null
       }))
     :[];
   if(c.model&&state.models.some(m=>m.id===c.model)){state.model=c.model;markModelUsed(state.model)}
@@ -2808,46 +3820,96 @@ function chatMessages(uptoIndex){
   }
   return out;
 }
-async function readCompletionResponse(response,onChunk,onReasoning){
+async function readCompletionResponse(response, onChunk, onReasoning, onModel, onToolEvent){
   if(!response.ok){let msg="";try{msg=await response.text()}catch{};throw new Error("HTTP "+response.status+(msg?" — "+msg:""))}
   const type=response.headers.get("content-type")||"";
   if(!response.body)return null;
+
   if(!type.includes("text/event-stream")){
     const j=await response.json();
     const msg=j.choices?.[0]?.message;
+    if (j.model && onModel) onModel(j.model);
     const r=msg?.reasoning_content||msg?.reasoning;
     if(r&&onReasoning)onReasoning(r);
     if(msg?.content) onChunk(msg.content);
     return j.usage||null;
   }
-  const reader=response.body.getReader(),decoder=new TextDecoder();let buf="",usage=null;
+
+  const reader=response.body.getReader(),decoder=new TextDecoder();
+  let buf="",usage=null;
+
   while(true){
     const {value,done}=await reader.read();if(done)break;
     buf+=decoder.decode(value,{stream:true});
     const lines=buf.split(/\r?\n/);buf=lines.pop()||"";
+
     for(const line of lines){
       if(!line.startsWith("data:"))continue;
       const raw=line.slice(5).trim();
       if(!raw||raw==="[DONE]")continue;
-      try{
-        const j=JSON.parse(raw);const delta=j.choices?.[0]?.delta;
-        const rc=delta?.reasoning_content||delta?.reasoning;
-        if(rc&&onReasoning)onReasoning(rc);
-        const c=delta?.content;if(c)onChunk(c);
-        if(j.usage)usage=j.usage;
-      }catch{}
+
+      let j;
+      try { j=JSON.parse(raw); } catch { continue; }
+
+      // Custom events from our tool loop
+      if (j.type === "tool_start" && onToolEvent) {
+        onToolEvent({ kind: "start", id: j.id, name: j.name, args: j.args || {} });
+        continue;
+      }
+      if (j.type === "tool_result" && onToolEvent) {
+        onToolEvent({ kind: "result", id: j.id, name: j.name, ok: !!j.ok, result: j.result || null, error: j.error || null });
+        continue;
+      }
+      if (j.type === "done" && onToolEvent) {
+        if (j.model && onModel) onModel(j.model);
+        if (j.usage) usage = j.usage;
+        onToolEvent({ kind: "done", usage: j.usage || null });
+        continue;
+      }
+      if (j.type === "error") {
+        throw new Error(j.message || ("HTTP " + (j.status || "unknown")));
+      }
+
+      // Normal upstream events
+      if (j.model && onModel) onModel(j.model);
+      const delta=j.choices?.[0]?.delta;
+      const rc=delta?.reasoning_content||delta?.reasoning;
+      if(rc&&onReasoning)onReasoning(rc);
+      const c=delta?.content;if(c)onChunk(c);
+      if(j.usage)usage=j.usage;
     }
   }
+
   return usage;
 }
+
 async function requestCompletion(target, messages, model=state.model){
   state.abortController=new AbortController();
-  const body={model,messages,stream:true};
+
+  const body = { model, messages, stream: true };
+
+  // Only send tools if the selected model supports them
+  const modelMeta = state.models.find(m => m.id === model);
+  const supportsTools = !!(modelMeta && modelMeta.capabilities && modelMeta.capabilities.tools);
+  if (supportsTools) {
+    body.tools = TOOL_DEFS;
+    body.tool_choice = "auto";
+  }
+
   const streamState = newStreamState();
+
   try{
     const r=await fetch(API_BASE+"/chat/completions",{
       method:"POST",headers:authHeaders(),body:JSON.stringify(body),signal:state.abortController.signal
     });
+    const actualVariant = r.headers.get("X-China-GPT-Variant");
+    const routing = r.headers.get("X-China-GPT-Routing") || "passthrough";
+    if (actualVariant && actualVariant !== model) {
+      target._actualModel = actualVariant;
+      target._routingKind = routing;
+    } else {
+      target._routingKind = "passthrough";
+    }
     const result = await readCompletionResponse(r,
       c=>{
         const parsed = parseReasoningStream(streamState, c);
@@ -2862,8 +3924,11 @@ async function requestCompletion(target, messages, model=state.model){
         if(!target.reasoningStartedAt) target.reasoningStartedAt=Date.now();
         target.reasoning=(target.reasoning||"")+rc;
         updateStreamingMessage(target);
-      }
+      },
+      m => { target._actualModel = m; },
+      evt => handleToolEvent(target, evt)
     );
+
     const tail = flushReasoningStream(streamState);
     if(tail.reasoning){
       if(!target.reasoningStartedAt) target.reasoningStartedAt = Date.now();
@@ -2874,10 +3939,55 @@ async function requestCompletion(target, messages, model=state.model){
     return result;
   }finally{state.abortController=null;}
 }
+
+/* ============================================================
+   TOOL EVENT HANDLER
+   Fired by readCompletionResponse when the tool loop emits
+   tool_start / tool_result / done events.
+   ============================================================ */
+function handleToolEvent(target, evt){
+  if (!target._toolLog) target._toolLog = [];
+
+  if (evt.kind === "start") {
+    const entry = {
+      kind: evt.name,
+      status: "running",
+      label: toolLabel(evt.name, evt.args),
+      id: evt.id,
+      args: evt.args,
+      data: null,
+      detail: null
+    };
+    target._toolLog.push(entry);
+    renderMessages();
+    return;
+  }
+
+  if (evt.kind === "result") {
+    const entry = target._toolLog.find(e => e.id === evt.id);
+    if (!entry) return;
+    if (evt.ok) {
+      entry.status = "done";
+      entry.data = evt.result;
+      entry.detail = toolDetail(evt.name, evt.result);
+    } else {
+      entry.status = "failed";
+      entry.detail = evt.error || "Failed";
+    }
+    renderMessages();
+    return;
+  }
+
+  if (evt.kind === "done") {
+    // Nothing to do — streaming continues until [DONE]
+    return;
+  }
+}
 function finalizeAssistantMessage(ai){
   if(ai.reasoningStartedAt && !ai.reasoningEndedAt){
     ai.reasoningEndedAt=Date.now();
   }
+  if (ai._thinkTimer) { clearInterval(ai._thinkTimer); ai._thinkTimer = null; }
   ai.streaming=false;
 }
 function updateGeneratingUI(){
@@ -2926,7 +4036,10 @@ async function send(){
     streaming: true,
     reasoningStartedAt: null,
     reasoningEndedAt: null,
-    _toolLog: []
+    _toolLog: [],
+    requestedModel: state.model,
+    _actualModel: null,
+    _modelSupportsTools: !!(state.models.find(m => m.id === state.model)?.capabilities?.tools)
   };
 
   ensureConversation();
@@ -3267,12 +4380,202 @@ function formatBytes(n){
   return Math.round(n / 104857.6) / 10 + " MB";
 }
 
+/* ============================================================
+   FILE TYPE HELPERS + PREVIEW + BINARY DOWNLOAD
+   ============================================================ */
+
+const TEXT_EXTS = new Set([
+  "txt","md","markdown","html","htm","css","js","mjs","cjs","ts","tsx","jsx",
+  "py","java","c","cpp","h","hpp","cs","go","rs","rb","php","swift","kt",
+  "sql","sh","bash","zsh","json","csv","xml","yaml","yml","svg","log",
+  "ini","env","tex","r","lua","pl","toml","conf","gitignore","dockerfile"
+]);
+const BINARY_EXTS = new Set(["pdf","docx","xlsx","xls","zip"]);
+
+function extOf(name){ return String(name||"").split(".").pop().toLowerCase(); }
+function mimeForExt(ext){
+  const map = {
+    txt:"text/plain", md:"text/markdown", html:"text/html", htm:"text/html",
+    css:"text/css", js:"text/javascript", mjs:"text/javascript", cjs:"text/javascript",
+    ts:"text/typescript", tsx:"text/typescript", jsx:"text/javascript",
+    json:"application/json", csv:"text/csv", xml:"application/xml",
+    yaml:"text/yaml", yml:"text/yaml", svg:"image/svg+xml",
+    py:"text/x-python", java:"text/x-java", go:"text/x-go", rs:"text/x-rust",
+    sh:"text/x-sh", sql:"text/x-sql", tex:"text/x-tex",
+    pdf:"application/pdf",
+    docx:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    zip:"application/zip"
+  };
+  return map[ext] || "text/plain";
+}
+
+const _loadedLibs = new Map();
+function loadScript(url){
+  if (_loadedLibs.has(url)) return _loadedLibs.get(url);
+  const p = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = url;
+    s.async = true;
+    s.onload = () => resolve(true);
+    s.onerror = () => reject(new Error("Could not load " + url));
+    document.head.appendChild(s);
+  });
+  _loadedLibs.set(url, p);
+  return p;
+}
+async function ensureLib(name){
+  if (name === "jspdf"){
+    if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    return window.jspdf.jsPDF;
+  }
+  if (name === "docx"){
+    if (window.docx && window.docx.Document) return window.docx;
+    await loadScript("https://unpkg.com/docx@8.5.0/build/index.js");
+    return window.docx;
+  }
+  if (name === "xlsx"){
+    if (window.XLSX) return window.XLSX;
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+    return window.XLSX;
+  }
+  if (name === "jszip"){
+    if (window.JSZip) return window.JSZip;
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+    return window.JSZip;
+  }
+  throw new Error("Unknown lib: " + name);
+}
+
+function downloadBlob(filename, blob){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+async function buildBinaryBlob(filename, content){
+  const ext = extOf(filename);
+  if (ext === "pdf") {
+    const jsPDF = await ensureLib("jspdf");
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const lines = doc.splitTextToSize(String(content || ""), 500);
+    let y = 48;
+    for (const line of lines) {
+      if (y > 780) { doc.addPage(); y = 48; }
+      doc.text(line, 48, y);
+      y += 14;
+    }
+    return doc.output("blob");
+  }
+  if (ext === "docx") {
+    const docx = await ensureLib("docx");
+    const { Document, Packer, Paragraph, TextRun } = docx;
+    const paragraphs = String(content || "").split(/\n/).map(line =>
+      new Paragraph({ children: [new TextRun(line || " ")] })
+    );
+    const doc = new Document({ sections: [{ children: paragraphs }] });
+    return await Packer.toBlob(doc);
+  }
+  if (ext === "xlsx" || ext === "xls") {
+    const XLSX = await ensureLib("xlsx");
+    const rows = String(content || "").split(/\n/).map(r => r.split(/\t|,/));
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    return new Blob([out], { type: mimeForExt("xlsx") });
+  }
+  if (ext === "zip") {
+    const JSZip = await ensureLib("jszip");
+    const zip = new JSZip();
+    zip.file("content.txt", String(content || ""));
+    return await zip.generateAsync({ type: "blob" });
+  }
+  return new Blob([String(content || "")], { type: mimeForExt(ext) });
+}
+
+async function downloadFile(filename, content, mime){
+  try {
+    const ext = extOf(filename);
+    let blob;
+    if (BINARY_EXTS.has(ext)) {
+      toast("Building " + filename + "…");
+      blob = await buildBinaryBlob(filename, content);
+    } else {
+      blob = new Blob([String(content || "")], { type: mime || mimeForExt(ext) });
+    }
+    downloadBlob(filename, blob);
+    toast("Downloading " + filename);
+  } catch (e) {
+    toast(e.message || "Download failed");
+  }
+}
+
+function openFilePreview(filename, content, mime){
+  const ext = extOf(filename);
+  const text = String(content || "");
+  const sizeLabel = formatBytes(text.length) || (text.length + " B");
+
+  pushPage(filename, (body) => {
+    body.innerHTML = `
+      <div class="file-preview-bar">
+        <div class="file-preview-meta">
+          <b>${escapeHtml(filename)}</b>
+          <span>${escapeHtml(sizeLabel)} · ${escapeHtml(ext || "file")}</span>
+        </div>
+        <button type="button" class="btn-primary" id="fpDownload">Download</button>
+      </div>
+      <div class="file-preview-body" id="fpBody"></div>
+    `;
+    const box = body.querySelector("#fpBody");
+    if (ext === "html" || ext === "htm") {
+      const iframe = document.createElement("iframe");
+      iframe.className = "file-preview-iframe";
+      iframe.sandbox = "";
+      iframe.srcdoc = text;
+      box.appendChild(iframe);
+    } else if (ext === "svg") {
+      box.innerHTML = `<div class="file-preview-svg">${text}</div>`;
+    } else if (TEXT_EXTS.has(ext) || !BINARY_EXTS.has(ext)) {
+      const pre = document.createElement("pre");
+      pre.className = "file-preview-code";
+      const code = document.createElement("code");
+      code.textContent = text;
+      pre.appendChild(code);
+      box.appendChild(pre);
+      try {
+        if (window.hljs) {
+          const lang = (ext === "md" || ext === "markdown") ? "markdown" : ext;
+          if (hljs.getLanguage(lang)) {
+            code.className = "language-" + lang;
+            hljs.highlightElement(code);
+          } else if (text.length > 20) {
+            const result = hljs.highlightAuto(text);
+            code.innerHTML = result.value;
+            code.classList.add("hljs");
+          }
+        }
+      } catch {}
+    } else {
+      box.innerHTML = `<div class="admin-note">Binary format (<code>${escapeHtml(ext)}</code>). Use Download to generate the file.</div>`;
+    }
+    body.querySelector("#fpDownload").onclick = () => downloadFile(filename, text, mime || mimeForExt(ext));
+  });
+}
+
+
 async function regenerate(index){
   if(state.generating||!isAuthenticated()||state.messages[index]?.role!=="assistant")return;
   const prior=state.messages.slice(0,index).filter(m=>m.role==="user"||m.role==="assistant");
   if(!prior.length)return;
   state.messages=state.messages.slice(0,index);
-  const ai={role:"assistant",content:"",streaming:true,reasoningStartedAt:null,reasoningEndedAt:null,_toolLog:[]};state.messages.push(ai);renderMessages();
+  const ai={role:"assistant",content:"",streaming:true,reasoningStartedAt:null,reasoningEndedAt:null,_toolLog:[],requestedModel:state.model,_actualModel:null,_modelSupportsTools:!!(state.models.find(m=>m.id===state.model)?.capabilities?.tools)};state.messages.push(ai);renderMessages();
   state.generating=true;updateGeneratingUI();
   try{await requestCompletion(ai,chatMessages())}
   catch(e){
@@ -3308,7 +4611,7 @@ function editAndResend(index){
       state.messages=state.messages.slice(0,index);
       state.messages.push({role:"user",content:text});
       ensureConversation();persistCurrentConversation();
-      const ai={role:"assistant",content:"",streaming:true,reasoningStartedAt:null,reasoningEndedAt:null,_toolLog:[]};state.messages.push(ai);renderMessages();
+      const ai={role:"assistant",content:"",streaming:true,reasoningStartedAt:null,reasoningEndedAt:null,_toolLog:[],requestedModel:state.model,_actualModel:null,_modelSupportsTools:!!(state.models.find(m=>m.id===state.model)?.capabilities?.tools)};state.messages.push(ai);renderMessages();
       state.generating=true;updateGeneratingUI();
       try{await requestCompletion(ai,chatMessages())}
       catch(e){
@@ -3326,6 +4629,7 @@ async function continueGeneration(index){
   if(state.generating||!isAuthenticated()||state.messages[index]?.role!=="assistant"||!state.messages[index].content)return;
   const ai=state.messages[index];ai.streaming=true;ai.error=false;
   if(!Array.isArray(ai._toolLog)) ai._toolLog=[];
+  if(!ai.requestedModel) ai.requestedModel = state.model;
   const prior=state.messages.slice(0,index+1).filter(m=>m.role==="user"||m.role==="assistant");
   const continuation={role:"user",content:"Continue the previous answer from exactly where it stopped. Do not repeat content already given."};
   state.generating=true;updateGeneratingUI();renderMessages();
@@ -3412,8 +4716,45 @@ async function openCompare(prefillPrompt=""){
    ============================================================ */
 function renderAttachments(){
   const box=$("#attachmentStrip");if(!box)return;
-  box.innerHTML=state.attachments.map((a,i)=>`<span class="attachment-chip"><span class="attachment-kind">${escapeHtml(a.kind||"file")}</span><span>${escapeHtml(a.name)}</span><button type="button" data-remove-attachment="${i}" aria-label="Remove attachment">×</button></span>`).join("");
-  box.querySelectorAll("[data-remove-attachment]").forEach(b=>b.onclick=()=>{state.attachments.splice(Number(b.dataset.removeAttachment),1);renderAttachments()});
+  if(!state.attachments.length){
+    box.innerHTML="";
+    return;
+  }
+  box.innerHTML=state.attachments.map((a,i)=>{
+    const isImage = a.kind === "image" && a.dataUrl;
+    const thumb = isImage
+      ? `<span class="attach-thumb"><img src="${a.dataUrl}" alt=""></span>`
+      : `<span class="attach-thumb attach-thumb-icon">${fileIconFor(a)}</span>`;
+    const meta = isImage
+      ? `Image`
+      : `${a.kind === "pdf" ? "PDF" : "File"} · ${formatBytes(a.size||0)}`;
+    return `<span class="attach-chip" title="${escapeHtml(a.name)}">
+      ${thumb}
+      <span class="attach-meta">
+        <span class="attach-name">${escapeHtml(a.name)}</span>
+        <span class="attach-sub">${escapeHtml(meta)}</span>
+      </span>
+      <button type="button" class="attach-remove" data-remove-attachment="${i}" aria-label="Remove">×</button>
+    </span>`;
+  }).join("");
+  box.querySelectorAll("[data-remove-attachment]").forEach(b=>b.onclick=()=>{
+    state.attachments.splice(Number(b.dataset.removeAttachment),1);
+    renderAttachments();
+  });
+}
+
+function fileIconFor(a){
+  const name = (a.name || "").toLowerCase();
+  const mime = (a.mime || a.type || "").toLowerCase();
+  if (a.kind === "pdf" || mime === "application/pdf" || name.endsWith(".pdf")) return "📕";
+  if (/\.(md|markdown)$/.test(name)) return "📝";
+  if (/\.(json|yaml|yml|xml|toml)$/.test(name)) return "⚙";
+  if (/\.(js|ts|jsx|tsx|py|java|c|cpp|rs|go|rb|php|sh|sql)$/.test(name)) return "⌨";
+  if (/\.(csv|xlsx?|numbers)$/.test(name)) return "📊";
+  if (/\.(html?|css)$/.test(name)) return "🌐";
+  if (/\.(zip|tar|gz|rar)$/.test(name)) return "📦";
+  if (/\.(png|jpe?g|gif|webp|svg|bmp)$/.test(name) || mime.startsWith("image/")) return "🖼";
+  return "📄";
 }
 async function readPdfText(file){
   try{
@@ -4065,10 +5406,24 @@ function openApiDocs(){
    AUTH FLOWS
    ============================================================ */
 async function loginWithCode(code){
-  const r=await fetch(WORKER_BASE+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code})});
-  let j={}; try{j=await r.json()}catch{}
-  if(!r.ok||!j.ok)throw new Error(j.error||"Invalid access key");
-  setAuth(j.code,j.role); return j;
+  const r = await fetch(WORKER_BASE + "/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code })
+  });
+  let j = {};
+  try { j = await r.json(); } catch {}
+
+  if (!r.ok || !j.ok) {
+    throw new Error(j.error || "Invalid access key");
+  }
+  const c = String(j.code || "").trim();
+  if (!c) {
+    console.error("Login succeeded but response had no code:", j);
+    throw new Error("Server did not return an access code");
+  }
+  setAuth(c, j.role);
+  return j;
 }
 
 function openLogin(reason){
@@ -4098,6 +5453,7 @@ function openLogin(reason){
       const j=await loginWithCode(code);
       closeAuthPage();
       toast(j.role==="admin"?"Admin access granted":"Logged in");
+      await refreshAdminLockBanner();
       await loadModels();
       await loadSearchConfig();
       await loadProviderOverrides();
@@ -4831,6 +6187,374 @@ let mhState = {
 };
 let mhAllModels = [];
 
+
+/* ============================================================
+   ADMIN — MODEL GROUPS
+   ============================================================ */
+let mgState = { groups: [], query: "", onlyMulti: true, openCanonical: null };
+
+
+/* ============================================================
+   ADMIN — TELEGRAM
+   ============================================================ */
+let tgState = { config: null, loading: false, botInfo: null };
+
+async function renderTelegramPage(){
+  const c = $("#adminContent");
+  c.innerHTML = `<p class="admin-kicker">Loading…</p>`;
+
+  try {
+    const r = await fetch(WORKER_BASE + "/admin/telegram", { headers: authHeaders(false) });
+    const j = await r.json();
+    if (!r.ok || !j.ok) throw new Error(j.error || "Could not load config");
+    tgState.config = j.config;
+  } catch (e) {
+    c.innerHTML = `<p class="admin-kicker">Could not load: ${escapeHtml(e.message)}</p>`;
+    return;
+  }
+
+  const cfg = tgState.config;
+
+  c.innerHTML = `
+    <p class="admin-kicker">Connect a Telegram bot so your account can chat with China-GPT models remotely. Files, photos, and search all work — the bot routes through the same upstream gateway as the web app.</p>
+
+    <div class="tg-status ${cfg.enabled && cfg.hasToken ? "is-on" : "is-off"}">
+      <span class="tg-status-dot"></span>
+      <div class="tg-status-main">
+        <b>${cfg.enabled && cfg.hasToken ? "Bot enabled" : "Bot disabled"}</b>
+        <small>${cfg.hasToken ? "Token: " + escapeHtml(cfg.tokenMasked) : "No token configured"}</small>
+      </div>
+      ${tgState.botInfo ? `<span class="variant-badge ok">@${escapeHtml(tgState.botInfo.username)}</span>` : ``}
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>1. Bot token</h3><span>From @BotFather</span></div>
+      <div class="admin-note" style="margin-bottom:12px">
+        Talk to <b style="color:var(--text)">@BotFather</b> on Telegram → <code style="font-family:var(--mono)">/newbot</code> → copy the token.
+      </div>
+      <div class="field" style="max-width:520px">
+        <label for="tgToken">Bot token</label>
+        <input id="tgToken" placeholder="${cfg.hasToken ? "Leave blank to keep current" : "123456789:AAH…"}" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="admin-actions" style="margin-top:8px">
+        <button class="btn-ghost" id="tgVerify">Verify token</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>2. Public URL</h3><span>Webhook base</span></div>
+      <div class="field" style="max-width:520px">
+        <label for="tgUrl">Public URL (e.g. https://gpt-china.onrender.com)</label>
+        <input id="tgUrl" value="${escapeHtml(cfg.publicUrl || "")}" placeholder="https://your-service.onrender.com" autocomplete="off">
+        <div class="editor-hint">Webhook: <code style="font-family:var(--mono)">${escapeHtml((cfg.publicUrl||"…").replace(/\/+$/,""))}/telegram/webhook</code></div>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>3. Access control</h3><span>Who can talk to the bot</span></div>
+      <div class="field" style="max-width:520px">
+        <label for="tgUsers">Allowed Telegram user IDs (one per line)</label>
+        <textarea id="tgUsers" class="editor-textarea" style="min-height:110px" placeholder="123456789" spellcheck="false">${escapeHtml((cfg.allowedUserIds||[]).join("\n"))}</textarea>
+        <div class="editor-hint">Use <code style="font-family:var(--mono)">/me</code> in the bot to learn your ID.</div>
+      </div>
+      <div class="field" style="max-width:520px">
+        <label for="tgAdmins">Admin user IDs (optional, one per line)</label>
+        <textarea id="tgAdmins" class="editor-textarea" style="min-height:80px" placeholder="123456789" spellcheck="false">${escapeHtml((cfg.adminUserIds||[]).join("\n"))}</textarea>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>4. Behaviour</h3></div>
+      <div class="field" style="max-width:520px">
+        <label for="tgDefault">Default model ID</label>
+        <input id="tgDefault" value="${escapeHtml(cfg.defaultModel||"")}" placeholder="openai/gpt-5" spellcheck="false">
+      </div>
+      <div class="field" style="max-width:520px">
+        <label for="tgSysPrompt">System prompt (optional)</label>
+        <textarea id="tgSysPrompt" class="editor-textarea" style="min-height:80px" placeholder="You are a helpful assistant." spellcheck="false">${escapeHtml(cfg.systemPrompt||"")}</textarea>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>5. Webhook</h3><span>Register with Telegram</span></div>
+      <div class="admin-actions">
+        <button class="btn-primary" id="tgSave">Save config</button>
+        <button class="btn-ghost" id="tgSetWebhook">Register webhook</button>
+        <button class="btn-ghost" id="tgDeleteWebhook">Remove webhook</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>Enable / disable</h3></div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2)">
+        <input type="checkbox" id="tgEnabled" ${cfg.enabled?"checked":""} style="all:revert;width:18px;height:18px">
+        <span style="font-size:13.5px;font-weight:500">Bot is enabled</span>
+      </label>
+    </div>
+  `;
+
+  const $f = (id) => c.querySelector("#" + id);
+
+  $f("tgVerify").onclick = async () => {
+    const tok = $f("tgToken").value.trim();
+    try {
+      const save = await fetch(WORKER_BASE + "/admin/telegram", {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({ botToken: tok || undefined })
+      });
+      if (!save.ok) throw new Error((await save.json().catch(()=>({}))).error || "Invalid token");
+      const r = await fetch(WORKER_BASE + "/admin/telegram/get-me", { headers: authHeaders(false) });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || "Could not verify");
+      tgState.botInfo = j.bot;
+      toast(`Verified: @${j.bot.username}`);
+      renderTelegramPage();
+    } catch (e) {
+      toast(e.message || "Verification failed");
+    }
+  };
+
+  $f("tgSave").onclick = async () => {
+    const payload = {
+      botToken: $f("tgToken").value.trim() || undefined,
+      publicUrl: $f("tgUrl").value.trim(),
+      defaultModel: $f("tgDefault").value.trim(),
+      systemPrompt: $f("tgSysPrompt").value.trim(),
+      enabled: $f("tgEnabled").checked,
+      allowedUserIds: $f("tgUsers").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean),
+      adminUserIds: $f("tgAdmins").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
+    };
+    try {
+      const r = await fetch(WORKER_BASE + "/admin/telegram", {
+        method: "POST", headers: authHeaders(), body: JSON.stringify(payload)
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.error || "Save failed");
+      toast("Config saved");
+      renderTelegramPage();
+    } catch (e) {
+      toast(e.message || "Could not save");
+    }
+  };
+
+  $f("tgSetWebhook").onclick = async () => {
+    await $f("tgSave").onclick();
+    try {
+      const r = await fetch(WORKER_BASE + "/admin/telegram/set-webhook", {
+        method: "POST", headers: authHeaders()
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.error || "Set webhook failed");
+      toast("Webhook registered");
+    } catch (e) {
+      toast(e.message || "Could not set webhook");
+    }
+  };
+
+  $f("tgDeleteWebhook").onclick = async () => {
+    if (!confirm("Remove the Telegram webhook? Messages will stop arriving.")) return;
+    try {
+      const r = await fetch(WORKER_BASE + "/admin/telegram/delete-webhook", {
+        method: "POST", headers: authHeaders()
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.error || "Delete failed");
+      toast("Webhook removed");
+    } catch (e) {
+      toast(e.message || "Could not remove");
+    }
+  };
+}
+
+async function renderModelGroupsPage(){
+  const c = $("#adminContent");
+  c.innerHTML = `<p class="admin-kicker">Loading model groups…</p>`;
+
+  try {
+    const r = await fetch(WORKER_BASE + "/admin/model-groups", { headers: authHeaders(false) });
+    const j = await r.json();
+    if (!r.ok || !j.ok) throw new Error(j.error || "Could not load groups");
+    mgState.groups = Array.isArray(j.groups) ? j.groups : [];
+  } catch (e) {
+    c.innerHTML = `<p class="admin-kicker">Could not load: ${escapeHtml(e.message || "unknown error")}</p>`;
+    return;
+  }
+
+  renderModelGroupsList();
+}
+
+function renderModelGroupsList(){
+  const c = $("#adminContent");
+  const q = mgState.query.trim().toLowerCase();
+
+  let rows = mgState.groups.filter(g => {
+    if (mgState.onlyMulti && g.variantCount <= 1) return false;
+    if (!q) return true;
+    if (g.canonical.includes(q)) return true;
+    return g.variants.some(v => v.id.toLowerCase().includes(q));
+  });
+
+  const totalMulti = mgState.groups.filter(g => g.variantCount > 1).length;
+  const pinnedCount = mgState.groups.filter(g => g.pinned).length;
+
+  c.innerHTML = `
+    <p class="admin-kicker">Multiple routers expose the same underlying model. Grouping collapses them into one row in the picker and lets the app fail over automatically when a variant is down. Pin a variant to make it the default for a group.</p>
+
+    <div class="mg-toolbar">
+      <input id="mgSearch" placeholder="Search groups or variant IDs" value="${escapeHtml(mgState.query)}">
+      <label class="chat-tool${mgState.onlyMulti ? " is-on" : ""}" id="mgOnlyMulti" style="cursor:pointer">
+        <input type="checkbox" ${mgState.onlyMulti ? "checked" : ""} style="margin-right:6px;vertical-align:middle">
+        Only multi-variant (${totalMulti})
+      </label>
+      <button class="btn-ghost" id="mgRefresh">Refresh</button>
+    </div>
+
+    <div class="admin-grid">
+      ${adminStat("Total groups", mgState.groups.length, "In catalogue")}
+      ${adminStat("Multi-variant", totalMulti, "Have failover siblings")}
+      ${adminStat("Pinned", pinnedCount, "Manual primaries")}
+      ${adminStat("Showing", rows.length, "Matching current filter")}
+    </div>
+
+    <div class="mg-list" id="mgList"></div>
+  `;
+
+  const search = c.querySelector("#mgSearch");
+  search.addEventListener("input", () => { mgState.query = search.value; renderModelGroupsList(); });
+
+  const multi = c.querySelector("#mgOnlyMulti");
+  multi.addEventListener("click", (e) => {
+    if (e.target.tagName !== "INPUT") {
+      e.preventDefault();
+      mgState.onlyMulti = !mgState.onlyMulti;
+      renderModelGroupsList();
+    } else {
+      mgState.onlyMulti = e.target.checked;
+    }
+  });
+
+  c.querySelector("#mgRefresh").onclick = () => {
+    mgState.openCanonical = null;
+    renderModelGroupsPage();
+  };
+
+  const list = c.querySelector("#mgList");
+  if (!rows.length) {
+    list.innerHTML = `<div class="admin-note">No groups match. Try relaxing the filter.</div>`;
+    return;
+  }
+
+  list.innerHTML = rows.map(g => renderMgGroup(g)).join("");
+
+  list.querySelectorAll(".mg-head").forEach(head => {
+    head.onclick = () => {
+      const canonical = head.dataset.canonical;
+      const group = list.querySelector(`.mg-group[data-canonical="${CSS.escape(canonical)}"]`);
+      const isOpen = group.classList.toggle("is-open");
+      mgState.openCanonical = isOpen ? canonical : null;
+    };
+  });
+
+  list.querySelectorAll("[data-pin-variant]").forEach(btn => {
+    btn.onclick = (e) => { e.stopPropagation(); pinVariant(btn.dataset.canonical, btn.dataset.pinVariant); };
+  });
+
+  list.querySelectorAll("[data-unpin]").forEach(btn => {
+    btn.onclick = (e) => { e.stopPropagation(); pinVariant(btn.dataset.unpin, ""); };
+  });
+
+  list.querySelectorAll("[data-clear-cd]").forEach(btn => {
+    btn.onclick = (e) => { e.stopPropagation(); clearCooldown(btn.dataset.clearCd); };
+  });
+
+  if (mgState.openCanonical) {
+    const grp = list.querySelector(`.mg-group[data-canonical="${CSS.escape(mgState.openCanonical)}"]`);
+    if (grp) grp.classList.add("is-open");
+  }
+}
+
+function renderMgGroup(g){
+  const pinned = g.pinned;
+  const headMeta = [];
+  headMeta.push(`<span class="variant-badge">${g.variantCount} variant${g.variantCount === 1 ? "" : "s"}</span>`);
+  if (pinned) headMeta.push(`<span class="variant-badge primary">Pinned</span>`);
+  if (g.hasFree) headMeta.push(`<span class="variant-badge">Has free</span>`);
+
+  const variantRows = g.variants.map(v => {
+    const badges = [];
+    if (v.status === "ok") badges.push(`<span class="variant-badge ok">OK${v.latency ? " · " + v.latency + "ms" : ""}</span>`);
+    if (v.status === "failed") badges.push(`<span class="variant-badge failing">Failing</span>`);
+    if (v.status === "untested") badges.push(`<span class="variant-badge">Untested</span>`);
+    if (v.cooling) badges.push(`<span class="variant-badge cooling">Cooling · ${escapeHtml(v.cooldownReason || "")}</span>`);
+    if (pinned === v.id) badges.push(`<span class="variant-badge primary">Pinned</span>`);
+    const isPinned = pinned === v.id;
+    return `
+      <div class="mg-variant" data-variant-id="${escapeHtml(v.id)}">
+        <button type="button" class="mg-variant-radio${isPinned ? " is-on" : ""}"
+                data-pin-variant="${escapeHtml(v.id)}" data-canonical="${escapeHtml(g.canonical)}"
+                aria-label="${isPinned ? "Unpin" : "Pin as primary"}"></button>
+        <span class="mg-variant-main">
+          <b>${escapeHtml(v.id)}</b>
+          <small>${badges.join("")}</small>
+        </span>
+        <span class="mg-variant-actions">
+          ${isPinned ? `<button type="button" data-unpin="${escapeHtml(g.canonical)}">Unpin</button>` : ""}
+          ${v.cooling ? `<button type="button" class="danger" data-clear-cd="${escapeHtml(v.id)}">Clear cooldown</button>` : ""}
+        </span>
+      </div>`;
+  }).join("");
+
+  return `
+    <div class="mg-group" data-canonical="${escapeHtml(g.canonical)}">
+      <button type="button" class="mg-head" data-canonical="${escapeHtml(g.canonical)}">
+        <span class="mg-caret">▸</span>
+        <span class="mg-head-main">
+          <b>${escapeHtml(cleanModelName(g.primary))}</b>
+          <small>${escapeHtml(g.canonical)} · ${escapeHtml(g.providers.join(", "))}</small>
+        </span>
+        <span class="mg-head-meta">${headMeta.join("")}</span>
+      </button>
+      <div class="mg-variants">${variantRows}</div>
+    </div>
+  `;
+}
+
+async function pinVariant(canonical, variant){
+  const g = mgState.groups.find(x => x.canonical === canonical);
+  const prev = g ? g.pinned : null;
+  if (g) g.pinned = variant || null;
+
+  try {
+    const r = await fetch(WORKER_BASE + "/admin/model-groups/pin", {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ canonical, variant })
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.error || "Pin failed");
+    toast(variant ? "Pinned " + variant : "Pin cleared");
+    renderModelGroupsList();
+  } catch (e) {
+    if (g) g.pinned = prev;
+    toast(e.message || "Could not save pin");
+    renderModelGroupsList();
+  }
+}
+
+async function clearCooldown(variant){
+  try {
+    const r = await fetch(WORKER_BASE + "/admin/model-groups/clear-cooldown", {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ variant })
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
+    toast("Cooldown cleared");
+    renderModelGroupsPage();
+  } catch (e) {
+    toast(e.message || "Could not clear cooldown");
+  }
+}
+
 async function renderModelHealthPage(){
   const c = $("#adminContent");
   c.innerHTML = `<p class="admin-kicker">Loading…</p>`;
@@ -5193,6 +6917,7 @@ async function mhEnableAll() {
 }
 function renderAdmin(){
   const c=$("#adminContent"),j=adminStatusData||{},count=state.models.length;
+  refreshAdminLockBanner();
   if(adminSection==="overview"){
     c.innerHTML=`<p class="admin-kicker">Control center for authentication, models, gateway health and future usage analytics.</p>
     <div class="admin-grid">
@@ -5237,12 +6962,18 @@ function renderAdmin(){
     c.innerHTML=`<p class="admin-kicker">Admin-only model request tester.</p><div class="admin-note">The playground will use the authenticated backend endpoint after key-management and usage tracking are implemented.</div>`;
   }else if(adminSection==="provider-icons"){
     renderProviderIconsPage();return;
+  }else if(adminSection==="model-groups"){
+    renderModelGroupsPage();return;
   }else if(adminSection==="model-health"){
     renderModelHealthPage();return;
   }else if(adminSection==="search-config"){
     renderSearchConfigPage();return;
+  }else if(adminSection==="telegram"){
+    renderTelegramPage();return;
   }else if(adminSection==="provider-map"){
     renderProviderMappingPage();return;
+  }else if(adminSection==="site-lock"){
+    renderSiteLockAdminPage();return;
   }else if(adminSection==="api-settings"){
     renderApiSettingsPage();return;
   }else if(adminSection==="system"){
@@ -5336,6 +7067,54 @@ function toggleFavorite(id){
   saveModelPrefs();renderCatalog();
 }
 function markModelUsed(id){state.recentModels=[id,...state.recentModels.filter(x=>x!==id)].slice(0,20);saveModelPrefs()}
+
+function groupForModelId(id){
+  if (!id || !Array.isArray(state.modelGroups)) return null;
+  return state.modelGroups.find(g => g.variants.some(v => v.id === id)) || null;
+}
+function groupDisplayName(g){
+  if (!g) return "";
+  const primary = g.primary || (g.variants[0] && g.variants[0].id);
+  return cleanModelName(primary || g.canonical);
+}
+function groupCoolingState(g){
+  // frontend doesn't have live cooldowns unless admin loaded them; neutral default
+  return "";
+}
+function renderCaps(caps, cls, max){
+  const vis = (caps || []).slice(0, max || 3);
+  let html = vis.map(x => `<span class="${cls}">${escapeHtml(x)}</span>`).join("");
+  if ((caps || []).length > (max || 3)) html += `<span class="${cls}">…</span>`;
+  return html;
+}
+function openVariantSheet(group){
+  if (!group) return;
+  pushPage(groupDisplayName(group), (body) => {
+    body.innerHTML = `
+      <p class="admin-kicker" style="margin-bottom:10px">${escapeHtml(group.canonical)} · ${group.variants.length} variant${group.variants.length===1?"":"s"}</p>
+      <div class="variant-sheet-list">
+        ${group.variants.map(v => {
+          const id = typeof v === "string" ? v : v.id;
+          const isActive = id === state.model;
+          const isPrimary = id === group.primary;
+          return `<button type="button" class="variant-row${isActive?" is-active":""}" data-pick-variant="${escapeHtml(id)}">
+            <span class="variant-row-main">
+              <b>${escapeHtml(id)}</b>
+              <small>${isPrimary ? '<span class="variant-badge primary">Primary</span>' : ""}${isActive ? '<span class="variant-badge ok">Active</span>' : ""}</small>
+            </span>
+          </button>`;
+        }).join("")}
+      </div>
+    `;
+    body.querySelectorAll("[data-pick-variant]").forEach(b => {
+      b.onclick = () => {
+        selectModel(b.dataset.pickVariant);
+        popPage();
+      };
+    });
+  });
+}
+
 function modelCaps(m){
   const caps=[];
   const c=m.capabilities||{};
@@ -5343,13 +7122,22 @@ function modelCaps(m){
   if(c.tools) caps.push("Tools");
   if(c.reasoning) caps.push("Reasoning");
   if(c.audioInput) caps.push("Audio");
+  const ctx = Number(c.contextWindow || m.contextWindow || m.context_length || 0);
+  if (ctx >= 200000) caps.push("Long ctx");
   if(!caps.length){
     const text=JSON.stringify(m).toLowerCase();
     if(/vision|image|multimodal/.test(text))caps.push("Vision");
     if(/tool|function/.test(text))caps.push("Tools");
     if(/reason/.test(text))caps.push("Reasoning");
   }
-  return caps.slice(0,3);
+  return caps;
+}
+function capsHtml(m, cls){
+  const all = modelCaps(m);
+  const vis = all.slice(0, 3);
+  let html = vis.map(x=>`<span class="${cls}">${escapeHtml(x)}</span>`).join("");
+  if (all.length > 3) html += `<span class="${cls}">…</span>`;
+  return html;
 }
 function modelSortKey(m,mode){
   const maker=makerOf(m.id);
@@ -5403,7 +7191,7 @@ function renderCatalog(){
   $("#catalogCount").textContent=`${rows.length} model${rows.length===1?"":"s"} in the catalog`;
   const box=$("#modelResults");
   box.innerHTML=rows.length?rows.map(m=>{
-    const maker=makerOf(m.id),isActive=m.id===state.model,caps=modelCaps(m);
+    const maker=makerOf(m.id),isActive=m.id===state.model;
     const ctx=fmtContext(m.context_length||m.contextWindow);
     const pin=fmtPrice(m.pricing?.prompt??m.pricing?.input);
     const pout=fmtPrice(m.pricing?.completion??m.pricing?.output);
@@ -5418,7 +7206,7 @@ function renderCatalog(){
             <b>${escapeHtml(cleanModelName(m.id))}</b>
             <span class="model-meta">
               <small style="color:${c}">${escapeHtml(maker.label)}</small>
-              ${caps.map(cap=>`<span class="cap-badge">${escapeHtml(cap)}</span>`).join("")}
+              ${capsHtml(m, "cap-badge")}
             </span>
           </span>
         </span>
@@ -5514,13 +7302,36 @@ function renderQuickSwitchList(){
   const sheet=$("#qsSheet");if(!sheet)return;
   const list=sheet.querySelector("#qsList");if(!list)return;
   const q=(quickSwitchQuery||"").trim().toLowerCase();
-  let rows=state.models.filter(m=>{
-    const maker=makerOf(m.id);
-    if(quickSwitchMaker!=="all" && maker.key!==quickSwitchMaker) return false;
-    if(q && !m.id.toLowerCase().includes(q) && !cleanModelName(m.id).toLowerCase().includes(q) && !maker.label.toLowerCase().includes(q)) return false;
-    return true;
-  });
-  rows.sort((a,b)=>cleanModelName(a.id).localeCompare(cleanModelName(b.id)));
+  const usingGroups = Array.isArray(state.modelGroups) && state.modelGroups.length > 0;
+  let rows;
+  if (usingGroups) {
+    rows = state.modelGroups
+      .map(g => state.models.find(m => m.id === g.primary) || { id: g.primary })
+      .filter(m => {
+        const maker = makerOf(m.id);
+        if (quickSwitchMaker !== "all" && maker.key !== quickSwitchMaker) return false;
+        if (q) {
+          const g = groupForModelId(m.id);
+          if (g) {
+            const hit = g.variants.some(v => {
+              const id = v.id || v;
+              return String(id).toLowerCase().includes(q) || cleanModelName(id).toLowerCase().includes(q);
+            }) || g.canonical.includes(q);
+            if (!hit) return false;
+          } else if (!m.id.toLowerCase().includes(q) && !cleanModelName(m.id).toLowerCase().includes(q)) return false;
+        }
+        return true;
+      })
+      .sort((a,b)=>cleanModelName(a.id).localeCompare(cleanModelName(b.id)));
+  } else {
+    rows=state.models.filter(m=>{
+      const maker=makerOf(m.id);
+      if(quickSwitchMaker!=="all" && maker.key!==quickSwitchMaker) return false;
+      if(q && !m.id.toLowerCase().includes(q) && !cleanModelName(m.id).toLowerCase().includes(q) && !maker.label.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    rows.sort((a,b)=>cleanModelName(a.id).localeCompare(cleanModelName(b.id)));
+  }
   list.innerHTML=rows.length?rows.map(m=>{
     const maker=makerOf(m.id),isActive=m.id===state.model;
     const ctx=fmtContext(m.context_length||m.contextWindow);
@@ -5529,6 +7340,7 @@ function renderQuickSwitchList(){
       ${renderTile(maker.key,"tile-sm")}
       <span class="qs-row-main">
         <b>${escapeHtml(cleanModelName(m.id))}</b>
+        ${(() => { const h = capsHtml(m, "qs-cap"); return h ? `<span class="qs-row-caps">${h}</span>` : ""; })()}
         <small><span class="prov-dot" style="background:${c}"></span>${escapeHtml(maker.label)} · ${ctx} ctx</small>
       </span>
       <button type="button" class="qs-copy-id" data-copy-id="${escapeHtml(m.id)}" title="Copy model ID">${COPY_ICON}</button>
@@ -5620,6 +7432,238 @@ document.addEventListener("keydown",e=>{
   }
 });
 
+
+/* ============================================================
+   SITE LOCK — takeover screen + boot check
+   ============================================================ */
+let _lockCountdownTimer = null;
+
+async function checkSiteLock(){
+  try{
+    const r = await fetch(WORKER_BASE + "/site-lock", { headers: authHeaders(false) });
+    if(!r.ok) return false;
+    const j = await r.json();
+    if(!j.locked) return false;
+
+    // Admin: let the app boot, but show the red banner.
+    if(j.isAdmin){
+      showAdminLockBanner(j);
+      return false;
+    }
+    showLockTakeover(j);
+    return true;
+  }catch{
+    // Network error on the check itself — fail open. The middleware
+    // will still 423 any real API call if the site is actually locked.
+    return false;
+  }
+}
+
+function showLockTakeover(j){
+  const existing = document.getElementById("lockTakeover");
+  if(existing) existing.remove();
+
+  const el = document.createElement("div");
+  el.id = "lockTakeover";
+  el.className = "lock-takeover";
+  el.innerHTML = `
+    <div class="lock-card">
+      <div class="lock-icon">🔒</div>
+      <h2 class="lock-title">Site temporarily locked</h2>
+      <p class="lock-message">${escapeHtml(j.message || "The site is locked for maintenance.")}</p>
+      <div class="lock-timer" id="lockTimer"></div>
+      <button class="auth-primary" id="lockRetry" type="button">Try again</button>
+      <div class="lock-foot">Admins can sign in with their access key to bypass the lock.</div>
+    </div>
+  `;
+  document.body.appendChild(el);
+  document.body.classList.add("is-locked");
+
+  document.getElementById("lockRetry").onclick = () => window.location.reload();
+
+  const startMs = Date.now();
+  const startedRemaining = j.remainingSeconds;
+  const tick = () => {
+    const elT = document.getElementById("lockTimer");
+    if(!elT) return;
+    if(j.remainingSeconds === null || j.remainingSeconds === undefined){
+      elT.textContent = "Until further notice";
+      return;
+    }
+    const elapsed = Math.floor((Date.now() - startMs) / 1000);
+    const left = Math.max(0, startedRemaining - elapsed);
+    if(left === 0){
+      elT.textContent = "Unlocking…";
+      clearInterval(_lockCountdownTimer);
+      setTimeout(() => window.location.reload(), 1200);
+      return;
+    }
+    elT.textContent = formatCountdown(left);
+  };
+  tick();
+  _lockCountdownTimer = setInterval(tick, 1000);
+}
+
+function formatCountdown(totalSeconds){
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if(h > 0) return `${h}h ${m}m ${sec}s`;
+  if(m > 0) return `${m}m ${sec}s`;
+  return `${sec}s`;
+}
+
+function showAdminLockBanner(j){
+  if(document.getElementById("adminLockBanner")) return;
+  const bar = document.createElement("div");
+  bar.id = "adminLockBanner";
+  bar.className = "admin-lock-banner";
+  bar.innerHTML = `<span>🔒 Site is locked — users see the takeover.</span><button type="button" id="adminLockBannerGo">Manage</button>`;
+  document.body.appendChild(bar);
+  bar.querySelector("#adminLockBannerGo").onclick = () => {
+    openAdmin();
+    setTimeout(() => {
+      const btn = document.querySelector('.admin-nav button[data-admin-section="site-lock"]');
+      if(btn) btn.click();
+    }, 60);
+  };
+}
+
+async function refreshAdminLockBanner(){
+  try{
+    const r = await fetch(WORKER_BASE + "/site-lock", { headers: authHeaders(false) });
+    const j = await r.json();
+    const existing = document.getElementById("adminLockBanner");
+    if(j.locked && state.role === "admin"){
+      if(!existing) showAdminLockBanner(j);
+    } else if(existing){
+      existing.remove();
+    }
+  }catch{}
+}
+
+async function renderSiteLockAdminPage(){
+  const c = $("#adminContent");
+  c.innerHTML = `<p class="admin-kicker">Loading lock status…</p>`;
+
+  let lock = null;
+  try{
+    const r = await fetch(WORKER_BASE + "/admin/site-lock", { headers: authHeaders(false) });
+    if(r.ok){ const j = await r.json(); if(j.locked) lock = j; }
+  }catch{}
+
+  const paint = (lockData) => {
+    if(lockData){
+      const until = lockData.until
+        ? new Date(lockData.until).toLocaleString()
+        : "Indefinite";
+      const remaining = lockData.remainingSeconds != null
+        ? formatCountdown(lockData.remainingSeconds)
+        : "—";
+      c.innerHTML = `
+        <p class="admin-kicker">Site Lock blocks every authenticated user except admins. Public routes (<code>/health</code>, <code>/auth/login</code>, <code>/site-lock</code>) stay open.</p>
+        <div class="admin-section">
+          <div class="admin-section-head"><h3>Status</h3><span>Locked</span></div>
+          <div class="site-lock-status is-locked">
+            <div class="site-lock-status-icon">🔒</div>
+            <div class="site-lock-status-body">
+              <b>Site is locked</b>
+              <small>${escapeHtml(lockData.message || "")}</small>
+              <div class="site-lock-meta">
+                <span>Unlocks <b>${escapeHtml(until)}</b></span>
+                <span>Remaining <b id="slaTimer">${escapeHtml(remaining)}</b></span>
+              </div>
+            </div>
+          </div>
+          <div class="admin-actions" style="margin-top:14px">
+            <button class="btn-primary site-lock-unlock" id="slaUnlock" type="button">Unlock now</button>
+            <button class="btn-ghost" id="slaRefresh" type="button">Refresh</button>
+          </div>
+        </div>
+      `;
+      const start = Date.now();
+      const startRemaining = lockData.remainingSeconds;
+      if(startRemaining != null){
+        const tmr = setInterval(() => {
+          const el = document.getElementById("slaTimer");
+          if(!el){ clearInterval(tmr); return; }
+          const elapsed = Math.floor((Date.now() - start)/1000);
+          const left = Math.max(0, startRemaining - elapsed);
+          if(left === 0){ clearInterval(tmr); el.textContent = "Unlocked"; return; }
+          el.textContent = formatCountdown(left);
+        }, 1000);
+      }
+      document.getElementById("slaUnlock").onclick = async () => {
+        if(!confirm("Unlock the site now?")) return;
+        try{
+          const r = await fetch(WORKER_BASE + "/admin/site-lock/unlock", { method:"POST", headers:authHeaders() });
+          const j = await r.json().catch(()=>({}));
+          if(!r.ok || !j.ok) throw new Error(j.error?.message || "Unlock failed");
+          toast("Site unlocked");
+          refreshAdminLockBanner();
+          renderSiteLockAdminPage();
+        }catch(e){ toast(e.message || "Could not unlock"); }
+      };
+      document.getElementById("slaRefresh").onclick = () => renderSiteLockAdminPage();
+    } else {
+      c.innerHTML = `
+        <p class="admin-kicker">Site Lock blocks every authenticated user except admins. Public routes (<code>/health</code>, <code>/auth/login</code>, <code>/site-lock</code>) stay open.</p>
+        <div class="admin-section">
+          <div class="admin-section-head"><h3>Status</h3><span>Unlocked</span></div>
+          <div class="site-lock-status">
+            <div class="site-lock-status-icon">🔓</div>
+            <div class="site-lock-status-body">
+              <b>Site is live</b>
+              <small>Users can sign in and make requests.</small>
+            </div>
+          </div>
+        </div>
+        <div class="admin-section">
+          <div class="admin-section-head"><h3>Lock the site</h3><span>Restricts access to admins only</span></div>
+          <div class="field" style="max-width:400px">
+            <label for="slaMinutes">Duration (minutes)</label>
+            <input id="slaMinutes" type="number" min="1" max="10080" value="20">
+            <div class="editor-hint">1 min – 7 days. Default 20 minutes.</div>
+          </div>
+          <div class="field" style="max-width:520px">
+            <label for="slaMessage">Message shown to users (optional)</label>
+            <input id="slaMessage" type="text" maxlength="200" placeholder="e.g. Deploying an update — back in 20 minutes.">
+          </div>
+          <div class="admin-actions">
+            <button class="btn-primary site-lock-lock" id="slaLock" type="button">Lock for N minutes</button>
+            <button class="btn-ghost site-lock-indefinite" id="slaLockIndef" type="button">Lock indefinitely</button>
+          </div>
+        </div>
+      `;
+      const doLock = async (indefinite) => {
+        const minutes = Math.max(1, Math.min(10080, Number(document.getElementById("slaMinutes").value) || 20));
+        const message = document.getElementById("slaMessage").value.trim();
+        const confirmMsg = indefinite
+          ? "Lock the site indefinitely? Non-admin users will be blocked until you unlock."
+          : `Lock the site for ${minutes} minute${minutes===1?"":"s"}? Non-admin users will be blocked.`;
+        if(!confirm(confirmMsg)) return;
+        try{
+          const r = await fetch(WORKER_BASE + "/admin/site-lock/lock", {
+            method:"POST", headers:authHeaders(),
+            body: JSON.stringify({ durationMinutes: minutes, message, indefinite })
+          });
+          const j = await r.json().catch(()=>({}));
+          if(!r.ok || !j.ok) throw new Error(j.error?.message || "Lock failed");
+          toast(indefinite ? "Site locked indefinitely" : `Site locked for ${minutes} min`);
+          refreshAdminLockBanner();
+          renderSiteLockAdminPage();
+        }catch(e){ toast(e.message || "Could not lock"); }
+      };
+      document.getElementById("slaLock").onclick = () => doLock(false);
+      document.getElementById("slaLockIndef").onclick = () => doLock(true);
+    }
+  };
+
+  paint(lock);
+  refreshAdminLockBanner();
+}
+
 /* ============================================================
    INIT
    ============================================================ */
@@ -5629,7 +7673,9 @@ renderAttachments();
 renderMessages();
 
 (async () => {
-  // Preload admin icon overrides, api base URL, and models.
+  const locked = await checkSiteLock();
+  if (locked) return;
+
   if (isAuthenticated()) {
     await Promise.all([
       loadApiBaseUrl(),
@@ -5638,7 +7684,6 @@ renderMessages();
       loadProviderOverrides()
     ]);
     await loadModels();
-    // Warm icons after models arrive — this drives the multi-source probe.
     warmIconCache();
   } else {
     updateBadge();
