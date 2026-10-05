@@ -325,6 +325,27 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
   display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px;
 }
 .mh-toolbar .spacer{flex:1}
+
+/* Test scope dropdown + button group */
+.mh-test-scope{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mh-test-scope select{
+  background:var(--panel-3);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:9px 12px;
+  color:var(--text);
+  outline:0;
+  font-size:12.5px;
+  min-width:170px;
+  cursor:pointer;
+  transition:border-color var(--t-base),box-shadow var(--t-base);
+}
+.mh-test-scope select:focus{
+  border-color:var(--line-strong);
+  box-shadow:0 0 0 3px var(--accent-soft);
+}
+.mh-test-scope select:disabled{opacity:.5;cursor:not-allowed}
+.mh-test-scope select option:disabled{color:var(--dim)}
 .mh-progress{
   font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums;
 }
@@ -339,11 +360,26 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
 
 .mh-row{
   display:grid;
-  grid-template-columns:20px minmax(0,1.6fr) 100px 80px 130px auto;
+  grid-template-columns:22px 20px minmax(0,1.6fr) 100px 80px 130px auto;
   align-items:center;gap:10px;
   padding:11px 12px;
   border-bottom:1px solid var(--line);
   transition:background-color var(--t-base);
+}
+
+/* Per-row select checkbox */
+.mh-select{
+  display:grid;
+  place-items:center;
+  width:22px;height:22px;
+  cursor:pointer;
+  flex:0 0 auto;
+}
+.mh-select input{
+  all:revert;
+  width:16px;height:16px;
+  cursor:pointer;
+  accent-color:var(--accent);
 }
 .mh-row:last-child{border-bottom:0}
 .mh-row:hover{background:var(--panel-2)}
@@ -405,10 +441,24 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
     padding: 14px 12px;
     align-items: center;
   }
+  .mh-select {
+    order: -1;
+    flex: 0 0 22px;
+  }
   .mh-row .mh-dot {
     flex: 0 0 8px;
     align-self: flex-start;
     margin-top: 6px;
+  }
+  .mh-test-scope {
+    flex: 1 1 100%;
+  }
+  .mh-test-scope select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .mh-test-scope button {
+    flex: 0 0 auto;
   }
   .mh-row-main {
     flex: 1 1 calc(100% - 18px);
@@ -5498,6 +5548,10 @@ function openLogin(reason){
     $("#loginBtn").disabled=true; $("#loginBtn").textContent="Logging in…"; $("#loginError").textContent="";
     try{
       const j=await loginWithCode(code);
+      if (!state.profileName && j.username) {
+        state.profileName = j.username;
+        try { localStorage.setItem("chinaGPTProfileName", j.username); } catch {}
+      }
       closeAuthPage();
       toast(j.role==="admin"?"Admin access granted":"Logged in");
       await refreshAdminLockBanner();
@@ -5520,29 +5574,105 @@ async function openCreateAccount(){
       <button class="auth-back" id="createClose" type="button">Back</button>
     </div>
     <h2>Create account</h2>
-    <p class="auth-sub">Generate a free access key. One account per person.</p>
-    <button class="auth-primary" id="generateAccount" type="button">Create account</button>
+    <p class="auth-sub">Pick a username and we'll generate your access key.</p>
+    <div class="field">
+      <label for="createUsername">Username</label>
+      <input id="createUsername" autocomplete="off" maxlength="40" placeholder="e.g. Alex" spellcheck="false">
+    </div>
+    <button class="auth-primary" id="generateAccount" type="button" disabled>Create account</button>
     <div id="generatedArea"></div>
     <div class="auth-link-row">Already have an account? <button id="backLogin" type="button">Log in</button></div>
   `);
-  $("#createClose").onclick=closeAuthPage;
-  $("#backLogin").onclick=()=>openLogin("login");
-  $("#generateAccount").onclick=async()=>{
-    const btn=$("#generateAccount");btn.disabled=true;btn.textContent="Creating…";
-    try{
-      const r=await apiFetch(WORKER_BASE+"/auth/create",{method:"POST"});
-      const j=await r.json();
-      if(!r.ok||!j.ok)throw new Error(j.error||"Could not create account");
-      if(j.firstAccount){
-        $("#generatedArea").innerHTML=`<div class="auth-note"><b>Administrator keys — save these securely.</b>${(j.keys||[]).map(k=>`<div class="row" style="margin-top:8px"><input value="${escapeHtml(k)}" readonly style="flex:1;background:var(--panel-3);border:1px solid var(--line);border-radius:8px;padding:10px;font-family:var(--mono);font-size:12.5px"><button class="btn-ghost copy-key" data-key="${escapeHtml(k)}" type="button">Copy</button></div>`).join("")}<div style="margin-top:10px;color:var(--dim)">These three initial administrator keys will not be shown again by this screen.</div></div>`;
-        document.querySelectorAll(".copy-key").forEach(b=>b.onclick=()=>copyText(b.dataset.key));
-      }else{
-        const k=j.key;
-        $("#generatedArea").innerHTML=`<div class="auth-note"><b>Your access key</b><div class="row" style="margin-top:8px"><input value="${escapeHtml(k)}" readonly style="flex:1;background:var(--panel-3);border:1px solid var(--line);border-radius:8px;padding:10px;font-family:var(--mono);font-size:12.5px"><button class="btn-ghost" id="copyUserKey" type="button">Copy</button></div><div style="margin-top:10px;color:var(--dim)">Save this key. You need it to log in.</div></div>`;
-        $("#copyUserKey").onclick=()=>copyText(k);
+
+  $("#createClose").onclick = closeAuthPage;
+  $("#backLogin").onclick = () => openLogin("login");
+
+  const nameInput = $("#createUsername");
+  const goBtn = $("#generateAccount");
+  const errBox = document.getElementById("createErr") || (() => {
+    const p = document.createElement("p");
+    p.id = "createErr";
+    p.className = "auth-error";
+    p.style.marginTop = "10px";
+    p.style.textAlign = "center";
+    goBtn.parentNode.insertBefore(p, goBtn.nextSibling);
+    return p;
+  })();
+  errBox.textContent = "";
+
+  const validate = () => {
+    const v = nameInput.value.trim();
+    goBtn.disabled = v.length < 2;
+    if (v.length >= 2) errBox.textContent = "";
+  };
+  nameInput.addEventListener("input", validate);
+  setTimeout(() => nameInput.focus(), 80);
+
+  goBtn.onclick = async () => {
+    const username = nameInput.value.trim();
+    if (username.length < 2) {
+      errBox.textContent = "Username must be at least 2 characters.";
+      return;
+    }
+    if (username.length > 40) {
+      errBox.textContent = "Username must be 40 characters or less.";
+      return;
+    }
+    goBtn.disabled = true;
+    goBtn.textContent = "Creating…";
+    errBox.textContent = "";
+
+    try {
+      const r = await apiFetch(WORKER_BASE + "/auth/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.error || "Could not create account");
+
+      if (j.firstAccount) {
+        $("#generatedArea").innerHTML = `
+          <div class="auth-note">
+            <b>Administrator keys — save these securely.</b>
+            <div style="margin-top:6px;color:var(--dim);font-size:12px">
+              Username: <b style="color:var(--text)">${escapeHtml(j.username || username)}</b>
+            </div>
+            ${(j.keys || []).map(k => `
+              <div class="row" style="margin-top:8px">
+                <input value="${escapeHtml(k)}" readonly style="flex:1;background:var(--panel-3);border:1px solid var(--line);border-radius:8px;padding:10px;font-family:var(--mono);font-size:12.5px">
+                <button class="btn-ghost copy-key" data-key="${escapeHtml(k)}" type="button">Copy</button>
+              </div>`).join("")}
+            <div style="margin-top:10px;color:var(--dim)">
+              These three initial administrator keys will not be shown again by this screen.
+            </div>
+          </div>`;
+        document.querySelectorAll(".copy-key").forEach(b => b.onclick = () => copyText(b.dataset.key));
+      } else {
+        const k = j.key;
+        $("#generatedArea").innerHTML = `
+          <div class="auth-note">
+            <b>Your access key</b>
+            <div style="margin-top:6px;color:var(--dim);font-size:12px">
+              Username: <b style="color:var(--text)">${escapeHtml(j.username || username)}</b>
+            </div>
+            <div class="row" style="margin-top:8px">
+              <input value="${escapeHtml(k)}" readonly style="flex:1;background:var(--panel-3);border:1px solid var(--line);border-radius:8px;padding:10px;font-family:var(--mono);font-size:12.5px">
+              <button class="btn-ghost" id="copyUserKey" type="button">Copy</button>
+            </div>
+            <div style="margin-top:10px;color:var(--dim)">Save this key. You need it to log in.</div>
+          </div>`;
+        $("#copyUserKey").onclick = () => copyText(k);
       }
-      btn.textContent="Account created";
-    }catch(e){toast(e.message||"Could not create account");btn.disabled=false;btn.textContent="Create account"}
+
+      goBtn.textContent = "Account created";
+      goBtn.disabled = true;
+      nameInput.disabled = true;
+    } catch (e) {
+      errBox.textContent = e.message || "Could not create account";
+      goBtn.disabled = false;
+      goBtn.textContent = "Create account";
+    }
   };
 }
 
@@ -6230,8 +6360,39 @@ let mhState = {
   filter: "all",
   running: false,
   stopped: false,
-  progress: { done: 0, total: 0 }
+  progress: { done: 0, total: 0 },
+  testScope: "all",
+  selectedForTest: new Set()
 };
+
+/* Computes the list of model IDs to test based on the current scope. */
+function computeTestTargets() {
+  const all = mhAllModels.map(m => m.id);
+  const STALE_MS = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  switch (mhState.testScope) {
+    case "untested":
+      return all.filter(id =>
+        !mhState.results[id] && !mhState.disabledModels.includes(id)
+      );
+    case "failed":
+      return all.filter(id => mhState.results[id]?.status === "failed");
+    case "passed":
+      return all.filter(id => mhState.results[id]?.status === "ok");
+    case "stale":
+      return all.filter(id => {
+        const r = mhState.results[id];
+        if (!r || !r.lastTested) return false;
+        const t = Date.parse(r.lastTested);
+        return Number.isFinite(t) && (now - t) > STALE_MS;
+      });
+    case "selected":
+      return [...mhState.selectedForTest];
+    case "all":
+    default:
+      return all;
+  }
+}
 let mhAllModels = [];
 
 
@@ -6681,7 +6842,19 @@ function renderModelHealthTable(){
     </div>
 
     <div class="mh-toolbar">
-      <button class="btn-primary" id="mhTestAll" ${mhState.running ? "disabled" : ""}>${mhState.running ? "Testing…" : "▶ Test all"}</button>
+      <div class="mh-test-scope">
+        <select id="mhTestScope" ${mhState.running ? "disabled" : ""}>
+          <option value="all" ${mhState.testScope === "all" ? "selected" : ""}>All models</option>
+          <option value="untested" ${mhState.testScope === "untested" ? "selected" : ""}>Untested only</option>
+          <option value="failed" ${mhState.testScope === "failed" ? "selected" : ""}>Failed only</option>
+          <option value="passed" ${mhState.testScope === "passed" ? "selected" : ""}>Passed only</option>
+          <option value="stale" ${mhState.testScope === "stale" ? "selected" : ""}>Stale only (24h+)</option>
+          <option value="selected" ${mhState.testScope === "selected" ? "selected" : ""} ${mhState.selectedForTest.size === 0 ? "disabled" : ""}>
+            Selected only (${mhState.selectedForTest.size})
+          </option>
+        </select>
+        <button class="btn-primary" id="mhTestAll" ${mhState.running ? "disabled" : ""}>${mhState.running ? "Testing…" : "▶ Run tests"}</button>
+      </div>
       ${mhState.running ? `<button class="btn-ghost" id="mhStop">Stop</button>` : ``}
       <button class="btn-ghost" id="mhRefresh">Refresh</button>
       <div class="mh-bulk-actions">
@@ -6727,6 +6900,47 @@ function renderModelHealthTable(){
     mhState.filter = b.dataset.mhFilter;
     renderModelHealthTable();
   });
+
+  // ---- Test scope dropdown ----
+  const scopeSel = c.querySelector("#mhTestScope");
+  if (scopeSel) {
+    scopeSel.onchange = () => {
+      mhState.testScope = scopeSel.value;
+      if (mhState.testScope === "selected" && mhState.selectedForTest.size === 0) {
+        toast("Tick checkboxes on rows to select models first");
+      }
+      updateMhTestButtonLabel();
+    };
+  }
+
+  // ---- Per-row checkboxes ----
+  c.querySelectorAll("[data-mh-select]").forEach(cb => {
+    cb.onchange = () => {
+      const id = cb.dataset.mhSelect;
+      if (cb.checked) mhState.selectedForTest.add(id);
+      else mhState.selectedForTest.delete(id);
+
+      const selOpt = c.querySelector('#mhTestScope option[value="selected"]');
+      if (selOpt) {
+        selOpt.disabled = mhState.selectedForTest.size === 0;
+        selOpt.textContent = `Selected only (${mhState.selectedForTest.size})`;
+      }
+
+      updateMhTestButtonLabel();
+    };
+  });
+
+  function updateMhTestButtonLabel() {
+    const btn = c.querySelector("#mhTestAll");
+    if (!btn || mhState.running) return;
+    const n = computeTestTargets().length;
+    const label = mhState.testScope === "all"
+      ? `▶ Run tests (all ${n})`
+      : `▶ Run tests (${n})`;
+    btn.textContent = label;
+    btn.disabled = n === 0;
+  }
+  updateMhTestButtonLabel();
 
   // Refresh
   const refBtn = c.querySelector("#mhRefresh");
@@ -6776,9 +6990,16 @@ function renderMhRow(m, disabledSet, disabledProvSet) {
     ? new Date(result.lastTested).toLocaleTimeString()
     : "—";
   const failures = result?.consecutiveFailures || 0;
+  const isSelected = mhState.selectedForTest.has(id);
 
   return `
     <div class="mh-row ${statusClass}${isDisabled ? " is-disabled" : ""}" data-mh-id="${escapeHtml(id)}">
+      <label class="mh-select">
+        <input type="checkbox"
+               data-mh-select="${escapeHtml(id)}"
+               ${isSelected ? "checked" : ""}
+               aria-label="Select for testing">
+      </label>
       <span class="mh-dot"></span>
       <span class="mh-row-main">
         <b>${escapeHtml(cleanModelName(id))}</b>
@@ -6821,7 +7042,11 @@ async function mhTestOne(modelId) {
 }
 
 async function startMhTestAll() {
-  const ids = mhAllModels.map(m => m.id);
+  const ids = computeTestTargets();
+  if (!ids.length) {
+    toast("No models match the current scope");
+    return;
+  }
   mhState.running = true;
   mhState.stopped = false;
   mhState.progress = { done: 0, total: ids.length };
@@ -6846,7 +7071,6 @@ async function startMhTestAll() {
         }
       } catch { /* skip */ }
       mhState.progress.done++;
-      // Throttle re-renders — every 4 completions.
       if (mhState.progress.done % 4 === 0) renderModelHealthTable();
     }
   };
@@ -6854,7 +7078,9 @@ async function startMhTestAll() {
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, ids.length) }, worker));
   mhState.running = false;
   renderModelHealthTable();
-  toast(mhState.stopped ? "Test run stopped" : `Tested ${mhState.progress.done} models`);
+  toast(mhState.stopped
+    ? "Test run stopped"
+    : `Tested ${mhState.progress.done} of ${ids.length} models`);
 }
 
 async function mhDisableModel(modelId) {
