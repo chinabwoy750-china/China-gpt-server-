@@ -8098,15 +8098,14 @@ $("#stopBtn").onclick=stopGeneration;
 $("#prompt").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
 $("#prompt").addEventListener("input",e=>{e.target.style.height="";e.target.style.height=Math.min(200,e.target.scrollHeight)+"px"});
 $("#newChat").onclick=()=>{
-  if(state.generating){toast("Wait for the response to finish.");
-$("#headNewChat").onclick=()=>$("#newChat").click();
-return}
+  if(state.generating){toast("Wait for the response to finish.");return}
   if(state.messages.length&&!confirm("Start a new chat? Your current conversation will remain saved."))return;
   state.messages=[];state.attachments=[];state.conversationId="";
   localStorage.removeItem("chinaGPTConversationId");
   renderAttachments();renderMessages();renderRecent();
   $("#prompt").focus();$("#shell").classList.remove("nav-open");
 };
+$("#headNewChat").onclick=()=>$("#newChat").click();
 $("#navModels").onclick=openModelsPage;
 $("#navChats").onclick=openChatManager;
 $("#apiDocsBtn").onclick=openApiDocs;
@@ -8123,11 +8122,6 @@ $("#menuBtn").onclick=()=>$("#shell").classList.add("nav-open");
 $("#drawerClose").onclick=()=>$("#shell").classList.remove("nav-open");
 $("#scrim").onclick=()=>$("#shell").classList.remove("nav-open");
 $("#searchBtn").onclick=toggleWebSearch;
-  if (!url) return;
-  const trimmed = url.trim();
-  if (!/^https?:\/\//i.test(trimmed)) { toast("Enter a URL starting with http:// or https://"); return; }
-  readUrlIntoComposer(trimmed);
-};
 $("#searchProviderPill").onclick = (e) => {
   e.stopPropagation();
   openSearchProviderMenu($("#searchProviderPill"));
