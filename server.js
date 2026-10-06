@@ -16,6 +16,7 @@ import * as providerOverrides from "./lib/provider-overrides.js";
 import * as siteLock from "./lib/site-lock.js";
 import * as modelGroups from "./lib/model-groups.js";
 import * as telegram from "./lib/telegram.js";
+import * as online from "./lib/online.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,7 +24,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json({ limit: "20mb" }));
+app.use(express.json({ limit: "5mb" }));
 
 app.use((req, res, next) => {
   req.requestId = generateRequestId(req);
@@ -49,6 +50,8 @@ app.use((req, res, next) => {
 app.get("/health", (req, res) => {
   res.json({ ok: true, service: "China-GPT", status: "online", ts: Date.now() });
 });
+
+app.get("/stats/online", online.getStats);
 
 app.get("/debug/auth", async (req, res) => {
   const raw =
@@ -105,6 +108,7 @@ app.post("/auth/logout", auth.logout);
 
 function isLockedPath(p) {
   if (p === "/health") return false;
+  if (p === "/stats/online") return false;
   if (p === "/site-lock") return false;
   if (p === "/auth/login") return false;
   if (p === "/auth/logout") return false;
@@ -152,7 +156,21 @@ app.use(async (req, res, next) => {
       until: lock.until
     }
   });
+}
+
+// ---- Online presence tracking ----
+// Fires after auth succeeds on any authenticated request. Fire-and-forget
+// so it never blocks the request path.
+app.use((req, res, next) => {
+  res.on("finish", () => {
+    if (req.auth && req.auth.accountId && res.statusCode < 400) {
+      online.touch(req.auth.accountId).catch(() => {});
+    }
+  });
+  next();
 });
+
+);
 
 // ---- Public auth (create is behind the lock check above) ----
 

@@ -2317,6 +2317,368 @@ body.is-locked .auth-page{ display:none !important; }
 .tg-status-main b{display:block;font-size:14px;font-weight:600}
 .tg-status-main small{display:block;color:var(--dim);font-size:12px;margin-top:3px;font-family:var(--mono);overflow-wrap:anywhere}
 
+
+/* ============================================================
+   MOTION SYSTEM — iOS spring + subtle material
+   ============================================================ */
+:root{
+  --spring: cubic-bezier(.32,.72,0,1);
+  --spring-fast: cubic-bezier(.32,.72,0,1);
+  --ease-material: cubic-bezier(.2,.6,.2,1);
+  --t-spring: 420ms var(--spring);
+  --t-spring-fast: 260ms var(--spring);
+  --t-mobile: 280ms var(--spring);
+}
+@media (prefers-reduced-motion:reduce){
+  :root{
+    --t-spring: 1ms linear;
+    --t-spring-fast: 1ms linear;
+    --t-mobile: 1ms linear;
+  }
+}
+.screen-page.open{ animation: pageIn 320ms var(--spring) }
+@keyframes pageIn{
+  from{ opacity: 0; transform: translateY(10px) scale(.995) }
+  to{ opacity: 1; transform: none }
+}
+.msg{ animation: msgIn 260ms var(--spring) }
+@keyframes msgIn{
+  from{ opacity: 0; transform: translateY(6px) }
+  to{ opacity: 1; transform: none }
+}
+.provider-row, .admin-card, .acct-hero, .apikeys-hero, .docs-hero,
+.persona-card, .chat-item, .variant-row, .file-card, .tl-sources li,
+.pm-row, .saved-prompt-row, .admin-status{
+  transition: transform var(--t-spring-fast),
+              background-color var(--t-base),
+              border-color var(--t-base),
+              box-shadow var(--t-spring-fast);
+}
+.provider-row:hover, .admin-card:hover, .persona-card:hover,
+.chat-item:hover, .variant-row:hover, .file-card:hover{
+  transform: translateY(-1px);
+}
+.admin-card{ border-radius: 14px; }
+.acct-hero, .apikeys-hero, .docs-hero{ border-radius: 18px; }
+.apikey-card, .provider-row, .variant-row{ border-radius: 14px; }
+.dialog{ border-top-left-radius: 20px; border-bottom-left-radius: 20px; }
+.screen-page-body{ padding-top: 18px; }
+.qs-sheet{ transition: transform var(--t-mobile) }
+.qs-backdrop{ transition: opacity var(--t-base) }
+.chip-btn, .send, .head-action-btn, .qs-prov-tile, .avatar-opt, .swatch{
+  transition: background-color var(--t-base),
+              color var(--t-base),
+              border-color var(--t-base),
+              transform 140ms var(--spring-fast),
+              box-shadow var(--t-base);
+}
+@media (max-width:900px){
+  .sidebar{ transition: transform var(--t-mobile) }
+}
+.toast{ animation: toastIn 260ms var(--spring) }
+@keyframes toastIn{
+  from{ opacity: 0; transform: translateY(-6px) scale(.97) }
+  to{ opacity: 1; transform: none }
+}
+
+/* HEAD ACTION — new chat button */
+.head-action-btn{
+  display:grid;place-items:center;
+  width:36px;height:36px;flex:0 0 auto;
+  border-radius:50%;
+  background:var(--panel-3);
+  border:1px solid var(--line);
+  color:var(--muted);
+  transition:background-color var(--t-base),
+             color var(--t-base),
+             border-color var(--t-base),
+             transform 140ms var(--spring-fast);
+}
+.head-action-btn:hover{ background:var(--raised); color:var(--text); border-color:var(--line-strong) }
+.head-action-btn:active{ transform: scale(.94) }
+.head-action-btn svg{ width:16px; height:16px }
+
+/* SIDEBAR ONLINE COUNTER */
+.side-online{
+  flex:0 0 auto;
+  display:flex; align-items:center; gap:8px;
+  padding:0 16px 10px;
+  color:var(--muted); font-size:12px;
+  font-variant-numeric:tabular-nums;
+}
+.side-online .online-dot{
+  width:7px; height:7px; border-radius:50%;
+  background:var(--ok);
+  box-shadow:0 0 0 3px rgba(86,211,100,.18);
+  flex:0 0 auto;
+}
+.side-online .online-label{ color:var(--dim); margin-left:2px }
+
+/* ICONS */
+.icon{
+  display:inline-block;
+  width:16px; height:16px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  vertical-align:middle;
+  flex:0 0 auto;
+}
+.icon-sm{ width:14px; height:14px }
+.icon-lg{ width:20px; height:20px }
+.icon-xl{ width:24px; height:24px }
+.side-nav button{ gap:10px }
+.side-nav button .icon{ opacity:.75 }
+.side-nav button.is-active .icon, .side-nav button:hover .icon{ opacity:1 }
+.admin-nav button .icon{ margin-right:6px; vertical-align:-3px; opacity:.75 }
+.admin-nav button.is-active .icon, .admin-nav button:hover .icon{ opacity:1 }
+.chip-btn .icon{ width:15px; height:15px }
+
+/* ATTACHMENT STRIP — ChatGPT-style horizontal tiles */
+.attachment-strip{
+  display:flex;
+  gap:8px;
+  padding:8px 4px 2px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+  flex-wrap:nowrap;
+}
+.attachment-strip::-webkit-scrollbar{ display:none }
+.attach-tile{
+  position:relative;
+  flex:0 0 auto;
+  width:88px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  padding:8px;
+  background:var(--panel-3);
+  border:1px solid var(--line);
+  border-radius:14px;
+  transition:border-color var(--t-base), background-color var(--t-base);
+}
+.attach-tile:hover{ border-color:var(--line-strong); background:var(--raised) }
+.attach-tile-thumb{
+  width:72px; height:72px;
+  border-radius:10px;
+  overflow:hidden;
+  background:var(--panel);
+  display:grid; place-items:center;
+  flex:0 0 auto;
+  font-size:28px; line-height:1;
+  color:var(--muted);
+}
+.attach-tile-thumb img{
+  width:100%; height:100%; object-fit:cover; display:block;
+}
+.attach-tile-thumb svg{ width:26px; height:26px; color:var(--muted) }
+.attach-tile-name{
+  font-size:11px; font-weight:500;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  padding:0 2px;
+  max-width:100%;
+  text-align:center;
+}
+.attach-tile-remove{
+  position:absolute;
+  top:-6px; right:-6px;
+  width:22px; height:22px;
+  border-radius:50%;
+  display:grid; place-items:center;
+  background:var(--text);
+  color:var(--bg);
+  border:0;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,.5);
+  transition:transform 140ms var(--spring-fast);
+}
+.attach-tile-remove:hover{ transform: scale(1.08) }
+.attach-tile-remove:active{ transform: scale(.94) }
+.attach-tile-remove svg{ width:11px; height:11px; stroke-width:2.4 }
+.attachment-strip:empty{ display:none; padding:0 }
+
+/* USER MESSAGE ATTACHMENT CHIPS */
+.msg-user .attach-preview{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  justify-content:flex-end;
+  max-width:min(100%, 540px);
+  margin-bottom:2px;
+}
+.msg-user .attach-preview-chip{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 12px 8px 8px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:12px;
+  max-width:220px;
+  min-width:0;
+  font-size:12px;
+}
+.msg-user .attach-preview-thumb{
+  width:36px; height:36px; flex:0 0 auto;
+  border-radius:8px;
+  overflow:hidden;
+  background:var(--panel);
+  display:grid; place-items:center;
+  color:var(--muted);
+}
+.msg-user .attach-preview-thumb img{ width:100%; height:100%; object-fit:cover; display:block }
+.msg-user .attach-preview-thumb svg{ width:18px; height:18px }
+.msg-user .attach-preview-meta{
+  min-width:0; display:flex; flex-direction:column; gap:2px;
+}
+.msg-user .attach-preview-name{
+  font-weight:500;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  max-width:140px;
+}
+.msg-user .attach-preview-kind{
+  font-size:10.5px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em;
+}
+
+/* FILE CARD */
+.file-card{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  width:100%;
+  max-width:min(100%, 480px);
+  padding:14px 16px;
+  margin-top:10px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:16px;
+  cursor:pointer;
+  text-align:left;
+  transition:background-color var(--t-base),
+             border-color var(--t-base),
+             transform 200ms var(--spring-fast);
+}
+.file-card:hover{ background:var(--panel-3); border-color:var(--line-strong); transform: translateY(-1px) }
+.file-card-icon{
+  width:44px; height:44px; flex:0 0 auto;
+  display:grid; place-items:center;
+  border-radius:11px;
+  background:var(--panel-3);
+  border:1px solid var(--line);
+  color:var(--muted);
+}
+.file-card-icon svg{ width:22px; height:22px }
+.file-card-main{
+  flex:1; min-width:0;
+  display:flex; flex-direction:column; gap:3px;
+}
+.file-card-name{
+  font-size:13.5px; font-weight:500;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.file-card-meta{
+  font-size:11.5px; color:var(--dim);
+}
+.file-card-actions{
+  display:flex; gap:4px; flex:0 0 auto;
+}
+.file-card-action{
+  display:grid; place-items:center;
+  width:32px; height:32px;
+  border-radius:50%;
+  color:var(--muted);
+  background:transparent;
+  border:0;
+  cursor:pointer;
+  transition:background-color var(--t-base), color var(--t-base), transform 140ms var(--spring-fast);
+}
+.file-card-action:hover{ background:var(--raised); color:var(--text) }
+.file-card-action:active{ transform: scale(.94) }
+.file-card-action.is-copied{ color:var(--ok) }
+.file-card-action svg{ width:16px; height:16px }
+@media (max-width: 520px){
+  .file-card{ padding:12px 12px; gap:10px; border-radius:14px }
+  .file-card-icon{ width:38px; height:38px }
+  .file-card-icon svg{ width:19px; height:19px }
+  .file-card-name{ font-size:13px }
+  .file-card-action{ width:30px; height:30px }
+}
+
+/* FILE PREVIEW PAGE */
+.file-preview-bar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:6px 0 14px; margin-bottom:14px;
+  border-bottom:1px solid var(--line);
+  position:sticky; top:0; background:var(--bg); z-index:2;
+  flex-wrap:wrap;
+}
+.file-preview-meta{ flex:1; min-width:0 }
+.file-preview-meta b{
+  display:block; font-size:14px; font-weight:600;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.file-preview-meta span{
+  display:block; font-size:11.5px; color:var(--dim); margin-top:2px;
+}
+.file-preview-actions{ display:flex; gap:6px; flex:0 0 auto }
+.file-preview-actions button{
+  padding:8px 12px; border-radius:8px; font-size:12px;
+  background:var(--panel-3); border:1px solid var(--line); color:var(--muted);
+  transition:background-color var(--t-base), color var(--t-base), border-color var(--t-base);
+}
+.file-preview-actions button:hover{ background:var(--raised); color:var(--text); border-color:var(--line-strong) }
+.file-preview-actions .primary{ background:var(--accent); color:#fff; border-color:var(--accent) }
+
+/* Admin online card */
+.admin-online-card{
+  display:flex; align-items:center; gap:16px;
+  padding:18px 20px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:16px;
+  margin-top:14px;
+}
+.admin-online-card .online-dot-lg{
+  width:14px; height:14px; border-radius:50%;
+  background:var(--ok);
+  box-shadow:0 0 0 5px rgba(86,211,100,.18);
+  flex:0 0 auto;
+}
+.admin-online-card .online-count{
+  font-size:28px; font-weight:700; line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.admin-online-card .online-label{
+  font-size:12px; color:var(--dim); margin-top:4px;
+}
+
+/* Chat swipe */
+.chat-item{ position:relative; overflow:hidden }
+.chat-item-inner{
+  position:relative; z-index:1;
+  display:flex; align-items:center;
+  background:var(--bg);
+  transition: transform 220ms var(--spring);
+}
+.chat-item.is-swiping .chat-item-inner{ transform: translateX(-64px) }
+.chat-item-actions-swipe{
+  position:absolute; right:0; top:0; bottom:0;
+  width:64px; display:grid; place-items:center;
+  background:var(--danger, #e5484d);
+  z-index:0;
+}
+.chat-item-actions-swipe button{
+  background:transparent; border:0; color:#fff; cursor:pointer;
+  display:grid; place-items:center; width:100%; height:100%;
+}
+.chat-item-actions-swipe svg{ width:18px; height:18px }
+
+/* QS sheet dragging */
+.qs-sheet.dragging{ transition: none }
+
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs" type="module" id="pdfjs-module"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js" defer></script>
@@ -2345,6 +2707,11 @@ body.is-locked .auth-page{ display:none !important; }
       <div class="side-label">Recent</div>
       <div class="side-list" id="recentChats"></div>
     </div>
+    <div class="side-online" id="sideOnline" title="Users online">
+      <span class="online-dot"></span>
+      <span id="onlineCount">—</span>
+      <span class="online-label">online</span>
+    </div>
     <button class="side-api-link" id="apiDocsBtn" aria-label="API documentation">&lt;&gt; API</button>
     <div class="side-account">
       <button class="account-btn" id="accountBtn">
@@ -2357,8 +2724,10 @@ body.is-locked .auth-page{ display:none !important; }
 
   <main class="main">
     <header class="main-head">
-      <button class="drawer-open" id="menuBtn" aria-label="Menu">☰</button>
+      <button class="drawer-open" id="menuBtn" aria-label="Menu"></button>
       <button class="model-btn" id="modelBtn"><span id="modelLabel">Loading models…</span><svg class="model-caret" viewBox="0 0 24 24"><path d="m8 10.2 4 4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"/></svg></button>
+      <span class="composer-spacer"></span>
+      <button class="head-action-btn" id="headNewChat" aria-label="New chat" title="New chat"></button>
     </header>
 
     <section class="stage is-home" id="stage">
@@ -2383,7 +2752,6 @@ body.is-locked .auth-page{ display:none !important; }
           <div class="composer-bar">
             <label class="chip-btn" aria-label="Attach files" title="Attach files">＋<input id="fileInput" type="file" hidden multiple accept="image/*,.pdf,.txt,.md,.markdown,.json,.csv,.js,.ts,.html,.css,.xml,.yaml,.yml,.log,.py,.java,.c,.cpp,.h,.hpp,.sql,.sh,.go,.rs,.php,.jsx,.tsx,.vue"></label>
             <button class="chip-btn" id="searchBtn" aria-label="Web search" title="Web search">⌕</button>
-            <button class="chip-btn" id="readUrlBtn" aria-label="Read URL" title="Read a URL">🔗</button>
             <button class="search-provider-pill" id="searchProviderPill" type="button" style="display:none" title="Change search provider">
               <span id="searchProviderLabel">Gemini</span>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10.2 4 4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
@@ -2481,6 +2849,23 @@ body.is-locked .auth-page{ display:none !important; }
 
 <script>
 /* Same-origin: the app and the API both live on china-gpt.onrender.com. */
+
+const ICONS = {
+  menu: `<svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`,
+  compose: `<svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>`,
+  paperclip: `<svg class="icon" viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>`,
+  send: `<svg class="icon" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>`,
+  x: `<svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>`,
+  copy: `<svg class="icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+  download: `<svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>`,
+  trash: `<svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>`,
+  star: `<svg class="icon" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
+  starFilled: `<svg class="icon" viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
+  edit: `<svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>`,
+  file: `<svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>`,
+  image: `<svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`,
+};
+
 const WORKER_BASE = "";
 const API_BASE = WORKER_BASE + "/v1";
 const $ = s => document.querySelector(s);
@@ -2506,6 +2891,7 @@ const state = {
   density:localStorage.getItem("chinaGPTDensity")||"comfortable",
   profileName:localStorage.getItem("chinaGPTProfileName")||"",
   profileAvatar:localStorage.getItem("chinaGPTProfileAvatar")||"🙂",
+  profileAvatarImage:localStorage.getItem("chinaGPTProfileAvatarImage")||"",
   persona:safeJsonEarly("chinaGPTPersona",{text:"",enabled:false}),
   savedPrompts:safeJsonEarly("chinaGPTSavedPrompts",[]),
   apiBaseUrl:"",
@@ -3105,6 +3491,41 @@ $("#screenPageClose").onclick=popPage;
 /* ============================================================
    LOAD MODELS
    ============================================================ */
+
+function canonicalKeyOf(modelId) {
+  const raw = String(modelId || "");
+  const last = raw.includes("/") ? raw.slice(raw.lastIndexOf("/") + 1) : raw;
+  return last.toLowerCase()
+    .replace(/:free$/i, "")
+    .replace(/[._]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+function clientGroupModels(models) {
+  const map = new Map();
+  for (const m of models) {
+    if (!m || typeof m.id !== "string") continue;
+    const key = canonicalKeyOf(m.id);
+    if (!key) continue;
+    let g = map.get(key);
+    if (!g) { g = { canonical: key, variants: [], hasFree: false, providers: [], primary: m.id, pinned: null }; map.set(key, g) }
+    g.variants.push(m);
+    if (/:free$/i.test(m.id)) g.hasFree = true;
+    const prov = (m.id.split("/")[0] || "").toLowerCase();
+    if (prov && !g.providers.includes(prov)) g.providers.push(prov);
+  }
+  for (const g of map.values()) {
+    const sorted = [...g.variants].sort((a, b) => {
+      const af = /:free$/i.test(a.id) ? 1 : 0, bf = /:free$/i.test(b.id) ? 1 : 0;
+      if (af !== bf) return af - bf;
+      if (a.id.length !== b.id.length) return a.id.length - b.id.length;
+      return a.id.localeCompare(b.id);
+    });
+    g.primary = sorted[0].id;
+  }
+  return [...map.values()];
+}
+
 async function loadModels(){
   try{
     const r=await apiFetch(API_BASE+"/models",{headers:authHeaders(false)});
@@ -3151,8 +3572,11 @@ async function loadModels(){
         providers: g.providers || [],
         pinned: g.pinned || null
       }));
+      console.log("[loadModels] backend groups:", state.modelGroups.length);
     } else {
-      state.modelGroups = [];
+      console.warn("[loadModels] no groups in response — client-side fallback");
+      state.modelGroups = clientGroupModels(state.models);
+      console.log("[loadModels] client groups:", state.modelGroups.length);
     }
     if(!state.model || !state.models.some(m=>m.id===state.model)) {
       if (state.modelGroups.length) state.model = state.modelGroups[0].primary;
@@ -4810,31 +5234,31 @@ async function openCompare(prefillPrompt=""){
    ATTACHMENTS
    ============================================================ */
 function renderAttachments(){
-  const box=$("#attachmentStrip");if(!box)return;
-  if(!state.attachments.length){
-    box.innerHTML="";
-    return;
-  }
-  box.innerHTML=state.attachments.map((a,i)=>{
-    const isImage = a.kind === "image" && a.dataUrl;
-    const thumb = isImage
-      ? `<span class="attach-thumb"><img src="${a.dataUrl}" alt=""></span>`
-      : `<span class="attach-thumb attach-thumb-icon">${fileIconFor(a)}</span>`;
-    const meta = isImage
-      ? `Image`
-      : `${a.kind === "pdf" ? "PDF" : "File"} · ${formatBytes(a.size||0)}`;
-    return `<span class="attach-chip" title="${escapeHtml(a.name)}">
-      ${thumb}
-      <span class="attach-meta">
-        <span class="attach-name">${escapeHtml(a.name)}</span>
-        <span class="attach-sub">${escapeHtml(meta)}</span>
-      </span>
-      <button type="button" class="attach-remove" data-remove-attachment="${i}" aria-label="Remove">×</button>
-    </span>`;
+  const box = document.getElementById("attachmentStrip") || document.getElementById("attachments") || document.querySelector(".attachment-strip");
+  if (!box) return;
+  box.classList.add("attachment-strip");
+  const list = state.attachments || [];
+  if (!list.length) { box.innerHTML = ""; return; }
+  box.innerHTML = list.map((a, i) => {
+    const name = escapeHtml(a.name || a.filename || "file");
+    const isImg = (a.mime || a.type || "").startsWith("image/") || /^data:image\//.test(a.data || a.content || "");
+    const src = a.preview || a.dataUrl || (isImg ? (a.data || a.content || "") : "");
+    const thumb = isImg && src
+      ? `<img src="${src}" alt="">`
+      : (ICONS.file || "📄");
+    return `<div class="attach-tile" data-attach-idx="${i}">
+      <div class="attach-tile-thumb">${thumb}</div>
+      <div class="attach-tile-name" title="${name}">${name}</div>
+      <button type="button" class="attach-tile-remove" data-remove-attach="${i}" aria-label="Remove">${ICONS.x || "×"}</button>
+    </div>`;
   }).join("");
-  box.querySelectorAll("[data-remove-attachment]").forEach(b=>b.onclick=()=>{
-    state.attachments.splice(Number(b.dataset.removeAttachment),1);
-    renderAttachments();
+  box.querySelectorAll("[data-remove-attach]").forEach(b => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      const idx = Number(b.dataset.removeAttach);
+      state.attachments.splice(idx, 1);
+      renderAttachments();
+    };
   });
 }
 
@@ -4913,11 +5337,23 @@ function closeAuthPage(){
 function maskedKey(){const k=key();return k?"•••• "+k.slice(-4):""}
 function updateAccountBadge(){
   const nameEl=$("#accountName"),subEl=$("#accountSub"),avEl=$("#accountAvatar");
-  if(!nameEl)return;
-  if(!isAuthenticated()){nameEl.textContent="Account";subEl.textContent="Not signed in";avEl.textContent="U";return}
+  if(!nameEl||!avEl)return;
+  if(!isAuthenticated()){
+    nameEl.textContent="Account";subEl.textContent="Not signed in";
+    avEl.innerHTML="U";avEl.style.padding="";avEl.style.overflow="";
+    return;
+  }
   nameEl.textContent=state.profileName||(state.role==="admin"?"Admin":"Account");
   subEl.textContent=maskedKey();
-  avEl.textContent=state.profileAvatar||(state.profileName?state.profileName[0].toUpperCase():"U");
+  if (state.profileAvatarImage) {
+    avEl.innerHTML = `<img src="${state.profileAvatarImage}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%">`;
+    avEl.style.padding = "0";
+    avEl.style.overflow = "hidden";
+  } else {
+    avEl.innerHTML = escapeHtml(state.profileAvatar || (state.profileName ? state.profileName[0].toUpperCase() : "U"));
+    avEl.style.padding = "";
+    avEl.style.overflow = "";
+  }
 }
 function openAccountPage(){
   if(!isAuthenticated()){openLogin("account");return}
@@ -5929,7 +6365,11 @@ async function renderProviderIconsPage(){
         </div>
         ${status}
         <div class="provider-row-input">
-          <input placeholder="https://example.com/icon.svg" value="${escapeHtml(override)}" data-provider-input="${escapeHtml(k)}">
+          <input placeholder="https://example.com/icon.svg" value="${/^data:/.test(override) ? "" : escapeHtml(override)}" data-provider-input="${escapeHtml(k)}">
+          <label class="file-label" style="display:inline-flex;align-items:center;gap:6px;padding:10px 14px;background:var(--panel-3);border:1px solid var(--line);border-radius:8px;cursor:pointer">
+            Upload
+            <input type="file" accept="image/*,.svg" data-provider-file="${escapeHtml(k)}" hidden>
+          </label>
           <button class="btn-primary" type="button" data-save-icon="${escapeHtml(k)}">Save</button>
           ${override ? `<button class="btn-ghost" type="button" data-clear-icon="${escapeHtml(k)}">Clear</button>` : ``}
         </div>
@@ -7658,7 +8098,9 @@ $("#stopBtn").onclick=stopGeneration;
 $("#prompt").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
 $("#prompt").addEventListener("input",e=>{e.target.style.height="";e.target.style.height=Math.min(200,e.target.scrollHeight)+"px"});
 $("#newChat").onclick=()=>{
-  if(state.generating){toast("Wait for the response to finish.");return}
+  if(state.generating){toast("Wait for the response to finish.");
+$("#headNewChat").onclick=()=>$("#newChat").click();
+return}
   if(state.messages.length&&!confirm("Start a new chat? Your current conversation will remain saved."))return;
   state.messages=[];state.attachments=[];state.conversationId="";
   localStorage.removeItem("chinaGPTConversationId");
@@ -7681,8 +8123,6 @@ $("#menuBtn").onclick=()=>$("#shell").classList.add("nav-open");
 $("#drawerClose").onclick=()=>$("#shell").classList.remove("nav-open");
 $("#scrim").onclick=()=>$("#shell").classList.remove("nav-open");
 $("#searchBtn").onclick=toggleWebSearch;
-$("#readUrlBtn").onclick = () => {
-  const url = prompt("Paste a URL to read:");
   if (!url) return;
   const trimmed = url.trim();
   if (!/^https?:\/\//i.test(trimmed)) { toast("Enter a URL starting with http:// or https://"); return; }
@@ -7963,6 +8403,127 @@ renderMessages();
   }
   if (state.conversationId) loadConversation(state.conversationId);
 })();
+
+(function injectHeadIcons(){
+  const menu = document.getElementById("menuBtn");
+  if (menu && !menu.innerHTML.trim()) menu.innerHTML = ICONS.menu;
+  const hn = document.getElementById("headNewChat");
+  if (hn && !hn.innerHTML.trim()) hn.innerHTML = ICONS.compose;
+})();
+
+
+async function refreshOnlineCount(){
+  try{
+    const r = await apiFetch(WORKER_BASE + "/stats/online");
+    if(!r.ok) return;
+    const j = await r.json();
+    const n = j.online ?? "—";
+    const el = document.getElementById("onlineCount");
+    if(el) el.textContent = String(n);
+    const ael = document.getElementById("adminOnlineCount");
+    if(ael) ael.textContent = String(n);
+  }catch{}
+}
+setInterval(refreshOnlineCount, 30000);
+setTimeout(refreshOnlineCount, 1500);
+
+
+/* SWIPE GESTURES */
+(function sidebarSwipe() {
+  const shell = $("#shell");
+  if (!shell) return;
+  let startX = 0, startY = 0, tracking = false;
+  const EDGE = 24;
+  document.addEventListener("touchstart", (e) => {
+    const t = e.touches[0];
+    if (t.clientX < EDGE && !shell.classList.contains("nav-open")) {
+      startX = t.clientX; startY = t.clientY; tracking = true;
+    }
+  }, { passive: true });
+  document.addEventListener("touchmove", (e) => {
+    if (!tracking) return;
+    const t = e.touches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    if (Math.abs(dy) > Math.abs(dx)) { tracking = false; return; }
+    if (dx > 60) { shell.classList.add("nav-open"); tracking = false; }
+  }, { passive: true });
+  document.addEventListener("touchend", () => { tracking = false }, { passive: true });
+})();
+(function sheetDrag() {
+  const sheet = $("#qsSheet");
+  if (!sheet) return;
+  const handle = sheet.querySelector(".qs-sheet-handle");
+  const head = sheet.querySelector(".qs-sheet-head");
+  const target = handle || head;
+  if (!target) return;
+  let startY = 0, currentY = 0, dragging = false;
+  target.addEventListener("touchstart", (e) => {
+    startY = e.touches[0].clientY; currentY = startY; dragging = true;
+    sheet.classList.add("dragging");
+  }, { passive: true });
+  target.addEventListener("touchmove", (e) => {
+    if (!dragging) return;
+    currentY = e.touches[0].clientY;
+    const dy = Math.max(0, currentY - startY);
+    sheet.style.transform = `translateY(${dy}px)`;
+  }, { passive: true });
+  target.addEventListener("touchend", () => {
+    if (!dragging) return;
+    dragging = false; sheet.classList.remove("dragging");
+    const dy = Math.max(0, currentY - startY);
+    sheet.style.transform = "";
+    if (dy > 90 && typeof closeQuickModelSwitch === "function") closeQuickModelSwitch();
+  });
+})();
+function attachChatRowSwipe(rowEl) {
+  let startX = 0, startY = 0, dragging = false;
+  rowEl.addEventListener("touchstart", (e) => {
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY; dragging = true;
+  }, { passive: true });
+  rowEl.addEventListener("touchmove", (e) => {
+    if (!dragging) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (Math.abs(dy) > Math.abs(dx)) { dragging = false; return }
+    if (dx < -30) rowEl.classList.add("is-swiping");
+    else rowEl.classList.remove("is-swiping");
+  }, { passive: true });
+  rowEl.addEventListener("touchend", () => { dragging = false });
+}
+
+
+document.addEventListener("change", async (e) => {
+  const fileInput = e.target.closest("[data-provider-file]");
+  if (!fileInput) return;
+  const f = fileInput.files?.[0];
+  fileInput.value = "";
+  if (!f) return;
+  if (f.size > 2 * 1024 * 1024) { toast("Icon must be under 2 MB"); return }
+  const provider = fileInput.dataset.providerFile;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const dataUrl = String(reader.result || "");
+    try {
+      const r = await apiFetch(WORKER_BASE + "/admin/provider-icons", {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({ provider, url: dataUrl })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.error || "Upload failed");
+      if (typeof adminIconOverrides !== "undefined") adminIconOverrides = j.icons || {};
+      if (typeof iconCache !== "undefined") { iconCache.delete(provider); iconCache.set(provider, dataUrl); }
+      toast("Icon uploaded");
+      if (typeof renderProviderIconsPage === "function") renderProviderIconsPage();
+      if (typeof updateBadge === "function") updateBadge();
+      if ($("#modelsPage")?.classList.contains("open") && typeof renderCatalog === "function") renderCatalog();
+    } catch (err) {
+      toast(err.message || "Upload failed");
+    }
+  };
+  reader.readAsDataURL(f);
+});
+
 </script>
 </body>
 </html>
