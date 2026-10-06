@@ -156,7 +156,7 @@ app.use(async (req, res, next) => {
       until: lock.until
     }
   });
-}
+});
 
 // ---- Online presence tracking ----
 // Fires after auth succeeds on any authenticated request. Fire-and-forget
@@ -169,8 +169,6 @@ app.use((req, res, next) => {
   });
   next();
 });
-
-);
 
 // ---- Public auth (create is behind the lock check above) ----
 
