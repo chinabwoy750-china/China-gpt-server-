@@ -2961,6 +2961,13 @@ const TOOL_DEFS = [
 ];
 
 
+
+function isDeepseekWebProxy(modelId) {
+  // 9Router deepseek variants are chat.deepseek.com proxies — native Search
+  // often dies mid-stream. Prefer our own search injection for those.
+  return /deepseek/i.test(String(modelId || ""));
+}
+
 function looksLikeSearchRequest(text) {
   const s = String(text || "");
   return /\b((web\s*)?search|search\s+(the\s+)?(web|internet|online)|google\b|look\s+up|find\s+(me\s+)?(websites?|sites?|links?|sources?|info(?:rmation)?)|what'?s\s+the\s+latest|current\s+(news|events|price)|browse\s+(the\s+)?web)\b/i.test(s);
@@ -4724,7 +4731,10 @@ async function send(){
   }
 
   // B) Web search (skipped for lone URLs)
-  if (state.webSearch && text && !loneUrl) {
+  // Deepseek via chat.deepseek.com proxy: native Search often ends at
+  // "I'll use the search tool." — inject our own search results instead.
+  const forceOurSearch = isDeepseekWebProxy(state.model) && looksLikeSearchRequest(text);
+  if ((state.webSearch || forceOurSearch) && text && !loneUrl) {
     const sEvt = {
       kind: "search",
       status: "running",
