@@ -2960,6 +2960,12 @@ const TOOL_DEFS = [
   }
 ];
 
+
+function looksLikeSearchRequest(text) {
+  const s = String(text || "");
+  return /\b((web\s*)?search|search\s+(the\s+)?(web|internet|online)|google\b|look\s+up|find\s+(me\s+)?(websites?|sites?|links?|sources?|info(?:rmation)?)|what'?s\s+the\s+latest|current\s+(news|events|price)|browse\s+(the\s+)?web)\b/i.test(s);
+}
+
 function toolLabel(name, args){
   if (name === "web_search") {
     const q = String(args.query || "").slice(0, 40);
@@ -4518,7 +4524,12 @@ async function requestCompletion(target, messages, model=state.model){
   // Only send tools if the selected model supports them
   const modelMeta = state.models.find(m => m.id === model);
   const supportsTools = !!(modelMeta && modelMeta.capabilities && modelMeta.capabilities.tools);
-  if (supportsTools) {
+  // Also offer tools when the user asked to search or the search chip is on —
+  // many catalogs omit capabilities.tools even when the gateway accepts them.
+  const wantTools = supportsTools || state.webSearch || looksLikeSearchRequest(
+    (Array.isArray(messages) ? (messages.filter(m => m.role === "user").slice(-1)[0] || {}).content : "") || ""
+  );
+  if (wantTools) {
     body.tools = TOOL_DEFS;
     body.tool_choice = "auto";
   }
@@ -4718,7 +4729,11 @@ async function send(){
   }
 
   // B) Web search (skipped for lone URLs)
-  if (state.webSearch && text && !loneUrl) {
+  if ((state.webSearch || looksLikeSearchRequest(text)) && text && !loneUrl) {
+    if (!state.webSearch) {
+      // Auto-enabled from message intent — chip stays off, but this turn searches
+      try { toast("Searching the web…"); } catch {}
+    }
     const sEvt = {
       kind: "search",
       status: "running",
