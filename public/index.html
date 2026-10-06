@@ -4356,6 +4356,38 @@ async function readCompletionResponse(response, onChunk, onReasoning, onModel, o
 
   const reader=response.body.getReader(),decoder=new TextDecoder();
   let buf="",usage=null;
+  // ---- DeepSeek-through-proxy workaround ----
+  // Some proxies put only the first reasoning token in `reasoning_content`
+  // and stream the rest of the reasoning + the answer in `content`. Buffer
+  // content once reasoning has been seen, split at a marker, and bail out
+  // safely if the model never emits one.
+  let reasoningSeen = false;
+  let reasoningDone = false;
+  let pendingContent = "";
+  const RE_FINAL = /^(.*?)(?:\bNeed final\.?|\bFinal answer:|\bFinal response:|\bHere(?:'s| is) my final answer:)\s*/is;
+  const PENDING_MAX = 4000;
+
+  function flushPending(){
+    if (!pendingContent) return;
+    if (!reasoningDone) {
+      const m = pendingContent.match(RE_FINAL);
+      if (m) {
+        if (onReasoning) onReasoning(m[1]);
+        pendingContent = pendingContent.slice(m[0].length);
+        reasoningDone = true;
+      } else if (pendingContent.length > PENDING_MAX) {
+        // No marker within a reasonable window — assume this model
+        // doesn't use the pattern. Flush to content and stop buffering.
+        if (onChunk) onChunk(pendingContent);
+        pendingContent = "";
+        reasoningDone = true;
+      }
+    }
+    if (reasoningDone && pendingContent) {
+      if (onChunk) onChunk(pendingContent);
+      pendingContent = "";
+    }
+  }
 
   while(true){
     const {value,done}=await reader.read();if(done)break;
@@ -4391,14 +4423,38 @@ async function readCompletionResponse(response, onChunk, onReasoning, onModel, o
 
       // Normal upstream events
       if (j.model && onModel) onModel(j.model);
-      const delta=j.choices?.[0]?.delta;
-      const rc=delta?.reasoning_content||delta?.reasoning;
-      if(rc&&onReasoning)onReasoning(rc);
-      const c=delta?.content;if(c)onChunk(c);
-      if(j.usage)usage=j.usage;
+      const delta = j.choices?.[0]?.delta;
+
+      const rText = delta?.reasoning_content || delta?.reasoning;
+      if (rText) { reasoningSeen = true; if (onReasoning) onReasoning(rText); }
+
+      const c = delta?.content;
+      if (c) {
+        const parts = typeof c === "string" ? [c] : (Array.isArray(c) ? c : []);
+        for (const part of parts) {
+          const piece = typeof part === "string" ? part
+                      : (part && typeof part.text === "string") ? part.text
+                      : "";
+          if (!piece) continue;
+          if (reasoningSeen && !reasoningDone) {
+            pendingContent += piece;
+            flushPending();
+          } else {
+            if (onChunk) onChunk(piece);
+          }
+        }
+      }
+      if (j.usage) usage = j.usage;
     }
   }
 
+  // Stream ended. If we're still buffering, we never saw a final marker.
+  // Bias toward showing the text to the user as CONTENT — an answer that
+  // never appears is worse than reasoning that leaks slightly.
+  if (pendingContent) {
+    if (onChunk) onChunk(pendingContent);
+    pendingContent = "";
+  }
   return usage;
 }
 
