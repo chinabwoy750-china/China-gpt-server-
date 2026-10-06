@@ -4524,12 +4524,7 @@ async function requestCompletion(target, messages, model=state.model){
   // Only send tools if the selected model supports them
   const modelMeta = state.models.find(m => m.id === model);
   const supportsTools = !!(modelMeta && modelMeta.capabilities && modelMeta.capabilities.tools);
-  // Also offer tools when the user asked to search or the search chip is on —
-  // many catalogs omit capabilities.tools even when the gateway accepts them.
-  const wantTools = supportsTools || state.webSearch || looksLikeSearchRequest(
-    (Array.isArray(messages) ? (messages.filter(m => m.role === "user").slice(-1)[0] || {}).content : "") || ""
-  );
-  if (wantTools) {
+  if (supportsTools) {
     body.tools = TOOL_DEFS;
     body.tool_choice = "auto";
   }
@@ -4729,11 +4724,7 @@ async function send(){
   }
 
   // B) Web search (skipped for lone URLs)
-  if ((state.webSearch || looksLikeSearchRequest(text)) && text && !loneUrl) {
-    if (!state.webSearch) {
-      // Auto-enabled from message intent — chip stays off, but this turn searches
-      try { toast("Searching the web…"); } catch {}
-    }
+  if (state.webSearch && text && !loneUrl) {
     const sEvt = {
       kind: "search",
       status: "running",
