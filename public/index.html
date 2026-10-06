@@ -4339,6 +4339,51 @@ function chatMessages(uptoIndex){
   }
   return out;
 }
+
+/* Split chain-of-thought text from the final answer when upstream
+   dumps both into `content` (common with DeepSeek via some proxies). */
+function trySplitReasoningAnswer(text) {
+  const s = String(text || "");
+  if (s.length < 40) return null;
+
+  // Explicit markers DeepSeek / R1-style models use
+  const RE_MARK = /^(.*?)(?:\bNeed final\.?|\bFinal answer:|\bFinal response:|\bHere(?:'s| is) my final answer:|\bFinal:)\s*/is;
+  const m = s.match(RE_MARK);
+  if (m && m[1].length >= 8) {
+    return { reasoning: m[1].trim(), answer: s.slice(m[0].length).trim() };
+  }
+
+  // CoT language present?
+  const cot = /\b(the user (just )?(said|asked|wants|is)|I should|I need to|I'll |my (response|reply)|keep it (friendly|simple|warm)|no need for|this is a simple|likely wants|encourage further)\b/i;
+  if (!cot.test(s)) return null;
+
+  // Last short conversational paragraph after blank line
+  const parts = s.split(/\n\n+/);
+  if (parts.length >= 2) {
+    const last = parts[parts.length - 1].trim();
+    if (last.length >= 8 && last.length <= 320) {
+      const head = parts.slice(0, -1).join("\n\n").trim();
+      if (head.length > 40 && cot.test(head)) {
+        return { reasoning: head, answer: last };
+      }
+    }
+  }
+
+  // Answer glued after period: "...needs.Hello! I'm DeepSeek..."
+  const glued = s.match(/^([\s\S]{40,}?[.!?])\s*((?:Hello|Hi\b|Hey\b|Sure\b|Of course|Yes[,!]|Got it|Absolutely|Thanks|Thank you|Here(?:'s| is))[\s\S]{0,400})$/i);
+  if (glued) {
+    return { reasoning: glued[1].trim(), answer: glued[2].trim() };
+  }
+
+  // Last sentence if short and head is long CoT
+  const lastSent = s.match(/^([\s\S]+[.!?])\s+([A-Z][^.!?\n]{8,240}[.!?]?)\s*$/);
+  if (lastSent && lastSent[1].length > 80 && cot.test(lastSent[1])) {
+    return { reasoning: lastSent[1].trim(), answer: lastSent[2].trim() };
+  }
+
+  return null;
+}
+
 async function readCompletionResponse(response, onChunk, onReasoning, onModel, onToolEvent){
   if(!response.ok){let msg="";try{msg=await response.text()}catch{};throw new Error("HTTP "+response.status+(msg?" — "+msg:""))}
   const type=response.headers.get("content-type")||"";
@@ -4376,11 +4421,14 @@ async function readCompletionResponse(response, onChunk, onReasoning, onModel, o
         pendingContent = pendingContent.slice(m[0].length);
         reasoningDone = true;
       } else if (pendingContent.length > PENDING_MAX) {
-        // No marker within a reasonable window — assume this model
-        // doesn't use the pattern. Flush to content and stop buffering.
-        if (onChunk) onChunk(pendingContent);
-        pendingContent = "";
-        reasoningDone = true;
+        // No marker yet — try heuristic split, else hold for end-of-stream.
+        const split = trySplitReasoningAnswer(pendingContent);
+        if (split) {
+          if (split.reasoning && onReasoning) onReasoning(split.reasoning);
+          pendingContent = split.answer || "";
+          reasoningDone = true;
+        }
+        // else keep buffering until stream ends (smarter split there)
       }
     }
     if (reasoningDone && pendingContent) {
@@ -4448,11 +4496,15 @@ async function readCompletionResponse(response, onChunk, onReasoning, onModel, o
     }
   }
 
-  // Stream ended. If we're still buffering, we never saw a final marker.
-  // Bias toward showing the text to the user as CONTENT — an answer that
-  // never appears is worse than reasoning that leaks slightly.
+  // Stream ended. Prefer a clean split; never swallow the answer.
   if (pendingContent) {
-    if (onChunk) onChunk(pendingContent);
+    const split = trySplitReasoningAnswer(pendingContent);
+    if (split) {
+      if (split.reasoning && onReasoning) onReasoning(split.reasoning);
+      if (split.answer && onChunk) onChunk(split.answer);
+    } else {
+      if (onChunk) onChunk(pendingContent);
+    }
     pendingContent = "";
   }
   return usage;
@@ -4510,6 +4562,18 @@ async function requestCompletion(target, messages, model=state.model){
       target.reasoning = (target.reasoning||"") + tail.reasoning;
     }
     if(tail.content) target.content += tail.content;
+
+    // Final safety net: if the whole reply looks like CoT + answer glued
+    // into content (proxy never sent reasoning_content), split it now.
+    if ((!target.reasoning || target.reasoning.length < 12) && target.content && target.content.length > 60) {
+      const split = trySplitReasoningAnswer(target.content);
+      if (split && split.reasoning && split.answer) {
+        if (!target.reasoningStartedAt) target.reasoningStartedAt = Date.now();
+        target.reasoning = (target.reasoning || "") + split.reasoning;
+        target.content = split.answer;
+        target.reasoningEndedAt = Date.now();
+      }
+    }
     updateStreamingMessage(target);
     return result;
   }finally{state.abortController=null;}
