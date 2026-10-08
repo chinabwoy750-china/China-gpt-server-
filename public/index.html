@@ -2694,6 +2694,52 @@ body.is-locked .auth-page{ display:none !important; }
 }
 .free-toggle svg{width:14px;height:14px}
 
+.pf-probe-row{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 12px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:10px;
+  margin-top:8px;
+}
+.pf-probe-row .pf-probe-summary{
+  flex:1;min-width:0;
+  font-size:12.5px;color:var(--muted);line-height:1.5;
+}
+.pf-probe-row .pf-probe-summary b{color:var(--text);font-weight:500}
+.pf-probe-copy{
+  display:inline-flex;align-items:center;gap:6px;
+  height:32px;padding:0 12px;flex:0 0 auto;
+  border-radius:8px;background:var(--panel-3);
+  border:1px solid var(--line);color:var(--muted);
+  font-size:12px;font-weight:500;cursor:pointer;
+  transition:background-color var(--t-base),color var(--t-base),border-color var(--t-base);
+}
+.pf-probe-copy:hover{background:var(--raised);color:var(--text);border-color:var(--line-strong)}
+.pf-probe-copy.is-copied{color:var(--ok);border-color:rgba(86,211,100,.35)}
+.pf-probe-copy svg{width:14px;height:14px}
+.pf-probe-list{
+  margin-top:8px;
+  padding:10px 12px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:8px;
+  font-family:var(--mono);font-size:11.5px;
+  color:var(--muted);line-height:1.6;
+  max-height:160px;overflow-y:auto;
+  white-space:pre-wrap;word-break:break-all;
+}
+.pf-probe-actions{
+  display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;
+}
+.pf-probe-actions button{
+  padding:7px 11px;font-size:11.5px;
+  border-radius:7px;
+  background:var(--panel-3);border:1px solid var(--line);
+  color:var(--muted);cursor:pointer;
+}
+.pf-probe-actions button:hover{color:var(--text);border-color:var(--line-strong);background:var(--raised)}
+
 .qs-sheet-head .qs-tools-row{
   display:flex;gap:6px;align-items:center;
 }
@@ -3473,6 +3519,11 @@ function isFreeModel(m){
   if (Number.isFinite(prompt) && Number.isFinite(completion) && prompt === 0 && completion === 0) return true;
   return false;
 }
+
+function isFreeModelId(id){
+  return /[:._\-]free$/i.test(String(id || "").trim());
+}
+
 
 function applyFreeFilter(list){
   if (!state.freeOnly) return list;
@@ -8571,6 +8622,20 @@ function openProviderForm(id){
       <input type="checkbox" id="pfEnabled" ${existing?.enabled !== false ? "checked" : ""} style="all:revert;width:18px;height:18px">
       <span>Provider is enabled</span>
     </label>
+    <label style="display:flex;align-items:flex-start;gap:8px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);margin:10px 0;cursor:pointer">
+      <input type="checkbox" id="pfFreeOnly" ${localStorage.getItem("chinaGPTProviderFreeOnly") === "1" ? "checked" : ""} style="all:revert;width:18px;height:18px;margin-top:2px">
+      <span>
+        <b style="display:block;font-size:13px;font-weight:500">Import only free models</b>
+        <small style="display:block;color:var(--dim);font-size:11.5px;margin-top:2px;line-height:1.5">
+          When ON, <b>Probe /v1/models</b> imports only IDs ending in
+          <code style="font-family:var(--mono)">:free</code>,
+          <code style="font-family:var(--mono)">.free</code>,
+          <code style="font-family:var(--mono)">_free</code>, or
+          <code style="font-family:var(--mono)">-free</code>
+          into the Chat list.
+        </small>
+      </span>
+    </label>
     <div class="admin-actions">
       <button class="btn-primary" id="pfSave" type="button">Save</button>
       <button class="btn-ghost" id="pfProbe" type="button">Probe /v1/models</button>
@@ -8581,27 +8646,99 @@ function openProviderForm(id){
 
   const $f = (id) => host.querySelector("#" + id);
 
+    // Persist the free-only preference globally.
+  const pfFreeOnlyEl = $f("pfFreeOnly");
+  if (pfFreeOnlyEl) {
+    pfFreeOnlyEl.onchange = () => {
+      localStorage.setItem("chinaGPTProviderFreeOnly", pfFreeOnlyEl.checked ? "1" : "0");
+    };
+  }
+
   $f("pfProbe").onclick = async () => {
+    const freeOnly = !!(pfFreeOnlyEl && pfFreeOnlyEl.checked);
     const probe = {
       id: $f("pfId").value.trim(),
       baseUrl: $f("pfBaseUrl").value.trim(),
       apiKey: $f("pfApiKey").value.trim(),
       authStyle: $f("pfAuthStyle").value
     };
+    const resultBox = $f("pfProbeResult");
+    resultBox.innerHTML = `<div class="admin-note">Probing /v1/models…</div>`;
+
     try {
       const r = await apiFetch(WORKER_BASE + "/admin/providers/probe-models", {
         method: "POST", headers: authHeaders(), body: JSON.stringify(probe)
       });
       const j = await r.json();
       if (!r.ok || !j.ok) throw new Error(j.error || "Probe failed");
-      const list = j.models || [];
-      $f("pfProbeResult").innerHTML = `<div class="admin-note">Found ${list.length} model${list.length===1?"":"s"}. Paste them into the Chat category to add them.<br><code style="font-family:var(--mono);font-size:11px">${escapeHtml(list.slice(0,50).join(", "))}</code></div>`;
+
+      const all = Array.isArray(j.models) ? j.models : [];
+      const filtered = freeOnly ? all.filter(isFreeModelId) : all;
+
+      if (!filtered.length) {
+        resultBox.innerHTML = `<div class="admin-note" style="color:var(--danger)">
+          No models found${freeOnly ? " ending in <code>:free</code> / <code>.free</code> / <code>_free</code> / <code>-free</code>" : ""}.
+        </div>`;
+        return;
+      }
+
+      const modelText = filtered.join("\n");
+      const previewText = filtered.slice(0, 40).join("\n")
+        + (filtered.length > 40 ? `\n…and ${filtered.length - 40} more` : "");
+
+      const summary = freeOnly
+        ? `Found <b>${all.length}</b> model${all.length === 1 ? "" : "s"} · filtered to <b>${filtered.length}</b> free.`
+        : `Found <b>${filtered.length}</b> model${filtered.length === 1 ? "" : "s"}.`;
+
+      resultBox.innerHTML = `
+        <div class="pf-probe-row">
+          <div class="pf-probe-summary">
+            ${summary}
+            ${freeOnly ? `<br><small style="color:var(--dim)">Free filter is ON.</small>` : ``}
+          </div>
+          <button type="button" class="pf-probe-copy" id="pfProbeCopyAll">
+            ${COPY_ICON}
+            <span>Copy all</span>
+          </button>
+        </div>
+        <div class="pf-probe-actions">
+          <button type="button" data-pf-fill="pfChat">Send to Chat</button>
+          <button type="button" data-pf-fill="pfImage">Send to Images</button>
+          <button type="button" data-pf-fill="pfVideo">Send to Videos</button>
+          <button type="button" data-pf-fill="pfAudio">Send to Audio</button>
+        </div>
+        <div class="pf-probe-list">${escapeHtml(previewText)}</div>
+      `;
+
+      const copyBtn = resultBox.querySelector("#pfProbeCopyAll");
+      if (copyBtn) {
+        copyBtn.onclick = () => {
+          copyText(modelText);
+          copyBtn.classList.add("is-copied");
+          const old = copyBtn.innerHTML;
+          copyBtn.innerHTML = `${CHECK_ICON}<span>Copied</span>`;
+          setTimeout(() => {
+            copyBtn.classList.remove("is-copied");
+            copyBtn.innerHTML = old;
+          }, 1400);
+        };
+      }
+
+      resultBox.querySelectorAll("[data-pf-fill]").forEach(btn => {
+        btn.onclick = () => {
+          const target = $f(btn.dataset.pfFill);
+          if (!target) return;
+          target.value = modelText;
+          toast(`Sent ${filtered.length} model${filtered.length === 1 ? "" : "s"} to ${btn.textContent.replace("Send to ", "")}`);
+        };
+      });
+
     } catch (e) {
-      $f("pfProbeResult").innerHTML = `<div class="admin-note" style="color:var(--danger)">${escapeHtml(e.message || "Probe failed")}</div>`;
+      resultBox.innerHTML = `<div class="admin-note" style="color:var(--danger)">${escapeHtml(e.message || "Probe failed")}</div>`;
     }
   };
 
-  $f("pfSave").onclick = async () => {
+$f("pfSave").onclick = async () => {
     const payload = {
       id: $f("pfId").value.trim(),
       label: $f("pfLabel").value.trim(),
