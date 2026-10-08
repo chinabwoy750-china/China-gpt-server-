@@ -2678,6 +2678,30 @@ body.is-locked .auth-page{ display:none !important; }
 /* QS sheet dragging */
 .qs-sheet.dragging{ transition: none }
 
+.free-toggle{
+  display:inline-flex;align-items:center;gap:6px;
+  height:32px;padding:0 12px;border-radius:99px;
+  border:1px solid var(--line);background:var(--panel-3);
+  color:var(--muted);font-size:12.5px;font-weight:500;
+  cursor:pointer;white-space:nowrap;flex:0 0 auto;
+  transition:background-color var(--t-base),color var(--t-base),border-color var(--t-base);
+}
+.free-toggle:hover{color:var(--text);border-color:var(--line-strong)}
+.free-toggle.is-on{
+  color:var(--ok);
+  background:rgba(86,211,100,.10);
+  border-color:rgba(86,211,100,.35);
+}
+.free-toggle svg{width:14px;height:14px}
+
+.qs-sheet-head .qs-tools-row{
+  display:flex;gap:6px;align-items:center;
+}
+.qs-sheet-head .qs-search{flex:1;margin-bottom:0}
+@media (max-width:420px){
+  .free-toggle{padding:0 10px;font-size:11.5px;height:30px}
+}
+
 .catalog-tabs{display:flex;gap:6px;padding:12px 20px 4px;flex-wrap:wrap}
 .catalog-tab{
   display:inline-flex;align-items:center;gap:6px;
@@ -2875,11 +2899,15 @@ body.is-locked .auth-page{ display:none !important; }
       </div>
       <p>Selecting one pins its exact model ID to the composer.</p>
     </div>
-    <div class="toolbar">
-      <label class="search-field">
+    <div class="toolbar" style="display:flex;gap:8px;align-items:center">
+      <label class="search-field" style="flex:1;min-width:0">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.6" stroke-width="1.6"/><path d="m16 16 4.4 4.4" stroke-width="1.6" stroke-linecap="round"/></svg>
         <input id="modelSearch" placeholder="Search models or providers" aria-label="Search models">
       </label>
+      <button type="button" class="free-toggle" id="freeOnlyBtn" title="Show only free models">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5L15.5 10"/></svg>
+        <span>Free only</span>
+      </button>
     </div>
     <div class="catalog-tabs" id="catalogTabs">
       <button type="button" class="catalog-tab is-active" data-tab="chat">Chat <span class="count" data-count="chat">0</span></button>
@@ -2930,6 +2958,7 @@ const ICONS = {
   edit: `<svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>`,
   file: `<svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>`,
   image: `<svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`,
+  free: `<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5L15.5 10"/></svg>`,
 };
 
 (function extendIcons(){
@@ -2991,6 +3020,7 @@ const state = {
   modelsByCategory: { chat: [], image: [], video: [], audio: [] },
   customProviders: [],
   modelCategoriesMap: {},
+  freeOnly: localStorage.getItem("chinaGPTFreeOnly") === "1",
   profileName:localStorage.getItem("chinaGPTProfileName")||"",
   profileAvatar:localStorage.getItem("chinaGPTProfileAvatar")||"🙂",
   profileAvatarImage:localStorage.getItem("chinaGPTProfileAvatarImage")||"",
@@ -3425,6 +3455,50 @@ function applyOverrideKey(id){
   }
   return bestProvider;
 }
+
+/* Providers whose models are all free-tier, regardless of the ID suffix. */
+const FREE_PROVIDERS = new Set(["free-way"]);
+
+function isFreeModel(m){
+  if (!m) return false;
+  const id = String(m.id || "").toLowerCase();
+  if (/[:._\-]free$/i.test(id)) return true;
+  try {
+    const key = makerOf(m.id).key;
+    if (FREE_PROVIDERS.has(key)) return true;
+  } catch {}
+  const p = m.pricing || {};
+  const prompt = Number(p.prompt ?? p.input ?? NaN);
+  const completion = Number(p.completion ?? p.output ?? NaN);
+  if (Number.isFinite(prompt) && Number.isFinite(completion) && prompt === 0 && completion === 0) return true;
+  return false;
+}
+
+function applyFreeFilter(list){
+  if (!state.freeOnly) return list;
+  return list.filter(isFreeModel);
+}
+
+function updateFreeToggleUI(){
+  document.querySelectorAll("#freeOnlyBtn, #qsFreeOnlyBtn").forEach(btn => {
+    if (!btn) return;
+    btn.classList.toggle("is-on", state.freeOnly);
+    btn.setAttribute("aria-pressed", state.freeOnly ? "true" : "false");
+  });
+}
+
+function setFreeOnly(value){
+  state.freeOnly = !!value;
+  localStorage.setItem("chinaGPTFreeOnly", state.freeOnly ? "1" : "0");
+  updateFreeToggleUI();
+  if ($("#modelsPage") && $("#modelsPage").classList.contains("open")) {
+    if (state.catalogTab === "chat") { buildFilters(); renderCatalog(); }
+    else renderCategoryList(state.catalogTab);
+  }
+  if ($("#qsSheet") && $("#qsSheet").classList.contains("open")) renderQuickSwitchList();
+  toast(state.freeOnly ? "Showing free models only" : "Showing all models");
+}
+
 function makerOf(modelId){
   const id = String(modelId||"");
   const override = applyOverrideKey(id);
@@ -8693,7 +8767,7 @@ function openVariantSheet(group){
     body.innerHTML = `
       <p class="admin-kicker" style="margin-bottom:10px">${escapeHtml(group.canonical)} · ${group.variants.length} variant${group.variants.length===1?"":"s"}</p>
       <div class="variant-sheet-list">
-        ${group.variants.map(v => {
+        ${applyFreeFilter(group.variants.map(v => typeof v === "string" ? { id: v } : v)).map(v => {
           const id = typeof v === "string" ? v : v.id;
           const isActive = id === state.model;
           const isPrimary = id === group.primary;
@@ -8765,18 +8839,36 @@ function fmtPrice(p){
 }
 let catalogFilter="all", catalogQuery="", catalogSort="name";
 function buildFilters(){
-  const makers=[...new Set(state.models.map(m=>makerOf(m.id).key))].sort((a,b)=>{
-    return providerLabel(a).localeCompare(providerLabel(b));
+  const base = applyFreeFilter(state.models);
+  const makers = [...new Set(base.map(m => makerOf(m.id).key))]
+    .sort((a, b) => providerLabel(a).localeCompare(providerLabel(b)));
+
+  if (catalogFilter !== "all" && !makers.includes(catalogFilter)) {
+    catalogFilter = "all";
+  }
+
+  const box = $("#modelFilters");
+  box.innerHTML =
+    `<button type="button" class="filter${catalogFilter === "all" ? " is-active" : ""}" data-filter="all">All providers</button>` +
+    makers.map(k =>
+      `<button type="button" class="filter${catalogFilter === k ? " is-active" : ""}" data-filter="${escapeHtml(k)}">${renderTile(k, "tile-xs")}${escapeHtml(providerLabel(k))}</button>`
+    ).join("");
+  box.querySelectorAll(".filter").forEach(b => b.onclick = () => {
+    catalogFilter = b.dataset.filter; buildFilters(); renderCatalog();
   });
-  const box=$("#modelFilters");
-  box.innerHTML=`<button type="button" class="filter${catalogFilter==="all"?" is-active":""}" data-filter="all">All providers</button>`+
-    makers.map(k=>`<button type="button" class="filter${catalogFilter===k?" is-active":""}" data-filter="${escapeHtml(k)}">${renderTile(k,"tile-xs")}${escapeHtml(providerLabel(k))}</button>`).join("");
-  box.querySelectorAll(".filter").forEach(b=>b.onclick=()=>{catalogFilter=b.dataset.filter;buildFilters();renderCatalog()});
-  $("#favoritesOnlyBtn").classList.toggle("is-on",state.favoritesOnly);
-  $("#favoritesOnlyBtn").textContent=state.favoritesOnly?"★ Favorites":"☆ Favorites";
-  $("#recentOnlyBtn").classList.toggle("is-on",state.recentOnly);
-  $("#modelSort").value=catalogSort;
+
+  const fav = $("#favoritesOnlyBtn");
+  if (fav) {
+    fav.classList.toggle("is-on", state.favoritesOnly);
+    fav.textContent = state.favoritesOnly ? "★ Favorites" : "☆ Favorites";
+  }
+  const recent = $("#recentOnlyBtn");
+  if (recent) recent.classList.toggle("is-on", state.recentOnly);
+  const sort = $("#modelSort");
+  if (sort) sort.value = catalogSort;
 }
+
+
 
 async function loadCategorizedModels(){
   try{
@@ -8800,7 +8892,7 @@ function updateCatalogTabCounts(){
 }
 
 function renderCategoryList(category){
-  const list = state.modelsByCategory[category] || [];
+  const list = applyFreeFilter(state.modelsByCategory[category] || []);
   const box = $("#modelResults");
   if(!list.length){
     box.innerHTML = `<div class="side-empty" style="padding:20px">No ${category} models configured. An admin can add them under Providers.</div>`;
@@ -8845,6 +8937,12 @@ function renderCatalog(){
 
   if (usingGroups) {
     const rows = state.modelGroups.filter(g => {
+      // free filter: keep group if any variant is free when freeOnly
+      if (state.freeOnly) {
+        const anyFree = g.variants.some(v => isFreeModel(typeof v === "string" ? { id: v } : v) || isFreeModel({ id: v.id || v, pricing: (state.models.find(m => m.id === (v.id || v)) || {}).pricing }));
+        if (!anyFree) return false;
+      }
+
       const maker = makerOf(g.primary);
       if (catalogFilter !== "all" && maker.key !== catalogFilter) return false;
       if (state.favoritesOnly && !g.variants.some(v => isFavorite(v.id || v))) return false;
@@ -8937,7 +9035,7 @@ function renderCatalog(){
   }
 
   // ---- Flat fallback (unchanged behaviour) ----
-  let rows=state.models.filter(m=>{
+  let rows=applyFreeFilter(state.models).filter(m=>{
     const maker=makerOf(m.id);
     if(catalogFilter!=="all"&&maker.key!==catalogFilter)return false;
     if(state.favoritesOnly&&!isFavorite(m.id))return false;
@@ -9008,10 +9106,16 @@ function openQuickModelSwitch(){
     <div class="qs-sheet-handle"></div>
     <div class="qs-sheet-head">
       <div class="qs-sheet-title" id="qsSheetTitle"><span class="dot"></span><span id="qsSheetTitleText">All providers</span></div>
-      <label class="qs-search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.6"/><path d="m16 16 4.4 4.4"/></svg>
-        <input id="qsSearchInput" placeholder="Search models" autocomplete="off">
-      </label>
+      <div class="qs-tools-row">
+        <label class="qs-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.6"/><path d="m16 16 4.4 4.4"/></svg>
+          <input id="qsSearchInput" placeholder="Search models" autocomplete="off">
+        </label>
+        <button type="button" class="free-toggle" id="qsFreeOnlyBtn" title="Show only free models">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5L15.5 10"/></svg>
+          <span>Free</span>
+        </button>
+      </div>
     </div>
     <div class="qs-sheet-providers" id="qsProviders"></div>
     <div class="qs-sheet-body" id="qsList"></div>
@@ -9099,6 +9203,13 @@ function renderQuickSwitchList(){
     });
     rows.sort((a,b)=>cleanModelName(a.id).localeCompare(cleanModelName(b.id)));
   }
+  
+  rows = applyFreeFilter(Array.isArray(rows) ? rows.map(r => {
+    if (!r) return null;
+    if (r.id) return r;
+    if (r.primary) { const m = state.models.find(x => x.id === r.primary); return m || { id: r.primary }; }
+    return r;
+  }).filter(Boolean) : []);
   list.innerHTML=rows.length?rows.map(m=>{
     const maker=makerOf(m.id),isActive=m.id===state.model;
     const ctx=fmtContext(m.context_length||m.contextWindow);
@@ -9178,6 +9289,16 @@ document.querySelectorAll(".admin-nav button[data-icon]").forEach(b => {
   const attach = document.getElementById("attachLabel");
   if (attach && !attach.querySelector("svg")) attach.insertAdjacentHTML("afterbegin", ICONS.paperclip);
 })();
+
+
+$("#freeOnlyBtn") && ($("#freeOnlyBtn").onclick = () => setFreeOnly(!state.freeOnly));
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#qsFreeOnlyBtn")) {
+    e.preventDefault();
+    setFreeOnly(!state.freeOnly);
+  }
+}, true);
+updateFreeToggleUI();
 
 $("#modelsClose").onclick=closeModelsPage;
 $("#modelSearch").addEventListener("input",e=>{catalogQuery=e.target.value;renderCatalog()});
