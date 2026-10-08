@@ -2807,7 +2807,9 @@ body.is-locked .auth-page{ display:none !important; }
 
 
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs" type="module" id="pdfjs-module"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs" type="module" id="pdfjs-module">
+
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
@@ -3363,7 +3365,7 @@ const PROVIDER_ICON_SLUGS = {
   tencent: "hunyuan"
 };
 const ICON_SOURCES = [
-  (slug) => `https://unpkg.com/@lobehub/icons-static-svg@latest/icons/${slug}.svg`,
+  (slug) => `https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@latest/icons/${slug}.svg`,
   (slug) => `https://cdn.simpleicons.org/${slug}`,
   (slug) => `https://models.dev/logos/${slug}.svg`
 ];
@@ -9175,27 +9177,41 @@ function updateCatalogTabCounts(){
 }
 
 function renderCategoryList(category){
-  const list = applyFreeFilter(state.modelsByCategory[category] || []);
-  const box = $("#modelResults");
-  if(!list.length){
-    box.innerHTML = `<div class="side-empty" style="padding:20px">No ${category} models configured. An admin can add them under Providers.</div>`;
-    $("#catalogCount").textContent = `0 ${category} models`;
+  const box = document.getElementById("modelResults");
+  const countEl = document.getElementById("catalogCount");
+  if (!box) { console.error("[catalog] #modelResults not found"); return; }
+
+  const all = (state.modelsByCategory && state.modelsByCategory[category]) || [];
+  const filtered = (typeof applyFreeFilter === "function") ? applyFreeFilter(all) : all;
+
+  console.log("[catalog] renderCategoryList", category, "total:", all.length, "shown:", filtered.length);
+
+  if (!filtered.length){
+    box.innerHTML = `<div class="side-empty" style="padding:20px">No ${escapeHtml(category)} models configured. An admin can add them under Providers.</div>`;
+    if (countEl) countEl.textContent = `0 ${category} models`;
     return;
   }
-  $("#catalogCount").textContent = `${list.length} ${category} model${list.length === 1 ? "" : "s"}`;
-  box.innerHTML = list.map(m => {
+
+  if (countEl) countEl.textContent = `${filtered.length} ${category} model${filtered.length === 1 ? "" : "s"}`;
+
+  box.innerHTML = filtered.map(m => {
     const isCustom = m.source === "custom";
-    const providerLabel = isCustom ? (m.providerLabel || m.provider) : "9Router";
-    const makerKey = isCustom ? m.provider : makerOf(m.id).key;
+    const label = isCustom
+      ? (m.providerLabel || m.provider || "Custom")
+      : (typeof makerOf === "function" ? makerOf(m.id).label : "9Router");
+    const makerKey = isCustom
+      ? (m.provider || "other")
+      : (typeof makerOf === "function" ? makerOf(m.id).key : "other");
     const isActive = m.id === state.model;
+    const tileHtml = (typeof renderTile === "function") ? renderTile(makerKey) : "";
     return `<div class="model-row${isActive ? " is-active" : ""}">
       <button type="button" class="model-main" data-model="${escapeHtml(m.id)}">
         <span class="model-id">
-          ${renderTile(makerKey)}
+          ${tileHtml}
           <span class="model-id-text">
             <b>${escapeHtml(cleanModelName(m.id))}</b>
             <span class="model-meta">
-              <small>${escapeHtml(providerLabel)}</small>
+              <small>${escapeHtml(label)}</small>
               ${isCustom ? `<span class="cap-badge">Custom</span>` : ""}
             </span>
           </span>
@@ -9208,11 +9224,17 @@ function renderCategoryList(category){
       <span></span>
     </div>`;
   }).join("");
-  box.querySelectorAll("[data-model]").forEach(b => b.onclick = () => selectModel(b.dataset.model));
+
+  box.querySelectorAll("[data-model]").forEach(b => b.onclick = () => {
+    if (typeof selectModel === "function") selectModel(b.dataset.model);
+  });
   box.querySelectorAll("[data-copy-id]").forEach(b => b.onclick = e => {
-    e.stopPropagation(); copyText(b.dataset.copyId); flashCopyIcon(b);
+    e.stopPropagation();
+    copyText(b.dataset.copyId);
+    flashCopyIcon(b);
   });
 }
+
 
 function renderCatalog(){
   const q = catalogQuery.trim().toLowerCase();
@@ -10014,6 +10036,46 @@ document.addEventListener("change", async (e) => {
   };
   reader.readAsDataURL(f);
 });
+
+
+/* ============================================================
+   CATALOGUE TABS — delegated, DOM-safe
+   ============================================================ */
+(function initCatalogTabs(){
+  function handleTabClick(e){
+    const tab = e.target.closest("#catalogTabs .catalog-tab");
+    if (!tab) return;
+    const t = tab.dataset.tab;
+    if (!t) return;
+    e.preventDefault();
+
+    state.catalogTab = t;
+    document.querySelectorAll("#catalogTabs .catalog-tab").forEach(x => {
+      x.classList.toggle("is-active", x.dataset.tab === t);
+    });
+
+    const filterRow = document.getElementById("modelFilters");
+    if (filterRow) filterRow.style.display = t === "chat" ? "" : "none";
+
+    const count = (state.modelsByCategory && state.modelsByCategory[t]) ? state.modelsByCategory[t].length : 0;
+    console.log("[catalog] tab clicked:", t, "models:", count);
+
+    try {
+      if (t === "chat") {
+        if (typeof buildFilters === "function") buildFilters();
+        if (typeof renderCatalog === "function") renderCatalog();
+      } else {
+        if (typeof renderCategoryList === "function") renderCategoryList(t);
+        else console.error("[catalog] renderCategoryList is not defined");
+      }
+    } catch (err) {
+      console.error("[catalog] render failed:", err);
+    }
+  }
+
+  document.addEventListener("click", handleTabClick, false);
+  console.log("[catalog] delegated tab listener installed");
+})();
 
 </script>
 </body>
