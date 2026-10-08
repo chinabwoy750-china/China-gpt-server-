@@ -3520,6 +3520,49 @@ function isFreeModel(m){
   return false;
 }
 
+
+const ENDPOINT_TYPE_MAP = {
+  "openai":             "chat",
+  "anthropic":          "chat",
+  "gemini":             "chat",
+  "typesafe-decisions": "chat",
+  "aihorde":            "image",
+  "image-generation":   "image",
+  "embedding":          "embedding"
+};
+
+const CATEGORY_PRIORITY = ["chat", "image", "video", "audio"];
+
+function categorizeFromEndpointTypes(types){
+  if (!Array.isArray(types) || !types.length) return null;
+  const hits = types
+    .map(t => ENDPOINT_TYPE_MAP[String(t || "").toLowerCase()])
+    .filter(Boolean);
+  if (!hits.length) return null;
+  if (hits.length === 1 && hits[0] === "embedding") return "embedding";
+  for (const cat of CATEGORY_PRIORITY) if (hits.includes(cat)) return cat;
+  if (hits.includes("embedding")) return "embedding";
+  return null;
+}
+
+function categorizeByIdName(id){
+  const s = String(id || "").toLowerCase();
+  if (/(^|[/_.-])(bge-|e5-|embed|embeddinggemma|voyage|gte-|jina-?embed|jina-?code-?embed)/i.test(s)) return "embedding";
+  if (/(^|[/_.-])(tts|whisper|melotts|voice|speech|vocal|audio|music|bark|piper|xtts|kokoro|parler|aura-[12]|nova-3|deepgram)/i.test(s)) return "audio";
+  if (/(^|[/_.-])(veo|sora|runway|kling|seedance|hailuo|luma|pika|gen-?[23]|mochi|cogvideo|hunyuan-?video|wan-?2|ltx-?video|svd)/i.test(s)) return "video";
+  if (/(^|[/_.-])(flux|dall-?e|imagen|seedream|sd-?\d|sdxl|stable-?diffusion|midjourney|kandinsky|pixart|deepfloyd)/i.test(s)) return "image";
+  if (/\b(albedobase|amponyxl|anything-?v|autismmix|cyberrealistic|dreamshaper|juggernaut|prefect-?pony|tunix-?pony|ponyxl|illustrious|swamponyxl|rev-?animated|nova-?anime|nova-?furry|flat-?2d|quiet-?goodnight|k2-?horizon|ntr-?mix|mn-?violet|space-?bunny|diffusiongemma|sdxl-?lightning|phoenix-?1|lucid-?origin|wai-)/i.test(s)) return "image";
+  return "chat";
+}
+
+function categorizeModel(m){
+  const id = typeof m === "string" ? m : (m && m.id) || "";
+  const types = (typeof m === "object" && m) ? m.supported_endpoint_types : null;
+  const fromTypes = categorizeFromEndpointTypes(types);
+  if (fromTypes) return fromTypes;
+  return categorizeByIdName(id);
+}
+
 function isFreeModelId(id){
   return /[:._\-]free$/i.test(String(id || "").trim());
 }
@@ -8647,6 +8690,7 @@ function openProviderForm(id){
   const $f = (id) => host.querySelector("#" + id);
 
     // Persist the free-only preference globally.
+    // Persist the free-only preference globally.
   const pfFreeOnlyEl = $f("pfFreeOnly");
   if (pfFreeOnlyEl) {
     pfFreeOnlyEl.onchange = () => {
@@ -8672,8 +8716,13 @@ function openProviderForm(id){
       const j = await r.json();
       if (!r.ok || !j.ok) throw new Error(j.error || "Probe failed");
 
-      const all = Array.isArray(j.models) ? j.models : [];
-      const filtered = freeOnly ? all.filter(isFreeModelId) : all;
+      let all = Array.isArray(j.models) ? j.models : [];
+      // Normalize to objects { id, supported_endpoint_types? }
+      all = all.map(x => typeof x === "string" ? { id: x } : x).filter(x => x && x.id);
+
+      const filtered = freeOnly
+        ? all.filter(m => isFreeModelId(m.id))
+        : all;
 
       if (!filtered.length) {
         resultBox.innerHTML = `<div class="admin-note" style="color:var(--danger)">
@@ -8682,54 +8731,120 @@ function openProviderForm(id){
         return;
       }
 
-      const modelText = filtered.join("\n");
-      const previewText = filtered.slice(0, 40).join("\n")
-        + (filtered.length > 40 ? `\n…and ${filtered.length - 40} more` : "");
+      const buckets = { chat: [], image: [], video: [], audio: [], embedding: [] };
+      for (const m of filtered) {
+        const cat = categorizeModel(m);
+        if (buckets[cat]) buckets[cat].push(m.id);
+        else buckets.chat.push(m.id);
+      }
 
+      const sectionOrder = ["chat", "image", "video", "audio", "embedding"];
+      const sectionLabels = { chat: "Chat", image: "Images", video: "Videos", audio: "Audio", embedding: "Embeddings" };
+      const textareas = { chat: "pfChat", image: "pfImage", video: "pfVideo", audio: "pfAudio" };
+
+      const totalPlaced = sectionOrder.reduce((n, c) => n + buckets[c].length, 0);
       const summary = freeOnly
-        ? `Found <b>${all.length}</b> model${all.length === 1 ? "" : "s"} · filtered to <b>${filtered.length}</b> free.`
-        : `Found <b>${filtered.length}</b> model${filtered.length === 1 ? "" : "s"}.`;
+        ? `Found <b>${all.length}</b> · filtered to <b>${filtered.length}</b> free · categorized <b>${totalPlaced}</b>.`
+        : `Found <b>${filtered.length}</b> model${filtered.length === 1 ? "" : "s"} · categorized.`;
+
+      const sections = sectionOrder
+        .filter(cat => buckets[cat].length)
+        .map(cat => {
+          const ids = buckets[cat];
+          const preview = ids.slice(0, 20).map(id => {
+            const m = filtered.find(x => x.id === id);
+            const types = (m && Array.isArray(m.supported_endpoint_types))
+              ? " · " + m.supported_endpoint_types.join(",")
+              : "";
+            return id + types;
+          }).join("\n") + (ids.length > 20 ? `\n…and ${ids.length - 20} more` : "");
+
+          const hasTextarea = !!textareas[cat];
+          return `
+            <div class="pf-probe-section" data-cat="${cat}">
+              <div class="pf-probe-row">
+                <div class="pf-probe-summary">
+                  <b>${escapeHtml(sectionLabels[cat])}</b> · ${ids.length} model${ids.length === 1 ? "" : "s"}
+                </div>
+                <button type="button" class="pf-probe-copy" data-pf-copy="${cat}">
+                  ${COPY_ICON}
+                  <span>Copy</span>
+                </button>
+                ${hasTextarea ? `
+                  <button type="button" class="pf-probe-copy" data-pf-fill="${cat}">
+                    <span>→ ${escapeHtml(sectionLabels[cat])}</span>
+                  </button>` : ``}
+              </div>
+              <div class="pf-probe-list">${escapeHtml(preview)}</div>
+            </div>
+          `;
+        })
+        .join("");
 
       resultBox.innerHTML = `
         <div class="pf-probe-row">
-          <div class="pf-probe-summary">
-            ${summary}
-            ${freeOnly ? `<br><small style="color:var(--dim)">Free filter is ON.</small>` : ``}
-          </div>
+          <div class="pf-probe-summary">${summary}${freeOnly ? `<br><small style="color:var(--dim)">Free filter is ON.</small>` : ``}</div>
           <button type="button" class="pf-probe-copy" id="pfProbeCopyAll">
             ${COPY_ICON}
             <span>Copy all</span>
           </button>
+          <button type="button" class="pf-probe-copy" id="pfProbeSendAll">
+            <span>→ Fill all</span>
+          </button>
         </div>
-        <div class="pf-probe-actions">
-          <button type="button" data-pf-fill="pfChat">Send to Chat</button>
-          <button type="button" data-pf-fill="pfImage">Send to Images</button>
-          <button type="button" data-pf-fill="pfVideo">Send to Videos</button>
-          <button type="button" data-pf-fill="pfAudio">Send to Audio</button>
-        </div>
-        <div class="pf-probe-list">${escapeHtml(previewText)}</div>
+        ${sections}
       `;
 
-      const copyBtn = resultBox.querySelector("#pfProbeCopyAll");
-      if (copyBtn) {
-        copyBtn.onclick = () => {
-          copyText(modelText);
-          copyBtn.classList.add("is-copied");
-          const old = copyBtn.innerHTML;
-          copyBtn.innerHTML = `${CHECK_ICON}<span>Copied</span>`;
-          setTimeout(() => {
-            copyBtn.classList.remove("is-copied");
-            copyBtn.innerHTML = old;
-          }, 1400);
+      // Store bucket data for handlers
+      resultBox._pfBuckets = buckets;
+      resultBox._pfFiltered = filtered;
+
+      const copyAll = resultBox.querySelector("#pfProbeCopyAll");
+      if (copyAll) {
+        copyAll.onclick = () => {
+          const text = filtered.map(m => m.id).join("\n");
+          copyText(text);
+          copyAll.classList.add("is-copied");
+          const old = copyAll.innerHTML;
+          copyAll.innerHTML = `${CHECK_ICON}<span>Copied</span>`;
+          setTimeout(() => { copyAll.classList.remove("is-copied"); copyAll.innerHTML = old; }, 1400);
         };
       }
 
+      const sendAll = resultBox.querySelector("#pfProbeSendAll");
+      if (sendAll) sendAll.onclick = () => {
+        let moved = 0;
+        for (const cat of ["chat", "image", "video", "audio"]) {
+          const ta = $f(textareas[cat]);
+          if (!ta) continue;
+          if (buckets[cat].length) {
+            ta.value = buckets[cat].join("\n");
+            moved += buckets[cat].length;
+          }
+        }
+        toast(`Filled ${moved} model${moved === 1 ? "" : "s"} into their categories`);
+      };
+
+      resultBox.querySelectorAll("[data-pf-copy]").forEach(btn => {
+        btn.onclick = () => {
+          const cat = btn.dataset.pfCopy;
+          const ids = buckets[cat] || [];
+          copyText(ids.join("\n"));
+          btn.classList.add("is-copied");
+          const old = btn.innerHTML;
+          btn.innerHTML = `${CHECK_ICON}<span>Copied</span>`;
+          setTimeout(() => { btn.classList.remove("is-copied"); btn.innerHTML = old; }, 1400);
+        };
+      });
+
       resultBox.querySelectorAll("[data-pf-fill]").forEach(btn => {
         btn.onclick = () => {
-          const target = $f(btn.dataset.pfFill);
-          if (!target) return;
-          target.value = modelText;
-          toast(`Sent ${filtered.length} model${filtered.length === 1 ? "" : "s"} to ${btn.textContent.replace("Send to ", "")}`);
+          const cat = btn.dataset.pfFill;
+          const ta = $f(textareas[cat]);
+          if (!ta) return;
+          const ids = buckets[cat] || [];
+          ta.value = ids.join("\n");
+          toast(`Sent ${ids.length} to ${sectionLabels[cat]}`);
         };
       });
 
