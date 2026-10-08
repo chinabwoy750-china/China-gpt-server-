@@ -2678,6 +2678,20 @@ body.is-locked .auth-page{ display:none !important; }
 /* QS sheet dragging */
 .qs-sheet.dragging{ transition: none }
 
+.catalog-tabs{display:flex;gap:6px;padding:12px 20px 4px;flex-wrap:wrap}
+.catalog-tab{
+  display:inline-flex;align-items:center;gap:6px;
+  height:32px;padding:0 14px;border-radius:99px;
+  border:1px solid var(--line);background:var(--panel-3);
+  color:var(--muted);font-size:12.5px;font-weight:500;
+  transition:background-color var(--t-base),color var(--t-base),border-color var(--t-base);
+}
+.catalog-tab:hover{color:var(--text);border-color:var(--line-strong)}
+.catalog-tab.is-active{background:var(--accent-soft);color:var(--text);border-color:rgba(61,125,255,.4)}
+.catalog-tab .count{color:var(--dim);font-variant-numeric:tabular-nums}
+.catalog-tab.is-active .count{color:var(--accent)}
+@media (max-width:640px){.catalog-tabs{padding:10px 14px 0}}
+
 /* ============ Patch 1d: admin nav + side-api icon alignment ============ */
 .admin-nav button{display:flex;align-items:center;gap:8px}
 .admin-nav button .icon{margin-right:0;vertical-align:middle}
@@ -2840,6 +2854,8 @@ body.is-locked .auth-page{ display:none !important; }
       <button data-admin-section="search-config" data-icon="search">Search Providers</button>
       <button data-admin-section="telegram" data-icon="telegram">Telegram Bot</button>
       <button data-admin-section="provider-map" data-icon="link">Provider Mapping</button>
+      <button data-admin-section="providers" data-icon="terminal">Providers</button>
+      <button data-admin-section="model-categories" data-icon="layers">Model Categories</button>
       <button data-admin-section="site-lock" class="admin-nav-danger" data-icon="lock">Site Lock</button>
       <button data-admin-section="system" data-icon="cog">System</button>
       <button data-admin-section="logs" data-icon="list">Activity Logs</button>
@@ -2864,6 +2880,12 @@ body.is-locked .auth-page{ display:none !important; }
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.6" stroke-width="1.6"/><path d="m16 16 4.4 4.4" stroke-width="1.6" stroke-linecap="round"/></svg>
         <input id="modelSearch" placeholder="Search models or providers" aria-label="Search models">
       </label>
+    </div>
+    <div class="catalog-tabs" id="catalogTabs">
+      <button type="button" class="catalog-tab is-active" data-tab="chat">Chat <span class="count" data-count="chat">0</span></button>
+      <button type="button" class="catalog-tab" data-tab="image">Images <span class="count" data-count="image">0</span></button>
+      <button type="button" class="catalog-tab" data-tab="video">Videos <span class="count" data-count="video">0</span></button>
+      <button type="button" class="catalog-tab" data-tab="audio">Audio <span class="count" data-count="audio">0</span></button>
     </div>
     <div class="filters" id="modelFilters"></div>
     <div class="model-tools"><button class="model-tool" id="favoritesOnlyBtn">☆ Favorites</button><button class="model-tool" id="recentOnlyBtn">◷ Recently used</button><select class="model-tool" id="modelSort"><option value="name">Sort: Name</option><option value="provider">Sort: Provider</option></select></div>
@@ -2965,6 +2987,10 @@ const state = {
   fontSize:localStorage.getItem("chinaGPTFontSize")||"medium",
   density:localStorage.getItem("chinaGPTDensity")||"comfortable",
   autoCollapseReasoning: localStorage.getItem("chinaGPTAutoCollapse") !== "0",
+  catalogTab: "chat",
+  modelsByCategory: { chat: [], image: [], video: [], audio: [] },
+  customProviders: [],
+  modelCategoriesMap: {},
   profileName:localStorage.getItem("chinaGPTProfileName")||"",
   profileAvatar:localStorage.getItem("chinaGPTProfileAvatar")||"🙂",
   profileAvatarImage:localStorage.getItem("chinaGPTProfileAvatarImage")||"",
@@ -6388,7 +6414,109 @@ function openApiDocs(){
           </div>
         </div>
 
-        <div class="docs-section-title">Manage keys</div>
+        
+        <div class="docs-endpoint method-post">
+          <div class="docs-endpoint-head">
+            <span class="docs-method post">POST</span>
+            <span class="docs-path">/v1/messages</span>
+          </div>
+          <p>Anthropic-compatible endpoint. Use the official Anthropic SDK with <code>base_url</code> set to your base URL.</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
+            <pre>curl ${escapeHtml(base)}/v1/messages \\
+  -H "X-China-GPT-Key: YOUR_ACCESS_CODE" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "kr/claude-sonnet-4.5",
+    "max_tokens": 300,
+    "messages": [{"role":"user","content":"Hello"}]
+  }'</pre>
+          </div>
+        </div>
+
+        <div class="docs-endpoint method-get">
+          <div class="docs-endpoint-head">
+            <span class="docs-method get">GET</span>
+            <span class="docs-path">/v1/models/all</span>
+          </div>
+          <p>Returns models categorized by capability: <code>chat</code>, <code>image</code>, <code>video</code>, <code>audio</code>.</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
+            <pre>curl ${escapeHtml(base)}/v1/models/all \\
+  -H "X-China-GPT-Key: YOUR_ACCESS_CODE"</pre>
+          </div>
+        </div>
+
+        <div class="docs-endpoint method-post">
+          <div class="docs-endpoint-head">
+            <span class="docs-method post">POST</span>
+            <span class="docs-path">/v1/image-generation</span>
+          </div>
+          <p>Generate images. Body is forwarded to the provider's images endpoint.</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
+            <pre>curl ${escapeHtml(base)}/v1/image-generation \\
+  -H "X-China-GPT-Key: YOUR_ACCESS_CODE" \\
+  -H "Content-Type: application/json" \\
+  -d '{"model":"logfare/flux-1-schnell","prompt":"a red apple","n":1}'</pre>
+          </div>
+        </div>
+
+        <div class="docs-endpoint method-post">
+          <div class="docs-endpoint-head">
+            <span class="docs-method post">POST</span>
+            <span class="docs-path">/v1/video-generation</span>
+          </div>
+          <p>Generate videos. Same body-forwarding rules as image generation.</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
+            <pre>curl ${escapeHtml(base)}/v1/video-generation \\
+  -H "X-China-GPT-Key: YOUR_ACCESS_CODE" \\
+  -H "Content-Type: application/json" \\
+  -d '{"model":"logfare/flux-2-dev","prompt":"waves at sunset"}'</pre>
+          </div>
+        </div>
+
+        <div class="docs-endpoint method-post">
+          <div class="docs-endpoint-head">
+            <span class="docs-method post">POST</span>
+            <span class="docs-path">/v1/audio</span>
+          </div>
+          <p>Text-to-speech and audio generation.</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
+            <pre>curl ${escapeHtml(base)}/v1/audio \\
+  -H "X-China-GPT-Key: YOUR_ACCESS_CODE" \\
+  -H "Content-Type: application/json" \\
+  -d '{"model":"logfare/melotts","input":"Hello world","voice":"alloy"}' \\
+  --output speech.mp3</pre>
+          </div>
+        </div>
+
+        <div class="docs-endpoint method-post">
+          <div class="docs-endpoint-head">
+            <span class="docs-method post">POST</span>
+            <span class="docs-path">/v1/web-fetch</span>
+          </div>
+          <p>Read a URL and return its clean markdown. Alias of <code>/v1/web/fetch</code>.</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
+            <pre>curl ${escapeHtml(base)}/v1/web-fetch \\
+  -H "X-China-GPT-Key: YOUR_ACCESS_CODE" \\
+  -H "Content-Type: application/json" \\
+  -d '{"url":"https://example.com"}'</pre>
+          </div>
+        </div>
+
+        <div class="docs-section-title">Custom providers</div>
+        <div class="docs-note">
+          Admins can register additional OpenAI-compatible providers in
+          <b style="color:var(--text)">Admin → Providers</b>. Their models appear
+          in the catalogue under <code style="font-family:var(--mono)">providerId/modelId</code>
+          and are routed to the provider's base URL automatically.
+        </div>
+
+<div class="docs-section-title">Manage keys</div>
         <div class="docs-note">
           Create and revoke API keys from <b style="color:var(--text)">Account &rarr; API keys</b>.
         </div>
@@ -6836,7 +6964,7 @@ async function renderProviderIconsPage(){
 
   // Make sure the model list is available; fall back to the current list.
   if (!state.models.length && isAuthenticated()) {
-    try { await loadModels(); } catch {}
+    try { await loadModels(); await loadCategorizedModels(); } catch {}
   }
   // Pull the current overrides from the backend.
   try {
@@ -8207,6 +8335,10 @@ function renderAdmin(){
     renderTelegramPage();return;
   }else if(adminSection==="provider-map"){
     renderProviderMappingPage();return;
+  }else if(adminSection==="providers"){
+    renderProvidersPage();return;
+  }else if(adminSection==="model-categories"){
+    renderModelCategoriesPage();return;
   }else if(adminSection==="site-lock"){
     renderSiteLockAdminPage();return;
   }else if(adminSection==="api-settings"){
@@ -8266,6 +8398,238 @@ async function refreshAdminStatus(){
     adminStatusData={};renderAdmin();toast(e.message||"Could not load admin status");
   }
 }
+
+async function renderProvidersPage(){
+  const c = $("#adminContent");
+  c.innerHTML = `<p class="admin-kicker">Loading…</p>`;
+
+  let providers = [];
+  try {
+    const r = await apiFetch(WORKER_BASE + "/admin/providers", { headers: authHeaders(false) });
+    if (r.ok) { const j = await r.json(); providers = j.providers || []; }
+  } catch {}
+  state.customProviders = providers;
+
+  const rows = providers.length ? providers.map(p => `
+    <div class="provider-row" data-provider-id="${escapeHtml(p.id)}">
+      <span class="tile tile-lg" style="background:var(--panel-3)">${safeLetter(p.id)}</span>
+      <div class="provider-row-main">
+        <b>${escapeHtml(p.label)} <span style="color:var(--dim);font-weight:400">(${escapeHtml(p.id)})</span></b>
+        <small>${escapeHtml(p.baseUrl)} · ${(p.models?.chat||[]).length}C ${(p.models?.image||[]).length}I ${(p.models?.video||[]).length}V ${(p.models?.audio||[]).length}A</small>
+      </div>
+      <span class="provider-row-status ${p.enabled ? "ok" : "missing"}">${p.enabled ? "Enabled" : "Disabled"}</span>
+      <div class="provider-row-input">
+        <button class="btn-ghost" type="button" data-edit-provider="${escapeHtml(p.id)}">Edit</button>
+        <button class="btn-ghost danger" type="button" data-delete-provider="${escapeHtml(p.id)}" style="color:var(--danger);border-color:rgba(242,97,97,.3)">Delete</button>
+      </div>
+    </div>
+  `).join("") : `<div class="admin-note">No custom providers yet. Add one below.</div>`;
+
+  c.innerHTML = `
+    <p class="admin-kicker">Custom providers are OpenAI-compatible endpoints. Give each a unique ID; model IDs will be namespaced as <code style="font-family:var(--mono)">id/model</code> and appear in the catalogue under their declared category.</p>
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>Existing providers</h3><span>${providers.length}</span></div>
+      <div class="provider-grid">${rows}</div>
+    </div>
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>Add / Edit provider</h3><span>All fields required except paths</span></div>
+      <div id="providerForm"></div>
+    </div>
+  `;
+
+  c.querySelectorAll("[data-edit-provider]").forEach(b =>
+    b.onclick = () => openProviderForm(b.dataset.editProvider));
+  c.querySelectorAll("[data-delete-provider]").forEach(b =>
+    b.onclick = async () => {
+      if (!confirm(`Delete provider "${b.dataset.deleteProvider}"? Its models will disappear from the catalogue.`)) return;
+      try {
+        const r = await apiFetch(WORKER_BASE + "/admin/providers/delete", {
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({ id: b.dataset.deleteProvider })
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.ok) throw new Error(j.error || "Delete failed");
+        toast("Provider deleted");
+        renderProvidersPage();
+      } catch (e) { toast(e.message || "Could not delete"); }
+    });
+
+  openProviderForm(null);
+}
+
+function openProviderForm(id){
+  const existing = id ? state.customProviders.find(p => p.id === id) : null;
+  const host = $("#providerForm");
+  if (!host) return;
+  host.innerHTML = `
+    <div class="field"><label>Provider ID (slug)</label>
+      <input id="pfId" value="${escapeHtml(existing?.id || "")}" ${existing ? "readonly" : ""} placeholder="myllm" spellcheck="false"></div>
+    <div class="field"><label>Label</label>
+      <input id="pfLabel" value="${escapeHtml(existing?.label || "")}" placeholder="My LLM Provider"></div>
+    <div class="field"><label>Base URL</label>
+      <input id="pfBaseUrl" value="${escapeHtml(existing?.baseUrl || "")}" placeholder="https://api.example.com" spellcheck="false"></div>
+    <div class="field"><label>API key ${existing ? "(leave mask to keep current)" : ""}</label>
+      <input id="pfApiKey" value="${escapeHtml(existing?.apiKey || "")}" autocomplete="off" spellcheck="false"></div>
+    <div class="field"><label>Auth style</label>
+      <select id="pfAuthStyle" style="background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px">
+        <option value="bearer" ${existing?.authStyle === "bearer" || !existing ? "selected" : ""}>Bearer token</option>
+        <option value="x-api-key" ${existing?.authStyle === "x-api-key" ? "selected" : ""}>x-api-key header</option>
+        <option value="none" ${existing?.authStyle === "none" ? "selected" : ""}>No auth</option>
+      </select></div>
+    <div class="field"><label>Endpoint paths (override OpenAI defaults)</label>
+      <div class="row" style="flex-wrap:wrap;gap:8px">
+        <input id="pfPathChat" value="${escapeHtml(existing?.paths?.chat || "/v1/chat/completions")}" placeholder="/v1/chat/completions" spellcheck="false">
+        <input id="pfPathImage" value="${escapeHtml(existing?.paths?.image || "/v1/images/generations")}" placeholder="/v1/images/generations" spellcheck="false">
+        <input id="pfPathVideo" value="${escapeHtml(existing?.paths?.video || "/v1/videos/generations")}" placeholder="/v1/videos/generations" spellcheck="false">
+        <input id="pfPathAudio" value="${escapeHtml(existing?.paths?.audio || "/v1/audio/speech")}" placeholder="/v1/audio/speech" spellcheck="false">
+      </div>
+    </div>
+    <div class="field"><label>Models (one per line per category)</label>
+      <div class="row" style="flex-wrap:wrap;gap:8px">
+        <textarea id="pfChat" class="editor-textarea" style="min-height:90px" placeholder="gpt-4o">${escapeHtml((existing?.models?.chat||[]).join("\n"))}</textarea>
+        <textarea id="pfImage" class="editor-textarea" style="min-height:90px" placeholder="flux-1-schnell">${escapeHtml((existing?.models?.image||[]).join("\n"))}</textarea>
+        <textarea id="pfVideo" class="editor-textarea" style="min-height:90px" placeholder="flux-2-dev">${escapeHtml((existing?.models?.video||[]).join("\n"))}</textarea>
+        <textarea id="pfAudio" class="editor-textarea" style="min-height:90px" placeholder="melotts">${escapeHtml((existing?.models?.audio||[]).join("\n"))}</textarea>
+      </div>
+      <div class="editor-hint">Order: Chat / Images / Videos / Audio.</div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);margin:10px 0">
+      <input type="checkbox" id="pfEnabled" ${existing?.enabled !== false ? "checked" : ""} style="all:revert;width:18px;height:18px">
+      <span>Provider is enabled</span>
+    </label>
+    <div class="admin-actions">
+      <button class="btn-primary" id="pfSave" type="button">Save</button>
+      <button class="btn-ghost" id="pfProbe" type="button">Probe /v1/models</button>
+      ${existing ? `<button class="btn-ghost" id="pfCancel" type="button">Cancel</button>` : ``}
+    </div>
+    <div id="pfProbeResult" style="margin-top:10px"></div>
+  `;
+
+  const $f = (id) => host.querySelector("#" + id);
+
+  $f("pfProbe").onclick = async () => {
+    const probe = {
+      id: $f("pfId").value.trim(),
+      baseUrl: $f("pfBaseUrl").value.trim(),
+      apiKey: $f("pfApiKey").value.trim(),
+      authStyle: $f("pfAuthStyle").value
+    };
+    try {
+      const r = await apiFetch(WORKER_BASE + "/admin/providers/probe-models", {
+        method: "POST", headers: authHeaders(), body: JSON.stringify(probe)
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || "Probe failed");
+      const list = j.models || [];
+      $f("pfProbeResult").innerHTML = `<div class="admin-note">Found ${list.length} model${list.length===1?"":"s"}. Paste them into the Chat category to add them.<br><code style="font-family:var(--mono);font-size:11px">${escapeHtml(list.slice(0,50).join(", "))}</code></div>`;
+    } catch (e) {
+      $f("pfProbeResult").innerHTML = `<div class="admin-note" style="color:var(--danger)">${escapeHtml(e.message || "Probe failed")}</div>`;
+    }
+  };
+
+  $f("pfSave").onclick = async () => {
+    const payload = {
+      id: $f("pfId").value.trim(),
+      label: $f("pfLabel").value.trim(),
+      baseUrl: $f("pfBaseUrl").value.trim(),
+      apiKey: $f("pfApiKey").value.trim(),
+      authStyle: $f("pfAuthStyle").value,
+      paths: {
+        chat: $f("pfPathChat").value.trim(),
+        image: $f("pfPathImage").value.trim(),
+        video: $f("pfPathVideo").value.trim(),
+        audio: $f("pfPathAudio").value.trim()
+      },
+      models: {
+        chat: $f("pfChat").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean),
+        image: $f("pfImage").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean),
+        video: $f("pfVideo").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean),
+        audio: $f("pfAudio").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
+      },
+      enabled: $f("pfEnabled").checked
+    };
+    try {
+      const r = await apiFetch(WORKER_BASE + "/admin/providers/upsert", {
+        method: "POST", headers: authHeaders(), body: JSON.stringify(payload)
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.error || "Save failed");
+      toast("Provider saved");
+      renderProvidersPage();
+      loadCategorizedModels();
+    } catch (e) { toast(e.message || "Could not save"); }
+  };
+
+  if ($f("pfCancel")) $f("pfCancel").onclick = () => openProviderForm(null);
+}
+
+async function renderModelCategoriesPage(){
+  const c = $("#adminContent");
+  c.innerHTML = `<p class="admin-kicker">Loading…</p>`;
+
+  let categories = {};
+  try {
+    const r = await apiFetch(WORKER_BASE + "/admin/model-categories", { headers: authHeaders(false) });
+    if (r.ok) { const j = await r.json(); categories = j.categories || {}; }
+  } catch {}
+  state.modelCategoriesMap = categories;
+
+  const r9 = state.modelsByCategory.chat.concat(
+    state.modelsByCategory.image,
+    state.modelsByCategory.video,
+    state.modelsByCategory.audio
+  ).filter(m => m.source === "9router" || m.source === undefined)
+   .map(m => m.id);
+  // also include state.models ids
+  const fromState = (state.models || []).map(m => m.id);
+  const unique = [...new Set(r9.concat(fromState))].sort();
+
+  if (!unique.length) {
+    c.innerHTML = `<p class="admin-kicker">No 9Router models loaded. Open the Models page first so the catalogue is populated, then come back.</p>`;
+    return;
+  }
+
+  c.innerHTML = `
+    <p class="admin-kicker">Assign a category to each 9Router model. Chat is the default; anything set to Image / Video / Audio will move to that tab in the catalogue and route to the corresponding upstream endpoint.</p>
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>9Router models</h3><span>${unique.length}</span></div>
+      <div class="admin-table-wrap"><table class="admin-table">
+        <thead><tr><th>Model ID</th><th>Category</th></tr></thead>
+        <tbody>
+          ${unique.map(id => `
+            <tr>
+              <td class="admin-code">${escapeHtml(id)}</td>
+              <td>
+                <select data-cat-model="${escapeHtml(id)}" style="background:var(--panel-3);border:1px solid var(--line);border-radius:6px;padding:6px 10px;color:var(--text)">
+                  <option value="chat" ${(categories[id] || "chat") === "chat" ? "selected" : ""}>Chat</option>
+                  <option value="image" ${categories[id] === "image" ? "selected" : ""}>Image</option>
+                  <option value="video" ${categories[id] === "video" ? "selected" : ""}>Video</option>
+                  <option value="audio" ${categories[id] === "audio" ? "selected" : ""}>Audio</option>
+                </select>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table></div>
+    </div>
+  `;
+
+  c.querySelectorAll("[data-cat-model]").forEach(sel => {
+    sel.onchange = async () => {
+      try {
+        const r = await apiFetch(WORKER_BASE + "/admin/model-categories/set", {
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({ modelId: sel.dataset.catModel, category: sel.value })
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.ok) throw new Error(j.error || "Save failed");
+        toast(`Category: ${sel.value}`);
+        loadCategorizedModels();
+      } catch (e) { toast(e.message || "Could not save"); }
+    };
+  });
+}
+
 async function openAdmin(){
   if(!isAuthenticated()||state.role!=="admin"){toast("Administrator access required");return}
   $("#adminPage").classList.add("open");
@@ -8413,6 +8777,68 @@ function buildFilters(){
   $("#recentOnlyBtn").classList.toggle("is-on",state.recentOnly);
   $("#modelSort").value=catalogSort;
 }
+
+async function loadCategorizedModels(){
+  try{
+    const r = await apiFetch(API_BASE + "/models/all", { headers: authHeaders(false) });
+    if(!r.ok) return;
+    const j = await r.json();
+    state.modelsByCategory = {
+      chat: Array.isArray(j.chat) ? j.chat : [],
+      image: Array.isArray(j.image) ? j.image : [],
+      video: Array.isArray(j.video) ? j.video : [],
+      audio: Array.isArray(j.audio) ? j.audio : []
+    };
+    updateCatalogTabCounts();
+  }catch{}
+}
+function updateCatalogTabCounts(){
+  document.querySelectorAll("#catalogTabs [data-count]").forEach(el=>{
+    const k = el.dataset.count;
+    el.textContent = String((state.modelsByCategory[k] || []).length);
+  });
+}
+
+function renderCategoryList(category){
+  const list = state.modelsByCategory[category] || [];
+  const box = $("#modelResults");
+  if(!list.length){
+    box.innerHTML = `<div class="side-empty" style="padding:20px">No ${category} models configured. An admin can add them under Providers.</div>`;
+    $("#catalogCount").textContent = `0 ${category} models`;
+    return;
+  }
+  $("#catalogCount").textContent = `${list.length} ${category} model${list.length === 1 ? "" : "s"}`;
+  box.innerHTML = list.map(m => {
+    const isCustom = m.source === "custom";
+    const providerLabel = isCustom ? (m.providerLabel || m.provider) : "9Router";
+    const makerKey = isCustom ? m.provider : makerOf(m.id).key;
+    const isActive = m.id === state.model;
+    return `<div class="model-row${isActive ? " is-active" : ""}">
+      <button type="button" class="model-main" data-model="${escapeHtml(m.id)}">
+        <span class="model-id">
+          ${renderTile(makerKey)}
+          <span class="model-id-text">
+            <b>${escapeHtml(cleanModelName(m.id))}</b>
+            <span class="model-meta">
+              <small>${escapeHtml(providerLabel)}</small>
+              ${isCustom ? `<span class="cap-badge">Custom</span>` : ""}
+            </span>
+          </span>
+        </span>
+        <span class="model-cell">—</span>
+        <span class="model-cell price">—</span>
+        <span class="model-cell price">—</span>
+      </button>
+      <button type="button" class="model-copy-id" data-copy-id="${escapeHtml(m.id)}" aria-label="Copy model ID">${COPY_ICON}</button>
+      <span></span>
+    </div>`;
+  }).join("");
+  box.querySelectorAll("[data-model]").forEach(b => b.onclick = () => selectModel(b.dataset.model));
+  box.querySelectorAll("[data-copy-id]").forEach(b => b.onclick = e => {
+    e.stopPropagation(); copyText(b.dataset.copyId); flashCopyIcon(b);
+  });
+}
+
 function renderCatalog(){
   const q = catalogQuery.trim().toLowerCase();
   const usingGroups = Array.isArray(state.modelGroups) && state.modelGroups.length > 0;
@@ -8559,7 +8985,15 @@ function renderCatalog(){
   box.querySelectorAll("[data-fav-model]").forEach(b=>b.onclick=e=>{e.stopPropagation();toggleFavorite(b.dataset.favModel)});
 }
 
-function openModelsPage(){buildFilters();renderCatalog();$("#modelSearch").value=catalogQuery;$("#modelsPage").classList.add("open")}
+function openModelsPage(){
+  document.querySelectorAll("#catalogTabs .catalog-tab").forEach(x =>
+    x.classList.toggle("is-active", x.dataset.tab === state.catalogTab));
+  $("#modelFilters").style.display = state.catalogTab === "chat" ? "" : "none";
+  if (state.catalogTab === "chat") { buildFilters(); renderCatalog(); }
+  else { renderCategoryList(state.catalogTab); }
+  $("#modelSearch").value = catalogQuery;
+  $("#modelsPage").classList.add("open");
+}
 function closeModelsPage(){$("#modelsPage").classList.remove("open")}
 
 /* ============================================================
@@ -9049,6 +9483,7 @@ renderMessages();
       loadProviderOverrides()
     ]);
     await loadModels();
+    await loadCategorizedModels();
     warmIconCache();
   } else {
     updateBadge();

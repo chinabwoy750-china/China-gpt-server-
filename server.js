@@ -19,6 +19,9 @@ import * as telegram from "./lib/telegram.js";
 import * as online from "./lib/online.js";
 import * as anthropic from "./lib/anthropic-compat.js";
 import * as media from "./lib/media-proxy.js";
+import * as customProviders from "./lib/custom-providers.js";
+import * as modelCategories from "./lib/model-categories.js";
+import * as modelCatalog from "./lib/model-catalog.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -197,6 +200,17 @@ app.get("/admin/usage", auth.requireAdmin, usage.adminUsage);
 app.get("/admin/site-lock", auth.requireAdmin, siteLock.adminGet);
 app.post("/admin/site-lock/lock", auth.requireAdmin, siteLock.adminLock);
 app.post("/admin/site-lock/unlock", auth.requireAdmin, siteLock.adminUnlock);
+
+// ---- Custom providers (admin) ----
+app.get("/admin/providers", auth.requireAdmin, customProviders.adminList);
+app.post("/admin/providers/upsert", auth.requireAdmin, customProviders.adminUpsert);
+app.post("/admin/providers/delete", auth.requireAdmin, customProviders.adminDelete);
+app.post("/admin/providers/probe-models", auth.requireAdmin, customProviders.adminProbeModels);
+
+// ---- Model categories (admin) ----
+app.get("/admin/model-categories", auth.requireAdmin, modelCategories.adminGet);
+app.post("/admin/model-categories/set", auth.requireAdmin, modelCategories.adminSet);
+app.post("/admin/model-categories/bulk-set", auth.requireAdmin, modelCategories.adminBulkSet);
 // ---- Telegram bot ----
 app.post("/telegram/webhook", telegram.webhook);
 app.get("/admin/telegram", auth.requireAdmin, telegram.adminGet);
@@ -254,6 +268,10 @@ app.post("/v1/audio",            auth.requireAuth, ratelimit.check, media.audio)
 
 // ---- Web-fetch alias (dash variant of /v1/web/fetch) ----
 app.post("/v1/web-fetch", auth.requireAuth, ratelimit.check, proxy.webFetch);
+
+// ---- Categorized model list ----
+app.get("/v1/models/all", auth.requireAuth, ratelimit.check, modelCatalog.getAllCategorized);
+
 
 app.get("/icon-proxy", async (req, res) => {
   const url = String(req.query.url || "");
