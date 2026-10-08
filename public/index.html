@@ -9128,14 +9128,45 @@ async function loadCategorizedModels(){
     if(!r.ok) return;
     const j = await r.json();
     state.modelsByCategory = {
-      chat: Array.isArray(j.chat) ? j.chat : [],
+      chat:  Array.isArray(j.chat)  ? j.chat  : [],
       image: Array.isArray(j.image) ? j.image : [],
       video: Array.isArray(j.video) ? j.video : [],
       audio: Array.isArray(j.audio) ? j.audio : []
     };
     updateCatalogTabCounts();
-  }catch{}
+
+    // ---- Merge custom provider chat models into the main models array ----
+    // This is what makes UnoRouter (and any custom provider) show up in
+    // the chat catalogue, the provider filter chips, and the grouping logic.
+    const customChat = state.modelsByCategory.chat.filter(m => m.source === "custom");
+
+    if (customChat.length) {
+      const customIds = new Set(customChat.map(m => m.id));
+      // Remove any previous custom entries (stale on re-fetch), then append.
+      const r9 = state.models.filter(m => !customIds.has(m.id));
+      state.models = [...r9, ...customChat];
+      // Rebuild groups so custom chat models fold into their canonical groups.
+      state.modelGroups = clientGroupModels(state.models);
+    } else if (state.models.length) {
+      state.modelGroups = clientGroupModels(state.models);
+    }
+
+    // If the current model was removed (e.g. custom provider deleted),
+    // fall back to the first available.
+    if (state.model && !state.models.some(m => m.id === state.model)) {
+      state.model = state.modelGroups[0]?.primary || state.models[0]?.id || "";
+      localStorage.setItem("chinaGPTModel", state.model);
+    }
+
+    if (typeof refreshCatalogIfOpen === "function") refreshCatalogIfOpen();
+    if (typeof updateBadge === "function") updateBadge();
+    if (typeof warmIconCache === "function") warmIconCache();
+  }catch(e){
+    console.error("[loadCategorizedModels] failed:", e);
+  }
 }
+
+
 function updateCatalogTabCounts(){
   document.querySelectorAll("#catalogTabs [data-count]").forEach(el=>{
     const k = el.dataset.count;
