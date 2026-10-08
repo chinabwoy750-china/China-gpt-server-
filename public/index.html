@@ -1510,7 +1510,7 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
 .reasoning-toggle:hover{color:var(--text)}
 .reasoning-body{display:none;padding:9px 12px 12px;color:var(--dim);font-size:12.5px;white-space:pre-wrap;line-height:1.55;border-top:1px solid var(--line);margin-top:2px}
 .reasoning-block.open .reasoning-body{display:block}
-.reasoning-block.open .reasoning-caret{transform:rotate(90deg)}
+ 
 .reasoning-caret{transition:transform var(--t-fast);display:inline-block}
 .msg-error .bubble{color:var(--danger)}
 
@@ -2678,6 +2678,49 @@ body.is-locked .auth-page{ display:none !important; }
 /* QS sheet dragging */
 .qs-sheet.dragging{ transition: none }
 
+/* ============ Patch 1d: admin nav + side-api icon alignment ============ */
+.admin-nav button{display:flex;align-items:center;gap:8px}
+.admin-nav button .icon{margin-right:0;vertical-align:middle}
+.side-api-link .icon{opacity:.8}
+
+/* ============ Patch 6: reasoning copy + caret ============ */
+.reasoning-toggle{position:relative;padding-right:38px}
+.reasoning-label{flex:1;min-width:0}
+.reasoning-copy{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  width:26px;height:26px;display:grid;place-items:center;
+  border-radius:6px;color:var(--dim);background:transparent;cursor:pointer;
+}
+.reasoning-copy:hover{background:var(--raised);color:var(--text)}
+.reasoning-copy.is-copied{color:var(--ok)}
+.reasoning-copy svg{width:13px;height:13px}
+.reasoning-caret{transition:transform var(--t-fast);display:inline-block}
+.reasoning-block.open .reasoning-caret{transform:none}
+.reasoning-toggle[aria-expanded="true"] .reasoning-caret{transform:rotate(180deg)}
+
+/* ============ Patch 7: avatar upload row ============ */
+.avatar-upload-row{grid-column:1/-1;display:flex;gap:14px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel-2);margin-bottom:6px}
+.avatar-upload-preview{width:64px;height:64px;border-radius:50%;overflow:hidden;display:grid;place-items:center;font-size:28px;background:var(--panel-3);border:1px solid var(--line);flex:0 0 auto}
+.avatar-upload-preview img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar-upload-main{min-width:0;display:flex;flex-direction:column;gap:4px}
+.avatar-upload-main small{color:var(--dim);font-size:11.5px;line-height:1.4}
+.avatar-upload-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.avatar-upload-actions .danger{padding:11px 12px;border-radius:var(--r-sm);border:1px solid rgba(242,97,97,.3);color:var(--danger);background:transparent}
+
+/* ============ Patch 9: persona grid ============ */
+.persona-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media(max-width:640px){.persona-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.persona-card{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0;min-height:128px;padding:14px;text-align:left;background:var(--panel-2);border:1px solid var(--line);border-radius:16px;cursor:pointer}
+.persona-card:hover{border-color:var(--line-strong);background:var(--panel-3)}
+.persona-card.is-active{border-color:rgba(139,92,246,.55);background:rgba(139,92,246,.1)}
+.persona-card-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:var(--panel-3);border:1px solid var(--line);color:var(--muted)}
+.persona-card-name{font-size:13.5px;font-weight:600}
+.persona-card-desc{font-size:11.5px;color:var(--dim);line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.persona-card-menu{position:absolute;top:8px;right:8px;width:28px;height:28px;display:grid;place-items:center;border-radius:8px;color:var(--dim)}
+.persona-card-menu:hover{background:var(--raised);color:var(--text)}
+.persona-card-new{align-items:center;justify-content:center;border-style:dashed;color:var(--muted);font-size:12.5px}
+.persona-card-new .plus-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:var(--panel-3);border:1px solid var(--line)}
+
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs" type="module" id="pdfjs-module"></script>
@@ -2690,18 +2733,19 @@ body.is-locked .auth-page{ display:none !important; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
 </head>
 <body>
+<a href="#messages" class="skip-link" style="position:fixed;top:-100px;left:8px;z-index:9999;padding:8px 12px;background:var(--panel-3);border-radius:6px;color:var(--text);text-decoration:none;font-size:13px" onfocus="this.style.top='8px'" onblur="this.style.top='-100px'">Skip to messages</a>
 <div class="shell" id="shell">
   <div class="scrim" id="scrim"></div>
 
   <aside class="sidebar" id="sidebar">
     <div class="side-brand">
       <span class="brand"><span class="logo" id="brandLogo"></span><b>China-GPT</b></span>
-      <button class="drawer-close" id="drawerClose" aria-label="Close menu">✕</button>
+      <button class="drawer-close" id="drawerClose" aria-label="Close menu"></button>
     </div>
     <nav class="side-nav">
-      <button class="side-new" id="newChat">＋ New</button>
-      <button id="navModels">◉ Models</button>
-      <button id="navChats">◷ Chats</button>
+      <button class="side-new" id="newChat"></button>
+      <button id="navModels"></button>
+      <button id="navChats"></button>
     </nav>
     <div class="side-recent">
       <div class="side-label">Recent</div>
@@ -2712,7 +2756,7 @@ body.is-locked .auth-page{ display:none !important; }
       <span id="onlineCount">—</span>
       <span class="online-label">online</span>
     </div>
-    <button class="side-api-link" id="apiDocsBtn" aria-label="API documentation">&lt;&gt; API</button>
+    <button class="side-api-link" id="apiDocsBtn" aria-label="API documentation"></button>
     <div class="side-account">
       <button class="account-btn" id="accountBtn">
         <span class="avatar" id="accountAvatar">U</span>
@@ -2735,7 +2779,7 @@ body.is-locked .auth-page{ display:none !important; }
         <div class="stage-inner">
           <h1 class="stage-head" id="stageHead">What can I help you make?</h1>
           <p class="stage-sub">One conversation, many models — routed through your own gateway.</p>
-          <div class="thread" id="messages"></div>
+          <div class="thread" id="messages" tabindex="-1"></div>
         </div>
       </div>
 
@@ -2750,13 +2794,13 @@ body.is-locked .auth-page{ display:none !important; }
           <textarea id="prompt" placeholder="Ask China-GPT anything" rows="1" aria-label="Message"></textarea>
           <div id="attachmentStrip" class="attachment-strip"></div>
           <div class="composer-bar">
-            <label class="chip-btn" aria-label="Attach files" title="Attach files">＋<input id="fileInput" type="file" hidden multiple accept="image/*,.pdf,.txt,.md,.markdown,.json,.csv,.js,.ts,.html,.css,.xml,.yaml,.yml,.log,.py,.java,.c,.cpp,.h,.hpp,.sql,.sh,.go,.rs,.php,.jsx,.tsx,.vue"></label>
-            <button class="chip-btn" id="searchBtn" aria-label="Web search" title="Web search">⌕</button>
+            <label class="chip-btn" aria-label="Attach files" title="Attach files" id="attachLabel"><input id="fileInput" type="file" hidden multiple accept="image/*,.pdf,.txt,.md,.markdown,.json,.csv,.js,.ts,.html,.css,.xml,.yaml,.yml,.log,.py,.java,.c,.cpp,.h,.hpp,.sql,.sh,.go,.rs,.php,.jsx,.tsx,.vue"></label>
+            <button class="chip-btn" id="searchBtn" aria-label="Web search" title="Web search"></button>
             <button class="search-provider-pill" id="searchProviderPill" type="button" style="display:none" title="Change search provider">
               <span id="searchProviderLabel">Gemini</span>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10.2 4 4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
             </button>
-            <button class="chip-btn" id="personalitiesBtn" aria-label="Personalities" title="Personalities">✨</button>
+            <button class="chip-btn" id="personalitiesBtn" aria-label="Personalities" title="Personalities"></button>
             <span class="composer-spacer"></span>
             <button class="send" id="sendBtn" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V6m0 0-6 6m6-6 6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             <button class="send stop-btn" id="stopBtn" style="display:none" title="Stop generating" aria-label="Stop generating"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
@@ -2771,36 +2815,36 @@ body.is-locked .auth-page{ display:none !important; }
 <div class="admin-page" id="adminPage">
   <div class="admin-head">
     <div style="display:flex;align-items:center;gap:10px">
-      <button class="btn-ghost admin-mobile-close" id="adminMobileClose">☰</button>
+      <button class="btn-ghost admin-mobile-close" id="adminMobileClose" aria-label="Menu"></button>
       <h2>Admin Dashboard</h2>
     </div>
     <div class="admin-head-actions">
       <button class="btn-ghost" id="adminRefreshBtn">Refresh</button>
-      <button class="btn-ghost" id="adminCloseBtn" aria-label="Close">✕</button>
+      <button class="btn-ghost" id="adminCloseBtn" aria-label="Close"></button>
     </div>
   </div>
   <div class="admin-shell">
     <aside class="admin-nav" id="adminNav">
       <div class="admin-nav-title">China-GPT Admin</div>
-      <button class="is-active" data-admin-section="overview">⌂ Overview</button>
-      <button data-admin-section="accounts">♙ Accounts</button>
-      <button data-admin-section="keys">⌁ Access Keys</button>
-      <button data-admin-section="models">◉ Models</button>
-      <button data-admin-section="usage">▥ Usage</button>
-      <button data-admin-section="compare">⇄ Compare</button>
-      <button data-admin-section="playground">◇ Playground</button>
-      <button data-admin-section="provider-icons">✦ Provider Icons</button>
-      <button data-admin-section="api-settings">⌗ API Settings</button>
-      <button data-admin-section="model-groups">⧉ Model Groups</button>
-      <button data-admin-section="model-health">⚕ Model Health</button>
-      <button data-admin-section="search-config">⌕ Search Providers</button>
-      <button data-admin-section="telegram">✈ Telegram Bot</button>
-      <button data-admin-section="provider-map">⌘ Provider Mapping</button>
-      <button data-admin-section="site-lock" class="admin-nav-danger">🔒 Site Lock</button>
-      <button data-admin-section="system">◌ System</button>
-      <button data-admin-section="logs">☷ Activity Logs</button>
-      <button data-admin-section="settings">⚙ Settings</button>
-      <button class="admin-back" id="adminBackBtn">← Back to China-GPT</button>
+      <button class="is-active" data-admin-section="overview" data-icon="home">Overview</button>
+      <button data-admin-section="accounts" data-icon="user">Accounts</button>
+      <button data-admin-section="keys" data-icon="key">Access Keys</button>
+      <button data-admin-section="models" data-icon="layers">Models</button>
+      <button data-admin-section="usage" data-icon="chart">Usage</button>
+      <button data-admin-section="compare" data-icon="compare">Compare</button>
+      <button data-admin-section="playground" data-icon="play">Playground</button>
+      <button data-admin-section="provider-icons" data-icon="palette">Provider Icons</button>
+      <button data-admin-section="api-settings" data-icon="terminal">API Settings</button>
+      <button data-admin-section="model-groups" data-icon="layers">Model Groups</button>
+      <button data-admin-section="model-health" data-icon="shield">Model Health</button>
+      <button data-admin-section="search-config" data-icon="search">Search Providers</button>
+      <button data-admin-section="telegram" data-icon="telegram">Telegram Bot</button>
+      <button data-admin-section="provider-map" data-icon="link">Provider Mapping</button>
+      <button data-admin-section="site-lock" class="admin-nav-danger" data-icon="lock">Site Lock</button>
+      <button data-admin-section="system" data-icon="cog">System</button>
+      <button data-admin-section="logs" data-icon="list">Activity Logs</button>
+      <button data-admin-section="settings" data-icon="sliders">Settings</button>
+      <button class="admin-back" id="adminBackBtn" data-icon="arrowLeft">Back</button>
     </aside>
     <main class="admin-main"><div class="admin-content" id="adminContent"></div></main>
   </div>
@@ -2811,7 +2855,7 @@ body.is-locked .auth-page{ display:none !important; }
     <div class="page-head">
       <div class="page-head-row">
         <h2 id="catalogCount">Models</h2>
-        <div style="display:flex;gap:8px;align-items:center"><button class="page-close" id="modelsClose" aria-label="Close">✕</button></div>
+        <div style="display:flex;gap:8px;align-items:center"><button class="page-close" id="modelsClose" aria-label="Close"></button></div>
       </div>
       <p>Selecting one pins its exact model ID to the composer.</p>
     </div>
@@ -2840,7 +2884,7 @@ body.is-locked .auth-page{ display:none !important; }
 <div class="screen-page" id="screenPage">
   <div class="screen-page-head">
     <h2 id="screenPageTitle">Page</h2>
-    <button class="screen-page-close" id="screenPageClose" aria-label="Close">✕</button>
+    <button class="screen-page-close" id="screenPageClose" aria-label="Close"></button>
   </div>
   <div class="screen-page-body" id="screenPageBody"></div>
 </div>
@@ -2866,6 +2910,37 @@ const ICONS = {
   image: `<svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`,
 };
 
+(function extendIcons(){
+  const s = d => `<svg class="icon" viewBox="0 0 24 24" style="stroke-width:1.9">${d}</svg>`;
+  Object.assign(ICONS, {
+    models: s('<circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36z"/>'),
+    chats: s('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>'),
+    code: s('<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>'),
+    home: s('<path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>'),
+    user: s('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
+    key: s('<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9"/><path d="m16 7 3 3"/>'),
+    layers: s('<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 12 10 5 10-5"/><path d="m2 17 10 5 10-5"/>'),
+    chart: s('<path d="M3 3v18h18"/><path d="M8 17v-6M13 17V7M18 17v-4"/>'),
+    compare: s('<path d="M7 4 3 8l4 4"/><path d="M3 8h14"/><path d="m17 20 4-4-4-4"/><path d="M21 16H7"/>'),
+    play: s('<path d="m6 3 14 9-14 9z"/>'),
+    palette: s('<circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 22a10 10 0 1 1 10-10c0 2.5-2 3-4 3h-2a2 2 0 0 0-1.5 3.3c.6.8.3 3.7-2.5 3.7z"/>'),
+    terminal: s('<path d="m4 17 6-6-6-6"/><path d="M12 19h8"/>'),
+    shield: s('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'),
+    search: s('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>'),
+    telegram: s('<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>'),
+    link: s('<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>'),
+    lock: s('<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'),
+    cog: s('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+    list: s('<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'),
+    sliders: s('<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>'),
+    arrowLeft: s('<path d="M19 12H5M12 19l-7-7 7-7"/>'),
+    sparkles: s('<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>'),
+    chevronDown: s('<path d="m6 9 6 6 6-6"/>'),
+    dots: s('<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>'),
+    plus: s('<path d="M12 5v14M5 12h14"/>')
+  });
+})();
+
 const WORKER_BASE = "";
 const API_BASE = WORKER_BASE + "/v1";
 const $ = s => document.querySelector(s);
@@ -2889,6 +2964,7 @@ const state = {
   accent:localStorage.getItem("chinaGPTAccent")||"",
   fontSize:localStorage.getItem("chinaGPTFontSize")||"medium",
   density:localStorage.getItem("chinaGPTDensity")||"comfortable",
+  autoCollapseReasoning: localStorage.getItem("chinaGPTAutoCollapse") !== "0",
   profileName:localStorage.getItem("chinaGPTProfileName")||"",
   profileAvatar:localStorage.getItem("chinaGPTProfileAvatar")||"🙂",
   profileAvatarImage:localStorage.getItem("chinaGPTProfileAvatarImage")||"",
@@ -3412,10 +3488,16 @@ function saveTheme(theme){state.theme=theme;localStorage.setItem("chinaGPTTheme"
 function saveAccent(hex){state.accent=hex;localStorage.setItem("chinaGPTAccent",hex);loadTheme()}
 function saveFontSize(v){state.fontSize=v;localStorage.setItem("chinaGPTFontSize",v);loadTheme()}
 function saveDensity(v){state.density=v;localStorage.setItem("chinaGPTDensity",v);loadTheme()}
-function saveProfile(name,avatar){
-  state.profileName=name;state.profileAvatar=avatar;
-  localStorage.setItem("chinaGPTProfileName",name);
-  localStorage.setItem("chinaGPTProfileAvatar",avatar);
+function saveProfile(name, avatar, avatarImage){
+  state.profileName = name;
+  state.profileAvatar = avatar || state.profileAvatar || "🙂";
+  state.profileAvatarImage = avatarImage || "";
+  localStorage.setItem("chinaGPTProfileName", state.profileName);
+  localStorage.setItem("chinaGPTProfileAvatar", state.profileAvatar);
+  try {
+    if (state.profileAvatarImage) localStorage.setItem("chinaGPTProfileAvatarImage", state.profileAvatarImage);
+    else localStorage.removeItem("chinaGPTProfileAvatarImage");
+  } catch {}
   updateAccountBadge();
 }
 loadTheme();
@@ -3715,12 +3797,7 @@ function enhanceRenderedMarkdown(container){
     wrap.appendChild(pre);
 
     if (fileFilename) {
-      const card = document.createElement("button");
-      card.type = "button";
-      card.className = "tool-file-chip tool-file-chip-btn";
-      card.innerHTML = `<span class="tfc-icon">📄</span><span class="tfc-main"><span class="tfc-name">${escapeHtml(fileFilename)}</span><span class="tfc-size">${escapeHtml(formatBytes(rawText.length))}</span></span><span class="tfc-arrow">↓</span>`;
-      card.onclick = () => openFilePreview(fileFilename, rawText);
-      wrap.appendChild(card);
+      wrap.appendChild(buildFileCard(fileFilename, rawText, mimeForExt(extOf(fileFilename))));
     }
   });
 
@@ -3852,6 +3929,52 @@ function scrollToBottom(force){
 /* ============================================================
    MESSAGE RENDERING
    ============================================================ */
+function iconForFilename(filename, mime) {
+  const name = String(filename || "").toLowerCase();
+  const m = String(mime || "").toLowerCase();
+  if (m === "application/pdf" || name.endsWith(".pdf")) return ICONS.file;
+  if (/\.(csv|xlsx?|numbers|ods)$/.test(name)) return ICONS.file;
+  if (/\.(zip|tar|gz|rar|7z)$/.test(name)) return ICONS.file;
+  if (/\.(png|jpe?g|gif|webp|svg|bmp|ico)$/.test(name) || m.startsWith("image/")) return ICONS.image;
+  if (/\.(js|ts|jsx|tsx|py|java|c|cpp|h|hpp|cs|rs|go|rb|php|sql|sh|json|yaml|yml|xml|toml|html?|css)$/.test(name)) return ICONS.code;
+  return ICONS.file;
+}
+
+function buildFileCard(filename, content, mime) {
+  const ext = extOf(filename);
+  const sizeLabel = formatBytes(content.length) || (content.length + " B");
+  const card = document.createElement("div");
+  card.className = "file-card";
+  card.innerHTML = `
+    <div class="file-card-icon">${iconForFilename(filename, mime)}</div>
+    <div class="file-card-main">
+      <div class="file-card-name">${escapeHtml(filename)}</div>
+      <div class="file-card-meta">${escapeHtml((ext || "FILE").toUpperCase())} · ${escapeHtml(sizeLabel)}</div>
+    </div>
+    <div class="file-card-actions">
+      <button type="button" class="file-card-action" data-copy title="Copy content" aria-label="Copy content">${ICONS.copy}</button>
+      <button type="button" class="file-card-action" data-download title="Download" aria-label="Download">${ICONS.download}</button>
+    </div>
+  `;
+  const open = () => openFilePreview(filename, content, mime);
+  card.querySelector(".file-card-main").onclick = open;
+  card.querySelector(".file-card-icon").onclick = open;
+  card.querySelector("[data-copy]").onclick = (e) => {
+    e.stopPropagation();
+    copyText(content);
+    const btn = e.currentTarget;
+    const orig = btn.innerHTML;
+    btn.classList.add("is-copied");
+    btn.innerHTML = CHECK_ICON;
+    setTimeout(() => { btn.classList.remove("is-copied"); btn.innerHTML = orig; }, 1400);
+  };
+  card.querySelector("[data-download]").onclick = (e) => {
+    e.stopPropagation();
+    downloadFile(filename, content, mime);
+  };
+  return card;
+}
+
 function renderMessages(){
   const box=$("#messages"), stage=$("#stage");
   stage.classList.toggle("is-home", state.messages.length===0);
@@ -3865,8 +3988,30 @@ function renderMessages(){
       row.appendChild(who);
     }else if(m.role==="user"&&state.profileName){
       const who=document.createElement("div");who.className="msg-who";
-      who.innerHTML=`${escapeHtml(state.profileName)}<span class="avatar-emoji">${escapeHtml(state.profileAvatar||"🙂")}</span>`;
+      const avInner = state.profileAvatarImage
+        ? `<img src="${escapeHtml(state.profileAvatarImage)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:5px;display:block">`
+        : escapeHtml(state.profileAvatar||"🙂");
+      who.innerHTML=`${escapeHtml(state.profileName)}<span class="avatar-emoji" style="overflow:hidden">${avInner}</span>`;
       row.appendChild(who);
+    }
+
+    if (m.role === "user" && Array.isArray(m._attachments) && m._attachments.length) {
+      const strip = document.createElement("div");
+      strip.className = "attach-preview";
+      strip.innerHTML = m._attachments.map(a => {
+        const thumb = a.dataUrl
+          ? `<span class="attach-preview-thumb"><img src="${escapeHtml(a.dataUrl)}" alt=""></span>`
+          : `<span class="attach-preview-thumb">${fileIconFor(a)}</span>`;
+        const kind = a.kind === "image" ? "Image" : a.kind === "pdf" ? "PDF" : "File";
+        return `<span class="attach-preview-chip" title="${escapeHtml(a.name)}">
+          ${thumb}
+          <span class="attach-preview-meta">
+            <span class="attach-preview-name">${escapeHtml(a.name)}</span>
+            <span class="attach-preview-kind">${escapeHtml(kind)}</span>
+          </span>
+        </span>`;
+      }).join("");
+      row.appendChild(strip);
     }
 
     if (m.role === "assistant" && Array.isArray(m._toolLog) && m._toolLog.length && m.streaming) {
@@ -3910,7 +4055,17 @@ function renderMessages(){
       }
     } else {
       if (m.role === "assistant" && m.reasoning) {
-        const rb = document.createElement("div");rb.className="reasoning-block";
+        const rb = document.createElement("div");
+        rb.className = "reasoning-block";
+
+        const hasContent = !!text;
+        const autoCollapseOn = state.autoCollapseReasoning !== false;
+
+        if (m._reasoningOpen === true) rb.classList.add("open");
+        else if (m._reasoningOpen === false) { /* user closed it */ }
+        else if (m.streaming && !hasContent) rb.classList.add("open");
+        else if (!autoCollapseOn) rb.classList.add("open");
+
         let label = "Thinking…";
         if (!m.streaming && m.reasoningStartedAt) {
           const endedAt = m.reasoningEndedAt || Date.now();
@@ -3918,20 +4073,59 @@ function renderMessages(){
           const sec = ms < 1000 ? (ms / 1000).toFixed(1) : Math.round(ms / 1000);
           label = "Thought for " + sec + "s";
         }
-        rb.innerHTML = `<button type="button" class="reasoning-toggle"><span class="reasoning-caret">▸</span> ${escapeHtml(label)}</button><div class="reasoning-body"></div>`;
+
+        const bodyId = "reasoning-body-" + i;
+        rb.innerHTML = `
+          <button type="button" class="reasoning-toggle"
+                  aria-expanded="${rb.classList.contains("open") ? "true" : "false"}"
+                  aria-controls="${bodyId}">
+            <span class="reasoning-caret">${ICONS.chevronDown}</span>
+            <span class="reasoning-label">${escapeHtml(label)}</span>
+            <span class="reasoning-copy" role="button" tabindex="0" aria-label="Copy reasoning" title="Copy reasoning">${ICONS.copy}</span>
+          </button>
+          <div class="reasoning-body" id="${bodyId}" role="region" aria-label="Reasoning"></div>
+        `;
         rb.querySelector(".reasoning-body").textContent = m.reasoning;
-        rb.querySelector(".reasoning-toggle").onclick = () => rb.classList.toggle("open");
+
+        const toggle = rb.querySelector(".reasoning-toggle");
+        const copyBtn = rb.querySelector(".reasoning-copy");
+
+        toggle.onclick = (e) => {
+          if (e.target.closest(".reasoning-copy")) return;
+          const isOpen = rb.classList.toggle("open");
+          toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+          m._reasoningOpen = isOpen;
+        };
+        copyBtn.onclick = (e) => {
+          e.stopPropagation();
+          copyText(m.reasoning || "");
+          const orig = copyBtn.innerHTML;
+          copyBtn.classList.add("is-copied");
+          copyBtn.innerHTML = CHECK_ICON;
+          setTimeout(() => { copyBtn.classList.remove("is-copied"); copyBtn.innerHTML = orig; }, 1400);
+        };
+        copyBtn.onkeydown = (e) => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); copyBtn.click(); }
+        };
         row.appendChild(rb);
       }
-      const b = document.createElement("div");b.className="bubble";
-      if (m.role === "assistant" && !m.streaming && !m.error) {
-        const html = renderMarkdownSafe(text);
-        if (html !== null) { b.classList.add("md"); b.innerHTML = html; enhanceRenderedMarkdown(b); }
-        else b.textContent = text;
-      } else {
-        b.textContent = text;
+      const isEmptyUserWithAttachments =
+        m.role === "user" &&
+        (!text || !text.trim()) &&
+        Array.isArray(m._attachments) &&
+        m._attachments.length > 0;
+
+      if (!isEmptyUserWithAttachments) {
+        const b = document.createElement("div");b.className="bubble";
+        if (m.role === "assistant" && !m.streaming && !m.error) {
+          const html = renderMarkdownSafe(text);
+          if (html !== null) { b.classList.add("md"); b.innerHTML = html; enhanceRenderedMarkdown(b); }
+          else b.textContent = text;
+        } else {
+          b.textContent = text;
+        }
+        row.appendChild(b);
       }
-      row.appendChild(b);
 
       if (m.role === "assistant" && isAdminAccount() && m._actualModel && m.requestedModel && m._actualModel !== m.requestedModel) {
         const note = document.createElement("div");
@@ -3955,14 +4149,7 @@ function renderMessages(){
           const filename = String(args.filename || "file.txt");
           const mime = String(args.mime || "text/plain");
           const content = String(args.content || "");
-          const size = content.length;
-
-          const chip = document.createElement("button");
-          chip.type = "button";
-          chip.className = "tool-file-chip tool-file-chip-btn";
-          chip.innerHTML = `<span class="tfc-icon">📄</span><span class="tfc-main"><span class="tfc-name">${escapeHtml(filename)}</span><span class="tfc-size">${escapeHtml(formatBytes(size))}</span></span><span class="tfc-arrow">↓</span>`;
-          chip.onclick = () => openFilePreview(filename, content, mime);
-          row.appendChild(chip);
+          row.appendChild(buildFileCard(filename, content, mime));
         }
       }
     }
@@ -4124,7 +4311,11 @@ function safeJson(key,fallback){try{return JSON.parse(localStorage.getItem(key)|
 function conversations(){const a=safeJson(CHAT_STORE_KEY,[]);return Array.isArray(a)?a:[]}
 function makeConversationTitle(messages){
   const firstUser = messages.find(m => m.role === "user" && typeof m.content === "string" && m.content.trim());
-  if (!firstUser) return "New conversation";
+  if (!firstUser) {
+    const withAtt = messages.find(m => m.role === "user" && Array.isArray(m._attachments) && m._attachments.length);
+    if (withAtt) return smartTitle("File: " + withAtt._attachments[0].name);
+    return "New conversation";
+  }
 
   const fullText = messages
     .filter(m => m.role === "user" && typeof m.content === "string")
@@ -4181,6 +4372,16 @@ function persistCurrentConversation(){
       requestedModel:m.requestedModel||null,
       actualModel:m._actualModel||null,
       hadImages:!!m._multimodal,
+      attachments: Array.isArray(m._attachments) && m._attachments.length
+        ? m._attachments.map(a => ({
+            name: a.name,
+            kind: a.kind,
+            mime: a.mime,
+            size: a.size,
+            text: (a.text || "").slice(0, 60000),
+            dataUrl: ""
+          }))
+        : null,
       tools:Array.isArray(m._toolLog) && m._toolLog.length
         ? m._toolLog.map(e => ({
             kind:e.kind,
@@ -4227,7 +4428,12 @@ function loadConversation(id){
           data: (e.sources || e.answer) ? { sources: e.sources || [], answer: e.answer || "" } : (e.data||null)
         })) : [],
         requestedModel:m.requestedModel||null,
-        _actualModel:m.actualModel||null
+        _actualModel:m.actualModel||null,
+        _attachments: Array.isArray(m.attachments) ? m.attachments : [],
+        _modelContent: (Array.isArray(m.attachments) && m.attachments.some(a => a.text))
+          ? ((m.content || "") + m.attachments.filter(a => a.text)
+              .map(a => `\n\n[Attached file: ${a.name}]\n${a.text}`).join("")).trim()
+          : undefined
       }))
     :[];
   if(c.model&&state.models.some(m=>m.id===c.model)){state.model=c.model;markModelUsed(state.model)}
@@ -4345,7 +4551,10 @@ function chatMessages(uptoIndex){
           out.push({ role: "system", content: ctx.text });
         }
       }
-      out.push({ role: "user", content: m._multimodal || m.content || "" });
+      out.push({
+        role: "user",
+        content: m._multimodal || m._modelContent || m.content || ""
+      });
     } else if (m.role === "assistant") {
       if (m.content) out.push({ role: "assistant", content: m.content });
     }
@@ -4662,23 +4871,36 @@ async function send(){
   if (!state.model) { toast("No model selected."); return; }
   if (state.generating) { toast("A response is already generating."); return; }
 
-  const attachmentText = state.attachments
+  const attachedSnapshot = state.attachments.map(a => ({
+    name: a.name,
+    kind: a.kind,
+    mime: a.mime || a.type || "",
+    size: a.size || 0,
+    text: a.text || "",
+    dataUrl: a.dataUrl || ""
+  }));
+
+  const attachmentText = attachedSnapshot
     .filter(a => a.text)
     .map(a => `\n\n[Attached file: ${a.name}]\n${a.text}`).join("");
-  const finalText = (text + attachmentText).trim();
-  if (!finalText) { toast("This file type cannot be sent as text."); return; }
+  const fullForModel = (text + attachmentText).trim();
+  if (!fullForModel) { toast("This file type cannot be sent as text."); return; }
 
-  const imageAttachments = state.attachments.filter(a => a.dataUrl);
+  const imageAttachments = attachedSnapshot.filter(a => a.dataUrl);
   const multimodalContent = imageAttachments.length
     ? [
-        { type: "text", text: finalText },
+        { type: "text", text: fullForModel },
         ...imageAttachments.map(a => ({ type: "image_url", image_url: { url: a.dataUrl } }))
       ]
     : null;
 
+  const displayText = text || "";
+
   const userMsg = {
     role: "user",
-    content: finalText,
+    content: displayText,
+    _modelContent: fullForModel,
+    _attachments: attachedSnapshot,
     _multimodal: multimodalContent,
     _toolContext: []
   };
@@ -5263,8 +5485,19 @@ function editAndResend(index){
     body.querySelector("#editSend").onclick=async()=>{
       const text=body.querySelector("#editPrompt").value.trim();if(!text)return;
       popPage();
-      state.messages=state.messages.slice(0,index);
-      state.messages.push({role:"user",content:text});
+      const oldMsg = state.messages[index];
+      state.messages = state.messages.slice(0, index);
+      state.messages.push({
+        role: "user",
+        content: text,
+        _modelContent: oldMsg._attachments && oldMsg._attachments.some(a => a.text)
+          ? (text + oldMsg._attachments.filter(a => a.text)
+              .map(a => `\n\n[Attached file: ${a.name}]\n${a.text}`).join("")).trim()
+          : text,
+        _attachments: oldMsg._attachments || [],
+        _multimodal: oldMsg._multimodal || null,
+        _toolContext: oldMsg._toolContext || []
+      });
       ensureConversation();persistCurrentConversation();
       const ai={role:"assistant",content:"",streaming:true,reasoningStartedAt:null,reasoningEndedAt:null,_toolLog:[],requestedModel:state.model,_actualModel:null,_modelSupportsTools:!!(state.models.find(m=>m.id===state.model)?.capabilities?.tools)};state.messages.push(ai);renderMessages();
       state.generating=true;updateGeneratingUI();
@@ -5497,7 +5730,9 @@ function openAccountPage(){
     const isAdmin = state.role==="admin";
     body.innerHTML=`
       <div class="acct-hero">
-        <span class="avatar">${escapeHtml(state.profileAvatar||(state.profileName?state.profileName[0].toUpperCase():"U"))}</span>
+        <span class="avatar" style="${state.profileAvatarImage?"padding:0;overflow:hidden":""}">${state.profileAvatarImage
+          ? `<img src="${escapeHtml(state.profileAvatarImage)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block">`
+          : escapeHtml(state.profileAvatar||(state.profileName?state.profileName[0].toUpperCase():"U"))}</span>
         <div class="acct-hero-main">
           <b>${escapeHtml(state.profileName||(isAdmin?"Admin":"Account"))}</b>
           <small>${escapeHtml(maskedKey())}</small>
@@ -5592,10 +5827,50 @@ function openProfileSettings(){
         </div>
       </div>
     `;
-    let chosen=state.profileAvatar||"🙂";
-    const row=body.querySelector("#avatarRow");
-    row.innerHTML=avatars.map(a=>`<button type="button" class="avatar-opt${a===chosen?" is-active":""}" data-avatar="${a}">${a}</button>`).join("");
-    row.querySelectorAll("[data-avatar]").forEach(b=>b.onclick=()=>{chosen=b.dataset.avatar;row.querySelectorAll("[data-avatar]").forEach(x=>x.classList.toggle("is-active",x===b))});
+    let chosen = state.profileAvatar || "🙂";
+    let chosenImage = state.profileAvatarImage || "";
+    const row = body.querySelector("#avatarRow");
+    row.innerHTML = `
+      <div class="avatar-upload-row">
+        <div class="avatar-upload-preview" id="avatarPreview"></div>
+        <div class="avatar-upload-main">
+          <b>Profile picture</b>
+          <small>Upload an image up to 300 KB. Stored on this device only.</small>
+          <div class="avatar-upload-actions">
+            <label class="btn-ghost" style="cursor:pointer">
+              Choose image
+              <input type="file" id="avatarFileInput" accept="image/*" hidden>
+            </label>
+            <button type="button" class="danger" id="avatarClear">Remove</button>
+          </div>
+        </div>
+      </div>` +
+      avatars.map(a => `<button type="button" class="avatar-opt${(!chosenImage && a===chosen)?" is-active":""}" data-avatar="${a}">${a}</button>`).join("");
+
+    const preview = row.querySelector("#avatarPreview");
+    const fileInput = row.querySelector("#avatarFileInput");
+    const clearBtn = row.querySelector("#avatarClear");
+    const showPreview = () => {
+      preview.innerHTML = chosenImage ? `<img src="${escapeHtml(chosenImage)}" alt="">` : escapeHtml(chosen);
+      clearBtn.hidden = !chosenImage;
+      row.querySelectorAll("[data-avatar]").forEach(x => x.classList.toggle("is-active", !chosenImage && x.dataset.avatar === chosen));
+    };
+    showPreview();
+
+    row.querySelectorAll("[data-avatar]").forEach(b => b.onclick = () => {
+      chosen = b.dataset.avatar; chosenImage = ""; showPreview();
+    });
+    fileInput.addEventListener("change", (e) => {
+      const f = e.target.files?.[0];
+      e.target.value = "";
+      if (!f) return;
+      if (!f.type.startsWith("image/")) { toast("Choose an image file"); return; }
+      if (f.size > 300 * 1024) { toast("Image must be under 300 KB"); return; }
+      const reader = new FileReader();
+      reader.onload = () => { chosenImage = String(reader.result || ""); showPreview(); };
+      reader.readAsDataURL(f);
+    });
+    clearBtn.onclick = () => { chosenImage = ""; showPreview(); };
     const trow=body.querySelector("#themeRow");
     trow.innerHTML=themes.map(([id,label])=>`<button type="button" class="theme-option${state.theme===id?" is-active":""}" data-theme-id="${id}">${label}</button>`).join("");
     trow.querySelectorAll("[data-theme-id]").forEach(b=>b.onclick=()=>{saveTheme(b.dataset.themeId);trow.querySelectorAll("[data-theme-id]").forEach(x=>x.classList.toggle("is-active",x===b))});
@@ -5604,7 +5879,11 @@ function openProfileSettings(){
     arow.querySelectorAll("[data-accent]").forEach(b=>b.onclick=()=>{saveAccent(b.dataset.accent);arow.querySelectorAll("[data-accent]").forEach(x=>x.classList.toggle("is-active",x===b))});
     body.querySelector("#profileCancel").onclick=popPage;
     body.querySelector("#profileSave").onclick=()=>{
-      saveProfile(body.querySelector("#profileNameInput").value.trim().slice(0,40),chosen);
+      saveProfile(
+        body.querySelector("#profileNameInput").value.trim().slice(0,40),
+        chosen,
+        chosenImage
+      );
       popPage();renderMessages();toast("Profile saved");
     };
   });
@@ -5635,6 +5914,22 @@ function openPreferences(){
     const drow=body.querySelector("#densityRow");
     drow.innerHTML=densities.map(([id,label])=>`<button type="button" class="theme-option${state.density===id?" is-active":""}" data-dens="${id}">${label}</button>`).join("");
     drow.querySelectorAll("[data-dens]").forEach(b=>b.onclick=()=>{saveDensity(b.dataset.dens);drow.querySelectorAll("[data-dens]").forEach(x=>x.classList.toggle("is-active",x===b))});
+
+    const acSection = document.createElement("div");
+    acSection.className = "editor-section";
+    acSection.innerHTML = `
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="prefAutoCollapse"
+               ${state.autoCollapseReasoning !== false ? "checked" : ""}
+               style="all:revert;width:16px;height:16px">
+        <span style="font-size:13px">Auto-collapse reasoning after the answer starts</span>
+      </label>`;
+    body.querySelector(".editor-body").appendChild(acSection);
+    const ac = acSection.querySelector("#prefAutoCollapse");
+    ac.onchange = () => {
+      state.autoCollapseReasoning = ac.checked;
+      localStorage.setItem("chinaGPTAutoCollapse", ac.checked ? "1" : "0");
+    };
   });
 }
 
@@ -5642,70 +5937,151 @@ function openPreferences(){
    PERSONALITIES
    ============================================================ */
 function openPersonalities(){
-  pushPage("Personalities",(body)=>{
-    const p=state.persona||{text:"",enabled:false};
-    body.innerHTML=`
-      <h3>Persona</h3>
-      <p class="hint-text" style="margin:0 0 14px">Write instructions for how China-GPT should behave, then turn it on. Turn it off (or clear it) any time to get the model's default behavior back.</p>
-
-      <label style="display:flex;align-items:center;gap:8px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);margin-bottom:14px;cursor:pointer">
-        <input type="checkbox" id="personaEnabled" ${p.enabled?"checked":""} style="all:revert;width:18px;height:18px;padding:0">
-        <span style="font-size:13.5px;font-weight:500">Enabled</span>
+  pushPage("Personalities", (body) => {
+    body.innerHTML = `
+      <h3 style="margin-top:0">Personas</h3>
+      <p class="hint-text" style="margin:0 0 12px">Pick a persona to set the model's tone and behavior.</p>
+      <label class="chat-search" style="margin-bottom:12px">
+        ${ICONS.search}
+        <input id="personaSearch" placeholder="Search personas" autocomplete="off">
       </label>
-
-      <div class="persona-preset-row" id="presetRow"></div>
-
-      <div class="field">
-        <label>Instructions</label>
-        <textarea id="personaText" style="width:100%;min-height:160px;resize:vertical;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px" placeholder="e.g. Answer like a senior backend engineer. Be terse. Always show code first, explanation after.">${escapeHtml(p.text||"")}</textarea>
-      </div>
-
-      <div class="row" style="margin-top:8px">
-        <button class="btn-ghost" id="personaClear" type="button">Clear</button>
-        <button class="btn-primary" id="personaSave" type="button">Save</button>
-      </div>
-
+      <div class="persona-grid" id="personaGrid"></div>
       <div class="section-divider"></div>
-
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px">
         <h3 style="margin:0">Saved prompts</h3>
-        <button class="btn-ghost" id="promptAddBtn" type="button">＋ New</button>
+        <button class="btn-ghost" id="promptAddBtn" type="button">New</button>
       </div>
-
       <div class="field"><input id="promptSearch" placeholder="Search saved prompts"></div>
       <div id="promptList"></div>
     `;
-    body.querySelector("#presetRow").innerHTML=PERSONA_PRESETS.map(pr=>`<button type="button" class="persona-preset-chip" data-preset="${escapeHtml(pr.id)}">${escapeHtml(pr.icon)} ${escapeHtml(pr.name)}</button>`).join("");
-    body.querySelector("#presetRow").querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{
-      const preset=PERSONA_PRESETS.find(x=>x.id===b.dataset.preset);if(!preset)return;
-      body.querySelector("#personaText").value=preset.prompt;body.querySelector("#personaEnabled").checked=true;
-    });
-    body.querySelector("#personaClear").onclick=()=>{state.persona={text:"",enabled:false};savePersona();toast("Persona cleared")};
-    body.querySelector("#personaSave").onclick=()=>{
-      state.persona={text:body.querySelector("#personaText").value,enabled:body.querySelector("#personaEnabled").checked};
-      savePersona();toast(state.persona.enabled?"Persona saved and enabled":"Persona saved");
-    };
-    const renderList=()=>{
-      const q=(body.querySelector("#promptSearch").value||"").trim().toLowerCase();
-      const rows=state.savedPrompts.filter(pr=>!q||pr.name.toLowerCase().includes(q)||pr.text.toLowerCase().includes(q));
-      body.querySelector("#promptList").innerHTML=rows.length
-        ? rows.map(pr=>`<div class="saved-prompt-row"><div class="saved-prompt-main"><b>${escapeHtml(pr.name)}</b><span>${escapeHtml(pr.text)}</span></div><div class="saved-prompt-actions"><button type="button" data-prompt-use="${escapeHtml(pr.id)}">Insert</button><button type="button" data-prompt-edit="${escapeHtml(pr.id)}">Edit</button><button type="button" data-prompt-del="${escapeHtml(pr.id)}">Delete</button></div></div>`).join("")
-        : `<div class="admin-empty">No saved prompts yet.</div>`;
-      body.querySelector("#promptList").querySelectorAll("[data-prompt-use]").forEach(b=>b.onclick=()=>{
-        const pr=state.savedPrompts.find(x=>x.id===b.dataset.promptUse);if(!pr)return;
-        const box=$("#prompt");box.value=pr.text;box.dispatchEvent(new Event("input"));
-        closeAllPages();box.focus();
+
+    const personas = PERSONA_PRESETS;
+    const activeId = () => state.persona?.enabled ? state.persona.presetId : null;
+
+    const renderGrid = () => {
+      const q = (body.querySelector("#personaSearch").value || "").trim().toLowerCase();
+      const list = personas.filter(p => !q || p.name.toLowerCase().includes(q));
+      const grid = body.querySelector("#personaGrid");
+      grid.innerHTML = list.map(p => `
+        <div class="persona-card${activeId() === p.id ? " is-active" : ""}" data-persona-id="${escapeHtml(p.id)}">
+          <button type="button" class="persona-card-menu" data-persona-menu="${escapeHtml(p.id)}" aria-label="Options">${ICONS.dots}</button>
+          <span class="persona-card-icon">${ICONS.sparkles}</span>
+          <span class="persona-card-name">${escapeHtml(p.name)}</span>
+          <span class="persona-card-desc">${escapeHtml(p.prompt.slice(0, 100))}</span>
+        </div>
+      `).join("") + `
+        <button type="button" class="persona-card persona-card-new" id="personaCreateCard">
+          <span class="plus-icon">${ICONS.plus}</span>
+          <span>Create new</span>
+        </button>`;
+
+      grid.querySelectorAll(".persona-card[data-persona-id]").forEach(card => {
+        card.onclick = (e) => {
+          if (e.target.closest("[data-persona-menu]")) return;
+          const preset = personas.find(x => x.id === card.dataset.personaId);
+          if (!preset) return;
+          state.persona = { text: preset.prompt, enabled: true, presetId: preset.id };
+          savePersona(); renderGrid(); toast(`Persona: ${preset.name}`);
+        };
       });
-      body.querySelector("#promptList").querySelectorAll("[data-prompt-edit]").forEach(b=>b.onclick=()=>openSavedPromptEditor(b.dataset.promptEdit));
-      body.querySelector("#promptList").querySelectorAll("[data-prompt-del]").forEach(b=>b.onclick=()=>{
-        if(!confirm("Delete this saved prompt?"))return;
-        state.savedPrompts=state.savedPrompts.filter(x=>x.id!==b.dataset.promptDel);
-        saveSavedPrompts();renderList();
+
+      grid.querySelectorAll("[data-persona-menu]").forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          document.querySelectorAll(".search-provider-menu").forEach(el => el.remove());
+          const preset = personas.find(x => x.id === btn.dataset.personaMenu);
+          if (!preset) return;
+          const menu = document.createElement("div");
+          menu.className = "search-provider-menu open";
+          menu.style.zIndex = "90";
+          menu.innerHTML = `
+            <div class="menu-header">${escapeHtml(preset.name)}</div>
+            <button type="button" data-act="use">Use persona</button>
+            <button type="button" data-act="clear" style="color:var(--danger)">Clear persona</button>`;
+          document.body.appendChild(menu);
+          const r = btn.getBoundingClientRect();
+          menu.style.left = Math.max(8, Math.min(r.right - 200, window.innerWidth - 208)) + "px";
+          menu.style.top = Math.min(r.bottom + 6, window.innerHeight - menu.offsetHeight - 8) + "px";
+          const close = (ev) => {
+            if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener("click", close, true); }
+          };
+          menu.querySelector("[data-act='use']").onclick = () => {
+            menu.remove(); document.removeEventListener("click", close, true);
+            state.persona = { text: preset.prompt, enabled: true, presetId: preset.id };
+            savePersona(); renderGrid();
+          };
+          menu.querySelector("[data-act='clear']").onclick = () => {
+            menu.remove(); document.removeEventListener("click", close, true);
+            state.persona = { text: "", enabled: false, presetId: null };
+            savePersona(); renderGrid();
+          };
+          setTimeout(() => document.addEventListener("click", close, true), 0);
+        };
+      });
+
+      const create = grid.querySelector("#personaCreateCard");
+      if (create) create.onclick = () => openPersonaEditor();
+    };
+
+    renderGrid();
+    body.querySelector("#personaSearch").addEventListener("input", renderGrid);
+
+    const renderList = () => {
+      const q = (body.querySelector("#promptSearch").value || "").trim().toLowerCase();
+      const rows = state.savedPrompts.filter(pr => !q || pr.name.toLowerCase().includes(q) || pr.text.toLowerCase().includes(q));
+      body.querySelector("#promptList").innerHTML = rows.length
+        ? rows.map(pr => `
+            <div class="saved-prompt-row">
+              <div class="saved-prompt-main"><b>${escapeHtml(pr.name)}</b><span>${escapeHtml(pr.text)}</span></div>
+              <div class="saved-prompt-actions">
+                <button type="button" data-prompt-use="${escapeHtml(pr.id)}">Insert</button>
+                <button type="button" data-prompt-edit="${escapeHtml(pr.id)}">Edit</button>
+                <button type="button" data-prompt-del="${escapeHtml(pr.id)}">Delete</button>
+              </div>
+            </div>`).join("")
+        : `<div class="admin-empty">No saved prompts yet.</div>`;
+      const list = body.querySelector("#promptList");
+      list.querySelectorAll("[data-prompt-use]").forEach(b => b.onclick = () => {
+        const pr = state.savedPrompts.find(x => x.id === b.dataset.promptUse);
+        if (!pr) return;
+        const box = $("#prompt"); box.value = pr.text;
+        box.dispatchEvent(new Event("input"));
+        closeAllPages(); box.focus();
+      });
+      list.querySelectorAll("[data-prompt-edit]").forEach(b => b.onclick = () => openSavedPromptEditor(b.dataset.promptEdit));
+      list.querySelectorAll("[data-prompt-del]").forEach(b => b.onclick = () => {
+        if (!confirm("Delete this saved prompt?")) return;
+        state.savedPrompts = state.savedPrompts.filter(x => x.id !== b.dataset.promptDel);
+        saveSavedPrompts(); renderList();
       });
     };
     renderList();
-    body.querySelector("#promptSearch").addEventListener("input",renderList);
-    body.querySelector("#promptAddBtn").onclick=()=>openSavedPromptEditor(null);
+    body.querySelector("#promptSearch").addEventListener("input", renderList);
+    body.querySelector("#promptAddBtn").onclick = () => openSavedPromptEditor(null);
+  });
+}
+
+function openPersonaEditor(){
+  pushPage("Custom persona", (body) => {
+    body.innerHTML = `
+      <div class="editor-body">
+        <div class="editor-section">
+          <label for="cpText">Instructions</label>
+          <textarea id="cpText" class="editor-textarea" placeholder="e.g. Answer like a senior backend engineer. Be terse.">${escapeHtml(state.persona?.presetId ? "" : (state.persona?.text || ""))}</textarea>
+          <div class="editor-hint">Saving turns this persona on. Clear it from any persona's menu.</div>
+        </div>
+        <div class="editor-actions">
+          <button class="btn-ghost" id="cpCancel" type="button">Cancel</button>
+          <button class="btn-primary" id="cpSave" type="button">Save &amp; enable</button>
+        </div>
+      </div>`;
+    body.querySelector("#cpCancel").onclick = popPage;
+    body.querySelector("#cpSave").onclick = () => {
+      const text = body.querySelector("#cpText").value.trim();
+      if (!text) { toast("Enter some instructions"); return; }
+      state.persona = { text, enabled: true, presetId: null };
+      savePersona(); popPage(); renderTopPage(); toast("Persona enabled");
+    };
   });
 }
 
@@ -7775,6 +8151,15 @@ function renderAdmin(){
       ${adminStat("API key",j.apiKeyConfigured?"Configured":"Missing","Secret remains server-side")}
       ${adminStat("Auth system",j.authSystemInitialized?"Initialized":"Not initialized","Upstash Redis")}
     </div>
+    <div class="admin-section" style="margin-top:0">
+      <div class="admin-online-card">
+        <span class="online-dot-lg"></span>
+        <div>
+          <div class="online-count" id="adminOnlineCount">—</div>
+          <div class="online-label">users online</div>
+        </div>
+      </div>
+    </div>
     <div class="admin-section"><div class="admin-section-head"><h3>System health</h3><span>Live backend status</span></div>
       <div class="admin-status-grid">
         ${adminStatusCard("China-GPT backend","Online","Admin request succeeded",true)}
@@ -7791,6 +8176,7 @@ function renderAdmin(){
       </div>
     </div>
     <div class="admin-section"><div class="admin-note"><b style="color:var(--text)">Security:</b> the dashboard never displays the private 9Router API key. Existing access keys are masked in account listings. Newly created keys are shown once so the administrator can save them.</div></div>`;
+    refreshOnlineCount();
   }else if(adminSection==="accounts"){
     renderAccountsPage();return;
   }else if(adminSection==="keys"){
@@ -7886,6 +8272,7 @@ async function openAdmin(){
   adminSection="overview";
   document.querySelectorAll(".admin-nav button[data-admin-section]").forEach(b=>b.classList.toggle("is-active",b.dataset.adminSection==="overview"));
   renderAdmin();
+  refreshOnlineCount();
   await refreshAdminStatus();
 }
 document.querySelectorAll(".admin-nav button[data-admin-section]").forEach(b=>{
@@ -8027,7 +8414,103 @@ function buildFilters(){
   $("#modelSort").value=catalogSort;
 }
 function renderCatalog(){
-  const q=catalogQuery.trim().toLowerCase();
+  const q = catalogQuery.trim().toLowerCase();
+  const usingGroups = Array.isArray(state.modelGroups) && state.modelGroups.length > 0;
+
+  if (usingGroups) {
+    const rows = state.modelGroups.filter(g => {
+      const maker = makerOf(g.primary);
+      if (catalogFilter !== "all" && maker.key !== catalogFilter) return false;
+      if (state.favoritesOnly && !g.variants.some(v => isFavorite(v.id || v))) return false;
+      if (state.recentOnly && !g.variants.some(v => state.recentModels.includes(v.id || v))) return false;
+      if (q) {
+        const hit = g.variants.some(v => {
+          const id = v.id || v;
+          return String(id).toLowerCase().includes(q) || cleanModelName(id).toLowerCase().includes(q);
+        }) || g.canonical.includes(q) || maker.label.toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      return true;
+    });
+
+    rows.sort((a, b) => {
+      if (catalogSort === "provider") {
+        return (makerOf(a.primary).label + " " + groupDisplayName(a)).toLowerCase()
+          .localeCompare((makerOf(b.primary).label + " " + groupDisplayName(b)).toLowerCase());
+      }
+      return groupDisplayName(a).toLowerCase().localeCompare(groupDisplayName(b).toLowerCase());
+    });
+
+    $("#catalogCount").textContent =
+      `${rows.length} model${rows.length === 1 ? "" : "s"} · ${state.models.length} variants`;
+
+    const box = $("#modelResults");
+    box.innerHTML = rows.length ? rows.map(g => {
+      const primary = state.models.find(m => m.id === g.primary);
+      const maker = makerOf(g.primary);
+      const ctx = primary ? fmtContext(primary.context_length || primary.contextWindow) : "—";
+      const pin = primary ? fmtPrice(primary.pricing?.prompt ?? primary.pricing?.input) : "—";
+      const pout = primary ? fmtPrice(primary.pricing?.completion ?? primary.pricing?.output) : "—";
+      const isActive = g.variants.some(v => (v.id || v) === state.model);
+      const multi = g.variants.length > 1;
+      const isFav = g.variants.some(v => isFavorite(v.id || v));
+      const c = providerColor(maker.key);
+      const lastCell = isActive ? '<span class="selected-flag">✓ Selected</span>' : pout;
+      const lastLabel = isActive ? "Status" : "Output / 1M";
+      const pinnedBadge = g.pinned ? ' <span class="variant-badge primary">PIN</span>' : "";
+
+      return `<div class="model-row${isActive ? " is-active" : ""}">
+        <button type="button" class="model-main" data-group-primary="${escapeHtml(g.primary)}">
+          <span class="model-id">
+            ${renderTile(maker.key)}
+            <span class="model-id-text">
+              <b>${escapeHtml(groupDisplayName(g))}${pinnedBadge}</b>
+              <span class="model-meta">
+                <small style="color:${c}">${escapeHtml(maker.label)}</small>
+                ${primary ? capsHtml(primary, "cap-badge") : ""}
+                ${multi ? `<span role="button" class="group-variants-chip" data-open-variants="${escapeHtml(g.canonical)}" title="${g.variants.length} variants">+${g.variants.length - 1}</span>` : ""}
+              </span>
+            </span>
+          </span>
+          <span class="model-cell" data-label="Context">${ctx}</span>
+          <span class="model-cell price" data-label="Input / 1M">${pin}</span>
+          <span class="model-cell price" data-label="${lastLabel}">${lastCell}</span>
+        </button>
+        <button type="button" class="model-copy-id" data-copy-id="${escapeHtml(g.primary)}" aria-label="Copy model ID">${COPY_ICON}</button>
+        <button type="button" class="model-fav${isFav ? " is-on" : ""}" data-fav-group="${escapeHtml(g.canonical)}" aria-label="Favorite">${isFav ? "★" : "☆"}</button>
+      </div>`;
+    }).join("") : `<div class="side-empty" style="padding:20px">No models match the selected filters.</div>`;
+
+    box.querySelectorAll("[data-group-primary]").forEach(b => b.onclick = e => {
+      if (e.target.closest("[data-open-variants]")) return;
+      selectModel(b.dataset.groupPrimary);
+    });
+    box.querySelectorAll("[data-open-variants]").forEach(chip => {
+      chip.onclick = e => {
+        e.stopPropagation();
+        const g = state.modelGroups.find(x => x.canonical === chip.dataset.openVariants);
+        if (g) openVariantSheet(g);
+      };
+    });
+    box.querySelectorAll("[data-copy-id]").forEach(b => b.onclick = e => {
+      e.stopPropagation(); copyText(b.dataset.copyId); flashCopyIcon(b);
+    });
+    box.querySelectorAll("[data-fav-group]").forEach(b => b.onclick = e => {
+      e.stopPropagation();
+      const g = state.modelGroups.find(x => x.canonical === b.dataset.favGroup);
+      if (!g) return;
+      const allFav = g.variants.every(v => isFavorite(v.id || v));
+      for (const v of g.variants) {
+        const id = v.id || v;
+        if (allFav) state.favorites = state.favorites.filter(x => x !== id);
+        else if (!isFavorite(id)) state.favorites = [...state.favorites, id];
+      }
+      saveModelPrefs(); renderCatalog();
+    });
+    return;
+  }
+
+  // ---- Flat fallback (unchanged behaviour) ----
   let rows=state.models.filter(m=>{
     const maker=makerOf(m.id);
     if(catalogFilter!=="all"&&maker.key!==catalogFilter)return false;
@@ -8075,6 +8558,7 @@ function renderCatalog(){
   });
   box.querySelectorAll("[data-fav-model]").forEach(b=>b.onclick=e=>{e.stopPropagation();toggleFavorite(b.dataset.favModel)});
 }
+
 function openModelsPage(){buildFilters();renderCatalog();$("#modelSearch").value=catalogQuery;$("#modelsPage").classList.add("open")}
 function closeModelsPage(){$("#modelsPage").classList.remove("open")}
 
@@ -8191,20 +8675,36 @@ function renderQuickSwitchList(){
         <b>${escapeHtml(cleanModelName(m.id))}</b>
         ${(() => { const h = capsHtml(m, "qs-cap"); return h ? `<span class="qs-row-caps">${h}</span>` : ""; })()}
         <small><span class="prov-dot" style="background:${c}"></span>${escapeHtml(maker.label)} · ${ctx} ctx</small>
+        ${(() => {
+          const g = groupForModelId(m.id);
+          if (!g || g.variants.length <= 1) return "";
+          return `<button type="button" class="group-variants-chip" data-qs-open="${escapeHtml(g.canonical)}" style="margin-top:4px">+${g.variants.length - 1}</button>`;
+        })()}
       </span>
       <button type="button" class="qs-copy-id" data-copy-id="${escapeHtml(m.id)}" title="Copy model ID">${COPY_ICON}</button>
       <span class="qs-radio"></span>
     </div>`;
   }).join(""):`<div class="qs-empty">No models match.</div>`;
+  list.querySelectorAll("[data-qs-open]").forEach(chip => {
+    chip.onclick = (e) => {
+      e.stopPropagation();
+      const g = state.modelGroups.find(x => x.canonical === chip.dataset.qsOpen);
+      if (!g) return;
+      closeQuickModelSwitch();
+      openVariantSheet(g);
+    };
+  });
   list.querySelectorAll("[data-qs-model]").forEach(b=>{
     b.onclick=(e)=>{
       if(e.target.closest("[data-copy-id]"))return;
+      if(e.target.closest("[data-qs-open]"))return;
       selectModel(b.dataset.qsModel);
       closeQuickModelSwitch();
     };
     b.onkeydown=(e)=>{
       if(e.key==="Enter"||e.key===" "){
         if(e.target.closest("[data-copy-id]"))return;
+        if(e.target.closest("[data-qs-open]"))return;
         e.preventDefault();
         selectModel(b.dataset.qsModel);
         closeQuickModelSwitch();
@@ -8222,6 +8722,28 @@ function renderQuickSwitchList(){
    WIRING
    ============================================================ */
 $("#brandLogo").innerHTML=LOGO_SVG;
+
+document.querySelectorAll(".admin-nav button[data-icon]").forEach(b => {
+  const svg = (ICONS[b.dataset.icon] || "");
+  const label = b.textContent.trim();
+  b.innerHTML = `${svg}<span>${escapeHtml(label)}</span>`;
+});
+(function injectChromeIcons(){
+  const set = (sel, html) => { const el = document.querySelector(sel); if (el) el.innerHTML = html; };
+  set("#drawerClose", ICONS.x);
+  set("#newChat", `${ICONS.compose}<span>New</span>`);
+  set("#navModels", `${ICONS.models}<span>Models</span>`);
+  set("#navChats", `${ICONS.chats}<span>Chats</span>`);
+  set("#apiDocsBtn", `${ICONS.code}<span>API</span>`);
+  set("#adminMobileClose", ICONS.menu);
+  set("#adminCloseBtn", ICONS.x);
+  set("#screenPageClose", ICONS.x);
+  set("#searchBtn", ICONS.search);
+  set("#personalitiesBtn", ICONS.sparkles);
+  document.querySelectorAll(".page-close").forEach(b => b.innerHTML = ICONS.x);
+  const attach = document.getElementById("attachLabel");
+  if (attach && !attach.querySelector("svg")) attach.insertAdjacentHTML("afterbegin", ICONS.paperclip);
+})();
 
 $("#modelsClose").onclick=closeModelsPage;
 $("#modelSearch").addEventListener("input",e=>{catalogQuery=e.target.value;renderCatalog()});

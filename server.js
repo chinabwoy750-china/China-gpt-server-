@@ -17,6 +17,8 @@ import * as siteLock from "./lib/site-lock.js";
 import * as modelGroups from "./lib/model-groups.js";
 import * as telegram from "./lib/telegram.js";
 import * as online from "./lib/online.js";
+import * as anthropic from "./lib/anthropic-compat.js";
+import * as media from "./lib/media-proxy.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -241,6 +243,17 @@ app.get("/v1/models", auth.requireAuth, ratelimit.check, proxy.models);
 app.post("/v1/chat/completions", auth.requireAuth, ratelimit.check, proxy.chat);
 app.post("/v1/search", auth.requireAuth, ratelimit.check, proxy.search);
 app.post("/v1/web/fetch", auth.requireAuth, ratelimit.check, proxy.webFetch);
+
+// ---- Anthropic-compatible endpoint ----
+app.post("/v1/messages", auth.requireAuth, ratelimit.check, anthropic.handleMessages);
+
+// ---- Media endpoints ----
+app.post("/v1/image-generation", auth.requireAuth, ratelimit.check, media.imageGeneration);
+app.post("/v1/video-generation", auth.requireAuth, ratelimit.check, media.videoGeneration);
+app.post("/v1/audio",            auth.requireAuth, ratelimit.check, media.audio);
+
+// ---- Web-fetch alias (dash variant of /v1/web/fetch) ----
+app.post("/v1/web-fetch", auth.requireAuth, ratelimit.check, proxy.webFetch);
 
 app.get("/icon-proxy", async (req, res) => {
   const url = String(req.query.url || "");
