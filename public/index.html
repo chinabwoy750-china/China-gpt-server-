@@ -5242,32 +5242,51 @@ async function send(){
    web context even if search fails. */
 async function performWebSearch(query){
   try{
-    const r = await fetch(API_BASE + "/search", {
+    const model = resolveSearchProvider();
+    const r = await apiFetch(API_BASE + "/search", {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify({
-        model: resolveSearchProvider(),
+        model,
         query,
         search_type: "web",
         max_results: 5
       })
     });
-    if (!r.ok) return null;
-    const j = await r.json();
-    const answerText = j && j.answer && typeof j.answer.text === "string" ? j.answer.text : "";
-    const results = Array.isArray(j && j.results) ? j.results : [];
+    let j = null;
+    try { j = await r.json(); } catch {}
+    if (!r.ok) {
+      const msg = (j && (j.error?.message || j.error || j.message)) || ("HTTP " + r.status);
+      console.warn("[web-search] failed:", model, msg);
+      toast("Web search failed: " + String(msg).slice(0, 120));
+      return null;
+    }
+    // 9Router: answer may be null (dedicated search) or { text } (chat-search)
+    let answerText = "";
+    if (j && typeof j.answer === "string") answerText = j.answer;
+    else if (j && j.answer && typeof j.answer.text === "string") answerText = j.answer.text;
+    const results = Array.isArray(j && j.results) ? j.results
+      : Array.isArray(j && j.sources) ? j.sources
+      : [];
     const sources = results
       .map(x => ({
         title: (x.title || "").trim() || "Source",
-        url: (x.url || "").trim()
+        url: (x.url || x.link || "").trim()
       }))
       .filter(x => x.url);
+    if (!answerText && !sources.length) {
+      console.warn("[web-search] empty results for model:", model, j);
+      toast("Web search returned no results (check provider: " + model + ")");
+      return null;
+    }
     return {
       answer: answerText,
       sources,
       raw: j
     };
   } catch (e) {
+    console.warn("[web-search] error:", e);
+    toast("Web search error: " + (e.message || "network"));
     return null;
   }
 }
@@ -5403,26 +5422,38 @@ function buildSearchContextMessage(query, searchResult){
    ============================================================ */
 async function performWebFetch(url){
   try {
-    const r = await fetch(API_BASE + "/web/fetch", {
+    const model = state.searchConfig.fetchModel || "jina-reader";
+    const r = await apiFetch(API_BASE + "/web/fetch", {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify({
-        model: state.searchConfig.fetchModel || "jina-reader",
+        model,
         url,
         format: "markdown",
         max_characters: 0
       })
     });
-    if (!r.ok) return null;
-    const j = await r.json();
-    if (!j || !j.content || typeof j.content.text !== "string") return null;
+    let j = null;
+    try { j = await r.json(); } catch {}
+    if (!r.ok) {
+      console.warn("[web-fetch] failed:", model, r.status, j);
+      return null;
+    }
+    // 9Router: content.text or top-level markdown/text
+    let text = "";
+    if (j && j.content && typeof j.content.text === "string") text = j.content.text;
+    else if (j && typeof j.markdown === "string") text = j.markdown;
+    else if (j && typeof j.text === "string") text = j.text;
+    else if (j && typeof j.content === "string") text = j.content;
+    if (!text) return null;
     return {
       url: j.url || url,
       title: j.title || url,
-      content: j.content.text,
-      length: j.content.length || j.content.text.length
+      content: text,
+      length: (j.content && j.content.length) || text.length
     };
-  } catch {
+  } catch (e) {
+    console.warn("[web-fetch] error:", e);
     return null;
   }
 }
