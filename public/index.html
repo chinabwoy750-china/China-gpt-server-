@@ -2882,10 +2882,6 @@ body.is-locked .auth-page{ display:none !important; }
           <div class="composer-bar">
             <label class="chip-btn" aria-label="Attach files" title="Attach files" id="attachLabel"><input id="fileInput" type="file" hidden multiple accept="image/*,.pdf,.txt,.md,.markdown,.json,.csv,.js,.ts,.html,.css,.xml,.yaml,.yml,.log,.py,.java,.c,.cpp,.h,.hpp,.sql,.sh,.go,.rs,.php,.jsx,.tsx,.vue"></label>
             <button class="chip-btn" id="searchBtn" aria-label="Web search" title="Web search"></button>
-            <button class="search-provider-pill" id="searchProviderPill" type="button" style="display:none" title="Change search provider">
-              <span id="searchProviderLabel">Gemini</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10.2 4 4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
-            </button>
             <button class="chip-btn" id="personalitiesBtn" aria-label="Personalities" title="Personalities"></button>
             <span class="composer-spacer"></span>
             <button class="send" id="sendBtn" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V6m0 0-6 6m6-6 6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -3078,11 +3074,11 @@ const state = {
   apiKeys:[],
   searchProvider: localStorage.getItem("chinaGPTSearchProvider") || "",
   searchConfig: {
-    providers: ["gemini"],
-    defaultProvider: "gemini",
+    providers: ["search-combo"],
+    defaultProvider: "search-combo",
     autoFetchUrls: true,
     fetchTopN: 2,
-    fetchModel: "jina-reader"
+    fetchModel: "fetch-combo"
   },
   
 };
@@ -5307,7 +5303,7 @@ async function loadSearchConfig(){
           fetchTopN: Number.isFinite(Number(j.fetchTopN))
             ? Math.max(0, Math.min(5, Number(j.fetchTopN)))
             : 2,
-          fetchModel: j.fetchModel || "jina-reader"
+          fetchModel: j.fetchModel || "fetch-combo"
         };
       }
     }
@@ -5317,21 +5313,16 @@ async function loadSearchConfig(){
 function resolveSearchProvider(){
   const available = state.searchConfig.providers || [];
   if (state.searchProvider && available.includes(state.searchProvider)) return state.searchProvider;
-  return state.searchConfig.defaultProvider || available[0] || "gemini";
+  return state.searchConfig.defaultProvider || available[0] || "search-combo";
 }
 function providerDisplayName(slug){
   if (!slug) return "Search";
   return String(slug).charAt(0).toUpperCase() + String(slug).slice(1);
 }
 function updateSearchProviderUI(){
+  // Provider picker removed from composer — always use server default (search-combo).
   const pill = $("#searchProviderPill");
-  const label = $("#searchProviderLabel");
-  if (!pill || !label) return;
-  if (!state.webSearch) { pill.style.display = "none"; return; }
-  const available = state.searchConfig.providers || [];
-  if (available.length < 2) { pill.style.display = "none"; return; }
-  pill.style.display = "inline-flex";
-  label.textContent = providerDisplayName(resolveSearchProvider());
+  if (pill) pill.style.display = "none";
 }
 function openSearchProviderMenu(anchorEl){
   document.querySelectorAll(".search-provider-menu").forEach(el => el.remove());
@@ -5422,7 +5413,7 @@ function buildSearchContextMessage(query, searchResult){
    ============================================================ */
 async function performWebFetch(url){
   try {
-    const model = state.searchConfig.fetchModel || "jina-reader";
+    const model = state.searchConfig.fetchModel || "fetch-combo";
     const r = await apiFetch(API_BASE + "/web/fetch", {
       method: "POST",
       headers: authHeaders(),
@@ -9671,7 +9662,7 @@ $("#menuBtn").onclick=()=>$("#shell").classList.add("nav-open");
 $("#drawerClose").onclick=()=>$("#shell").classList.remove("nav-open");
 $("#scrim").onclick=()=>$("#shell").classList.remove("nav-open");
 $("#searchBtn").onclick=toggleWebSearch;
-$("#searchProviderPill").onclick = (e) => {
+if ($("#searchProviderPill")) $("#searchProviderPill").onclick = (e) => {
   e.stopPropagation();
   openSearchProviderMenu($("#searchProviderPill"));
 };
