@@ -5381,6 +5381,9 @@ async function send(){
     _multimodal: multimodalContent,
     _toolContext: []
   };
+  // Resolve media kind BEFORE first paint so we show the gen-progress UI, not "Thinking"
+  const mediaKind = resolveMediaKindForSend();
+
   const ai = {
     role: "assistant",
     content: "",
@@ -5390,7 +5393,9 @@ async function send(){
     _toolLog: [],
     requestedModel: state.model,
     _actualModel: null,
-    _modelSupportsTools: !!(state.models.find(m => m.id === state.model)?.capabilities?.tools)
+    _modelSupportsTools: !!(state.models.find(m => m.id === state.model)?.capabilities?.tools),
+    _mediaKind: (mediaKind === "image" || mediaKind === "video") ? mediaKind : null,
+    _genPct: (mediaKind === "image" || mediaKind === "video") ? 1 : 0
   };
 
   ensureConversation();
@@ -5403,12 +5408,8 @@ async function send(){
   persistCurrentConversation();
 
   // Image / video generation when the selected catalogue model is in that category
-  // (no composer chips — pick a model under Models → Images / Video).
-  const mediaKind = resolveMediaKindForSend();
   if (mediaKind === "image" || mediaKind === "video") {
     state.generating = true;
-    ai._mediaKind = mediaKind;
-    ai._genPct = 1;
     updateGeneratingUI();
     try {
       await runMediaGeneration(ai, text, mediaKind);
