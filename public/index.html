@@ -705,6 +705,26 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
 }
 .qs-search svg{color:var(--dim);flex:0 0 auto;width:14px;height:14px}
 .qs-search input{flex:1;background:none;outline:0;min-width:0;font-size:14px}
+.qs-cat-nav{
+  flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  padding:4px 14px 8px;
+  background:var(--panel-2);
+}
+.qs-cat-arrow{
+  width:36px;height:36px;border-radius:50%;
+  display:grid;place-items:center;
+  background:var(--panel-3);border:1px solid var(--line);
+  color:var(--muted);cursor:pointer;flex:0 0 auto;
+}
+.qs-cat-arrow:active{transform:scale(.94)}
+.qs-cat-arrow svg{width:18px;height:18px}
+.qs-cat-label{
+  min-width:88px;text-align:center;
+  font-size:12px;font-weight:700;letter-spacing:.14em;
+  color:var(--text);text-transform:uppercase;
+  user-select:none;
+}
 .qs-sheet-providers{
   flex:0 0 auto;
   display:flex;gap:8px;
@@ -9961,10 +9981,38 @@ function closeModelsPage(){$("#modelsPage").classList.remove("open")}
    QUICK MODEL SWITCH
    ============================================================ */
 let quickSwitchMaker="all", quickSwitchQuery="";
+const QS_CATS = [
+  { id: "chat",  label: "CHAT" },
+  { id: "image", label: "IMAGES" },
+  { id: "video", label: "VIDEOS" },
+  { id: "audio", label: "AUDIO" }
+];
+let quickSwitchCat = "chat";
+function qsModelsForCat(cat){
+  const by = state.modelsByCategory || {};
+  if (cat === "chat") {
+    const list = by.chat && by.chat.length ? by.chat : state.models;
+    return list || [];
+  }
+  return (by[cat] || []).slice();
+}
+function qsShiftCat(dir){
+  const i = QS_CATS.findIndex(c => c.id === quickSwitchCat);
+  const next = QS_CATS[(i + dir + QS_CATS.length) % QS_CATS.length];
+  quickSwitchCat = next.id;
+  quickSwitchMaker = "all";
+  renderQuickSwitch();
+}
 function openQuickModelSwitch(){
   if(!isAuthenticated()){openLogin("model");return}
   const backdrop=$("#qsBackdrop");
   const sheet=$("#qsSheet");
+  const by = state.modelsByCategory || {};
+  if (state.model && (by.image || []).some(m => m.id === state.model)) quickSwitchCat = "image";
+  else if (state.model && (by.video || []).some(m => m.id === state.model)) quickSwitchCat = "video";
+  else if (state.model && (by.audio || []).some(m => m.id === state.model)) quickSwitchCat = "audio";
+  else quickSwitchCat = "chat";
+
   sheet.innerHTML=`
     <div class="qs-sheet-handle"></div>
     <div class="qs-sheet-head">
@@ -9974,19 +10022,32 @@ function openQuickModelSwitch(){
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.6"/><path d="m16 16 4.4 4.4"/></svg>
           <input id="qsSearchInput" placeholder="Search models" autocomplete="off">
         </label>
-        
       </div>
+    </div>
+    <div class="qs-cat-nav" id="qsCatNav">
+      <button type="button" class="qs-cat-arrow" id="qsCatPrev" aria-label="Previous category">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="qs-cat-label" id="qsCatLabel">CHAT</div>
+      <button type="button" class="qs-cat-arrow" id="qsCatNext" aria-label="Next category">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
     </div>
     <div class="qs-sheet-providers" id="qsProviders"></div>
     <div class="qs-sheet-body" id="qsList"></div>
   `;
   quickSwitchMaker="all";
   quickSwitchQuery="";
-  renderQuickSwitch();
+  (async () => {
+    try { if (!state.modelsByCategory || !(state.modelsByCategory.image||[]).length) await loadCategorizedModels(); } catch {}
+    renderQuickSwitch();
+  })();
   backdrop.classList.add("open");
   requestAnimationFrame(()=>sheet.classList.add("open"));
   const input=sheet.querySelector("#qsSearchInput");
   input.addEventListener("input",()=>{quickSwitchQuery=input.value;renderQuickSwitchList()});
+  sheet.querySelector("#qsCatPrev").onclick = () => qsShiftCat(-1);
+  sheet.querySelector("#qsCatNext").onclick = () => qsShiftCat(1);
   setTimeout(()=>{if(!("ontouchstart" in window)) input.focus()},120);
 }
 function closeQuickModelSwitch(){
