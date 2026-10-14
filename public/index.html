@@ -5194,7 +5194,8 @@ async function runMediaGeneration(ai, prompt, kind){
   ai._actualModel = model;
   ai._mediaKind = kind;
 
-  const endpoint = kind === "image" ? "/v1/image-generation" : "/v1/video-generation";
+  // API_BASE is already "/v1" — do not prefix another /v1 or you get /v1/v1/... → Endpoint not found
+  const endpoint = kind === "image" ? "/image-generation" : "/video-generation";
   // Match 9Router image API (e.g. nb/nanobanana-flash):
   // size/quality/background "auto", output_format png
   const body = { model, prompt, n: 1 };
