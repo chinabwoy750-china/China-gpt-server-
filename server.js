@@ -265,6 +265,9 @@ app.post("/v1/messages", auth.requireAuth, ratelimit.check, anthropic.handleMess
 app.post("/v1/image-generation", auth.requireAuth, ratelimit.check, media.imageGeneration);
 app.post("/v1/video-generation", auth.requireAuth, ratelimit.check, media.videoGeneration);
 app.post("/v1/audio",            auth.requireAuth, ratelimit.check, media.audio);
+// OpenAI / 9Router-compatible aliases
+app.post("/v1/images/generations", auth.requireAuth, ratelimit.check, media.imageGeneration);
+app.post("/v1/videos/generations", auth.requireAuth, ratelimit.check, media.videoGeneration);
 
 // ---- Web-fetch alias (dash variant of /v1/web/fetch) ----
 app.post("/v1/web-fetch", auth.requireAuth, ratelimit.check, proxy.webFetch);

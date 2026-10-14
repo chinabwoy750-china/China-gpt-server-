@@ -1525,7 +1525,9 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
 .md blockquote{margin:0 0 12px;padding:2px 14px;border-left:3px solid var(--line-strong);color:var(--muted)}
 .md a{color:var(--accent);text-decoration:underline}
 .md hr{border:0;border-top:1px solid var(--line);margin:16px 0}
-.md code{font-family:var(--mono);font-size:.9em;background:var(--panel-3);padding:2px 5px;border-radius:4px}
+.md code{font-family:var(--mono);font-size:.9em;background:rgba(245,166,35,.1);color:#f5a623;padding:2px 5px;border-radius:4px}
+:root[data-theme="light"] .md code{color:#c2410c;background:rgba(245,166,35,.12)}
+.md pre code{color:inherit;background:none}
 .md pre{
   margin:0 0 12px;
   background:#0d0d0d;
@@ -1583,7 +1585,7 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
 /* Refined hljs overrides — matches app palette */
 .hljs{color:var(--text);background:transparent}
 .hljs-comment,.hljs-quote{color:#6b7280;font-style:italic}
-.hljs-keyword,.hljs-selector-tag,.hljs-built_in,.hljs-name{color:#c4b5fd}
+.hljs-keyword,.hljs-selector-tag,.hljs-built_in,.hljs-name{color:#f5a623!important}
 .hljs-string,.hljs-attr,.hljs-addition{color:#a5d6a7}
 .hljs-number,.hljs-literal,.hljs-symbol,.hljs-bullet{color:#f0b378}
 .hljs-title,.hljs-title.class_,.hljs-title.function_,.hljs-section{color:#7ab8ff}
@@ -2126,11 +2128,16 @@ body.is-locked .auth-page{ display:none !important; }
   display:inline-block;
   padding:1px 6px;
   border-radius:5px;
-  background:var(--panel-3);
-  border:1px solid var(--line);
+  background:rgba(245,166,35,.12);
+  border:1px solid rgba(245,166,35,.35);
   font-family:var(--mono);
   font-size:.88em;
-  color:var(--text);
+  color:#f5a623;
+}
+:root[data-theme="light"] .md .cmd-token{
+  color:#c2410c;
+  background:rgba(245,166,35,.14);
+  border-color:rgba(194,65,12,.3);
 }
 
 .md .http-method{
@@ -2158,6 +2165,17 @@ body.is-locked .auth-page{ display:none !important; }
   border:1px solid rgba(139,92,246,.25);
 }
 :root[data-theme="light"] .md .file-path{color:#7c3aed;background:rgba(124,58,237,.08)}
+
+
+/* ============ Generated media (image / video) ============ */
+.gen-media-wrap{margin:8px 0 4px;max-width:min(100%,480px)}
+.gen-media-wrap img,.gen-media-wrap video{
+  display:block;width:100%;max-height:min(70vh,560px);object-fit:contain;
+  border-radius:var(--r-md);border:1px solid var(--line);background:var(--panel-2);
+}
+.gen-media-meta{margin-top:6px;font-size:12px;color:var(--muted)}
+.gen-media-meta a{color:var(--accent)}
+.chip-btn.is-media-on{background:rgba(245,166,35,.16);border-color:rgba(245,166,35,.45);color:#f5a623}
 
 /* ============ Composer attachment chips ============ */
 .attachment-strip{display:flex;gap:8px;flex-wrap:wrap;padding:4px 2px 0}
@@ -2882,6 +2900,9 @@ body.is-locked .auth-page{ display:none !important; }
           <div class="composer-bar">
             <label class="chip-btn" aria-label="Attach files" title="Attach files" id="attachLabel"><input id="fileInput" type="file" hidden multiple accept="image/*,.pdf,.txt,.md,.markdown,.json,.csv,.js,.ts,.html,.css,.xml,.yaml,.yml,.log,.py,.java,.c,.cpp,.h,.hpp,.sql,.sh,.go,.rs,.php,.jsx,.tsx,.vue"></label>
             <button class="chip-btn" id="searchBtn" aria-label="Web search" title="Web search"></button>
+            <button class="chip-btn" id="imageGenBtn" aria-label="Image generation" title="Image generation" type="button">🖼</button>
+            <button class="chip-btn" id="videoGenBtn" aria-label="Video generation" title="Video generation" type="button">🎬</button>
+
             <button class="chip-btn" id="personalitiesBtn" aria-label="Personalities" title="Personalities"></button>
             <span class="composer-spacer"></span>
             <button class="send" id="sendBtn" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V6m0 0-6 6m6-6 6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -3061,6 +3082,7 @@ const state = {
   density:localStorage.getItem("chinaGPTDensity")||"comfortable",
   autoCollapseReasoning: localStorage.getItem("chinaGPTAutoCollapse") !== "0",
   catalogTab: "chat",
+  mediaMode: null, /* null | "image" | "video" */
   modelsByCategory: { chat: [], image: [], video: [], audio: [] },
   customProviders: [],
   modelCategoriesMap: {},
@@ -4235,7 +4257,9 @@ function renderMessages(){
         row.appendChild(think);
         if (!m._thinkCycleStarted) {
           m._thinkCycleStarted = true;
-          const phrases = ["Thinking", "Analyzing", "Considering", "Working through it"];
+          const phrases = m._mediaKind === "image" ? ["Generating image", "Painting", "Almost there"]
+                        : m._mediaKind === "video" ? ["Generating video", "Rendering", "Almost there"]
+                        : ["Thinking", "Analyzing", "Considering", "Working through it"];
           let i = 0;
           m._thinkTimer = setInterval(() => {
             if (!m.streaming) { clearInterval(m._thinkTimer); return; }
@@ -4317,6 +4341,24 @@ function renderMessages(){
           b.textContent = text;
         }
         row.appendChild(b);
+
+        // Generated image / video assets (from media mode)
+        if (m.role === "assistant" && Array.isArray(m._media) && m._media.length) {
+          for (const asset of m._media) {
+            if (!asset || !asset.url) continue;
+            const wrap = document.createElement("div");
+            wrap.className = "gen-media-wrap";
+            const kind = m._mediaKind || "image";
+            if (kind === "video" || /\.(mp4|webm|mov)(\?|$)/i.test(asset.url)) {
+              wrap.innerHTML = `<video controls playsinline src="${escapeHtml(asset.url)}"></video>
+                <div class="gen-media-meta"><a href="${escapeHtml(asset.url)}" target="_blank" rel="noopener">Open video</a></div>`;
+            } else {
+              wrap.innerHTML = `<img src="${escapeHtml(asset.url)}" alt="Generated image" loading="lazy">
+                <div class="gen-media-meta"><a href="${escapeHtml(asset.url)}" target="_blank" rel="noopener">Open full size</a></div>`;
+            }
+            row.appendChild(wrap);
+          }
+        }
       }
 
       if (m.role === "assistant" && isAdminAccount() && m._actualModel && m.requestedModel && m._actualModel !== m.requestedModel) {
@@ -5056,6 +5098,124 @@ function stopGeneration(){
   if(last&&last.role==="assistant")finalizeAssistantMessage(last);
   updateGeneratingUI();persistCurrentConversation();renderMessages();toast("Generation stopped");
 }
+
+/* ============================================================
+   IMAGE / VIDEO GENERATION
+   Uses /v1/image-generation and /v1/video-generation (→ 9Router
+   /v1/images/generations and /v1/videos/generations).
+   ============================================================ */
+function setMediaMode(mode){
+  // Toggle off if same mode clicked again
+  state.mediaMode = (state.mediaMode === mode) ? null : mode;
+  if (state.mediaMode) {
+    state.webSearch = false;
+    const sb = $("#searchBtn");
+    if (sb) { sb.classList.remove("is-on"); sb.setAttribute("aria-pressed","false"); }
+  }
+  updateMediaModeUI();
+  if (state.mediaMode === "image") toast("Image mode — next message is an image prompt");
+  else if (state.mediaMode === "video") toast("Video mode — next message is a video prompt");
+  else toast("Chat mode");
+}
+function updateMediaModeUI(){
+  const ib = $("#imageGenBtn"), vb = $("#videoGenBtn");
+  if (ib) {
+    ib.classList.toggle("is-media-on", state.mediaMode === "image");
+    ib.setAttribute("aria-pressed", String(state.mediaMode === "image"));
+  }
+  if (vb) {
+    vb.classList.toggle("is-media-on", state.mediaMode === "video");
+    vb.setAttribute("aria-pressed", String(state.mediaMode === "video"));
+  }
+  const ta = $("#prompt");
+  if (ta) {
+    if (state.mediaMode === "image") ta.placeholder = "Describe the image to generate…";
+    else if (state.mediaMode === "video") ta.placeholder = "Describe the video to generate…";
+    else ta.placeholder = "Ask China-GPT anything";
+  }
+}
+function pickMediaModel(kind){
+  const list = (state.modelsByCategory && state.modelsByCategory[kind]) || [];
+  if (state.model && list.some(m => m.id === state.model)) return state.model;
+  // Prefer last used of this kind from localStorage
+  try {
+    const saved = localStorage.getItem("chinaGPTMediaModel_" + kind);
+    if (saved && list.some(m => m.id === saved)) return saved;
+  } catch {}
+  return list[0]?.id || "";
+}
+function parseMediaResponse(j, kind){
+  // OpenAI-style: { data: [ { url } | { b64_json } ] }
+  // Also accept { images: [...] }, { url }, { video_url }, etc.
+  const out = [];
+  const data = Array.isArray(j?.data) ? j.data
+    : Array.isArray(j?.images) ? j.images
+    : Array.isArray(j?.results) ? j.results
+    : null;
+  if (data) {
+    for (const item of data) {
+      if (!item || typeof item !== "object") continue;
+      if (item.url) out.push({ url: item.url, revised: item.revised_prompt || "" });
+      else if (item.b64_json) out.push({ url: "data:image/png;base64," + item.b64_json, revised: item.revised_prompt || "" });
+      else if (item.image_url) out.push({ url: item.image_url });
+      else if (item.video_url) out.push({ url: item.video_url });
+    }
+  }
+  if (!out.length && typeof j?.url === "string") out.push({ url: j.url });
+  if (!out.length && typeof j?.video_url === "string") out.push({ url: j.video_url });
+  if (!out.length && typeof j?.image === "string") out.push({ url: j.image });
+  return out;
+}
+async function runMediaGeneration(ai, prompt, kind){
+  const model = pickMediaModel(kind);
+  if (!model) {
+    ai.error = true;
+    ai.content = "No " + kind + " models available. In Admin → Model categories, mark models as \"" + kind + "\", or add them under a custom provider.";
+    ai.streaming = false;
+    return;
+  }
+  try { localStorage.setItem("chinaGPTMediaModel_" + kind, model); } catch {}
+  ai.requestedModel = model;
+  ai._actualModel = model;
+  ai._mediaKind = kind;
+
+  const endpoint = kind === "image" ? "/v1/image-generation" : "/v1/video-generation";
+  const body = { model, prompt, n: 1 };
+  if (kind === "image") body.size = "1024x1024";
+
+  const r = await apiFetch(API_BASE + endpoint, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(body)
+  });
+  let j = null;
+  try { j = await r.json(); } catch {}
+  if (!r.ok) {
+    const msg = (j && (j.error?.message || j.error || j.message)) || ("HTTP " + r.status);
+    ai.error = true;
+    ai.content = "Generation failed: " + String(msg);
+    ai.streaming = false;
+    return;
+  }
+  const assets = parseMediaResponse(j, kind);
+  if (!assets.length) {
+    ai.error = true;
+    ai.content = "Provider returned no media. Raw: " + JSON.stringify(j).slice(0, 400);
+    ai.streaming = false;
+    return;
+  }
+  ai._media = assets;
+  ai._actualModel = model;
+  // Keep a short text label so markdown / copy still works
+  const lines = assets.map((a, i) => {
+    if (kind === "video") return `Video ${i + 1}: ${a.url}`;
+    return `![Generated image ${i + 1}](${a.url})`;
+  });
+  if (assets[0].revised) lines.push("\n_Revised prompt:_ " + assets[0].revised);
+  ai.content = lines.join("\n");
+  ai.streaming = false;
+}
+
 async function send(){
   const input = $("#prompt"), text = input.value.trim();
   if (!text && !state.attachments.length) return;
@@ -5116,6 +5276,28 @@ async function send(){
   renderAttachments();
   renderMessages();
   persistCurrentConversation();
+
+  // Image / video generation mode (API: /v1/image-generation | /v1/video-generation)
+  if (state.mediaMode === "image" || state.mediaMode === "video") {
+    state.generating = true;
+    ai._mediaKind = state.mediaMode;
+    updateGeneratingUI();
+    try {
+      await runMediaGeneration(ai, text, state.mediaMode);
+    } catch (e) {
+      if (e.name !== "AbortError") {
+        ai.error = true;
+        ai.content = "Error: " + (e.message || "generation failed");
+      }
+    } finally {
+      finalizeAssistantMessage(ai);
+      state.generating = false;
+      updateGeneratingUI();
+      persistCurrentConversation();
+      renderMessages();
+    }
+    return;
+  }
 
   const loneUrl = /^https?:\/\/\S+$/i.test(text.trim()) ? text.trim() : null;
 
@@ -5899,6 +6081,10 @@ async function handleFiles(files){
 }
 function toggleWebSearch(){
   state.webSearch=!state.webSearch;
+  if (state.webSearch) {
+    state.mediaMode = null;
+    updateMediaModeUI();
+  }
   const b=$("#searchBtn");
   b.classList.toggle("is-on",state.webSearch);
   b.setAttribute("aria-pressed",String(state.webSearch));
@@ -6644,7 +6830,7 @@ function openApiDocs(){
             <span class="docs-method post">POST</span>
             <span class="docs-path">/v1/image-generation</span>
           </div>
-          <p>Generate images. Body is forwarded to the provider's images endpoint.</p>
+          <p>Generate images. Body is forwarded to NineRouter <code>/v1/images/generations</code> (also available as <code>/v1/images/generations</code> on this API).</p>
           <div class="docs-code">
             <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
             <pre>curl ${escapeHtml(base)}/v1/image-generation \\
@@ -6659,7 +6845,7 @@ function openApiDocs(){
             <span class="docs-method post">POST</span>
             <span class="docs-path">/v1/video-generation</span>
           </div>
-          <p>Generate videos. Same body-forwarding rules as image generation.</p>
+          <p>Generate videos. Forwarded to NineRouter <code>/v1/videos/generations</code>. Alias route: <code>POST /v1/videos/generations</code>.</p>
           <div class="docs-code">
             <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
             <pre>curl ${escapeHtml(base)}/v1/video-generation \\
@@ -9662,6 +9848,9 @@ $("#menuBtn").onclick=()=>$("#shell").classList.add("nav-open");
 $("#drawerClose").onclick=()=>$("#shell").classList.remove("nav-open");
 $("#scrim").onclick=()=>$("#shell").classList.remove("nav-open");
 $("#searchBtn").onclick=toggleWebSearch;
+if ($("#imageGenBtn")) $("#imageGenBtn").onclick = () => setMediaMode("image");
+if ($("#videoGenBtn")) $("#videoGenBtn").onclick = () => setMediaMode("video");
+updateMediaModeUI();
 if ($("#searchProviderPill")) $("#searchProviderPill").onclick = (e) => {
   e.stopPropagation();
   openSearchProviderMenu($("#searchProviderPill"));
