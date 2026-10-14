@@ -5162,7 +5162,16 @@ function parseMediaResponse(j, kind){
     for (const item of data) {
       if (!item || typeof item !== "object") continue;
       if (item.url) out.push({ url: item.url, revised: item.revised_prompt || "" });
-      else if (item.b64_json) out.push({ url: "data:image/png;base64," + item.b64_json, revised: item.revised_prompt || "" });
+      else if (item.b64_json) {
+        const b64 = String(item.b64_json);
+        // 9Router/Cloudflare often returns JPEG (/9j/) even when output_format=png
+        const mime = b64.startsWith("/9j/") ? "image/jpeg"
+          : b64.startsWith("iVBOR") ? "image/png"
+          : b64.startsWith("R0lGOD") ? "image/gif"
+          : b64.startsWith("UklGR") ? "image/webp"
+          : "image/png";
+        out.push({ url: "data:" + mime + ";base64," + b64, revised: item.revised_prompt || "" });
+      }
       else if (item.image_url) out.push({ url: item.image_url });
       else if (item.video_url) out.push({ url: item.video_url });
     }
@@ -9311,6 +9320,18 @@ function selectModel(id){
   if(!isAuthenticated()){openLogin("model");return}
   state.model=id;localStorage.setItem("chinaGPTModel",id);
   markModelUsed(id);persistCurrentConversation();updateBadge();closeModelsPage();
+  // Hint when an image/video catalogue model is selected (composer has no media chips)
+  const by = state.modelsByCategory || {};
+  const ta = $("#prompt");
+  if ((by.image || []).some(m => m.id === id)) {
+    if (ta) ta.placeholder = "Describe the image to generate…";
+    toast("Image model selected — send a prompt to generate");
+  } else if ((by.video || []).some(m => m.id === id)) {
+    if (ta) ta.placeholder = "Describe the video to generate…";
+    toast("Video model selected — send a prompt to generate");
+  } else if (ta) {
+    ta.placeholder = "Ask China-GPT anything";
+  }
 }
 function fmtContext(n){
   if(!n) return "—";
