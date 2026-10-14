@@ -2168,14 +2168,78 @@ body.is-locked .auth-page{ display:none !important; }
 
 
 /* ============ Generated media (image / video) ============ */
-.gen-media-wrap{margin:8px 0 4px;max-width:min(100%,480px)}
-.gen-media-wrap img,.gen-media-wrap video{
-  display:block;width:100%;max-height:min(70vh,560px);object-fit:contain;
-  border-radius:var(--r-md);border:1px solid var(--line);background:var(--panel-2);
+.gen-media-wrap{
+  margin:10px 0 6px;
+  max-width:min(100%,520px);
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid var(--line);
+  background:var(--panel-2);
 }
-.gen-media-meta{margin-top:6px;font-size:12px;color:var(--muted)}
-.gen-media-meta a{color:var(--accent)}
+.gen-media-wrap img{
+  display:block;
+  width:100%;
+  height:auto;
+  max-height:none;
+  object-fit:contain;
+  vertical-align:middle;
+  background:#0a0a0a;
+}
+.gen-media-wrap video{
+  display:block;width:100%;height:auto;max-height:70vh;object-fit:contain;background:#0a0a0a;
+}
+.gen-media-meta{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:8px 12px;font-size:12px;color:var(--muted);
+  border-top:1px solid var(--line);background:var(--panel-3);
+}
+.gen-media-meta a{color:var(--accent);text-decoration:none}
+.gen-media-meta a:hover{text-decoration:underline}
 .chip-btn.is-media-on{background:rgba(245,166,35,.16);border-color:rgba(245,166,35,.45);color:#f5a623}
+
+/* ChatGPT-style image generation progress */
+.gen-progress{
+  position:relative;
+  width:min(100%,360px);
+  aspect-ratio:1;
+  max-height:min(70vw,360px);
+  margin:8px 0 12px;
+  border-radius:18px;
+  overflow:hidden;
+  background:#07070a;
+  border:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.gen-progress-label{
+  position:absolute;top:16px;left:0;right:0;
+  text-align:center;z-index:2;
+  color:rgba(255,255,255,.72);font-size:13.5px;font-weight:500;
+  letter-spacing:.01em;
+}
+.gen-progress-grid{
+  position:absolute;inset:0;
+  display:grid;
+  grid-template-columns:repeat(24,1fr);
+  grid-template-rows:repeat(24,1fr);
+  gap:3px;padding:44px 18px 40px;
+  pointer-events:none;
+}
+.gen-progress-grid span{
+  border-radius:50%;
+  background:rgba(80,140,255,.22);
+  animation:gen-dot 1.8s ease-in-out infinite;
+}
+@keyframes gen-dot{
+  0%,100%{opacity:.18;transform:scale(.85)}
+  50%{opacity:.95;transform:scale(1)}
+}
+.gen-progress-pct{
+  position:absolute;bottom:14px;right:14px;z-index:2;
+  min-width:42px;padding:4px 10px;border-radius:999px;
+  background:rgba(20,20,28,.85);border:1px solid rgba(255,255,255,.08);
+  color:rgba(200,210,255,.9);font-size:12px;font-weight:600;
+  font-variant-numeric:tabular-nums;
+}
 
 /* ============ Composer attachment chips ============ */
 .attachment-strip{display:flex;gap:8px;flex-wrap:wrap;padding:4px 2px 0}
@@ -4244,7 +4308,32 @@ function renderMessages(){
     const text = typeof m.content === "string" ? (m.content || "") : (m.displayText || "[Attached image]");
 
     if (m.role === "assistant" && m.streaming && !text && !m.error) {
-      if (!Array.isArray(m._toolLog) || !m._toolLog.length) {
+      if (m._mediaKind === "image" || m._mediaKind === "video") {
+        const prog = document.createElement("div");
+        prog.className = "gen-progress";
+        const label = m._mediaKind === "video" ? "Rendering video" : "Making the first draft";
+        const pct = Math.min(99, Math.max(1, m._genPct || 1));
+        const dots = Array.from({ length: 24 * 24 }, (_, i) => {
+          const delay = ((i % 24) + Math.floor(i / 24)) * 0.035;
+          return `<span style="animation-delay:${delay.toFixed(2)}s"></span>`;
+        }).join("");
+        prog.innerHTML =
+          `<div class="gen-progress-label">${label}</div>` +
+          `<div class="gen-progress-grid">${dots}</div>` +
+          `<div class="gen-progress-pct">${pct}%</div>`;
+        row.appendChild(prog);
+        if (!m._genProgressTimer) {
+          m._genPct = m._genPct || 1;
+          m._genProgressTimer = setInterval(() => {
+            if (!m.streaming) { clearInterval(m._genProgressTimer); m._genProgressTimer = null; return; }
+            const step = m._genPct < 40 ? 3 : m._genPct < 70 ? 2 : 1;
+            m._genPct = Math.min(92, (m._genPct || 1) + step);
+            const el = document.querySelector(".gen-progress-pct");
+            if (el) el.textContent = m._genPct + "%";
+            else renderMessages();
+          }, 400);
+        }
+      } else if (!Array.isArray(m._toolLog) || !m._toolLog.length) {
         const think = document.createElement("div");
         think.className = "thinking-row";
         think.innerHTML = '<span class="thinking-orb"></span>' +
@@ -4253,9 +4342,7 @@ function renderMessages(){
         row.appendChild(think);
         if (!m._thinkCycleStarted) {
           m._thinkCycleStarted = true;
-          const phrases = m._mediaKind === "image" ? ["Generating image", "Painting", "Almost there"]
-                        : m._mediaKind === "video" ? ["Generating video", "Rendering", "Almost there"]
-                        : ["Thinking", "Analyzing", "Considering", "Working through it"];
+          const phrases = ["Thinking", "Analyzing", "Considering", "Working through it"];
           let i = 0;
           m._thinkTimer = setInterval(() => {
             if (!m.streaming) { clearInterval(m._thinkTimer); return; }
@@ -4347,10 +4434,10 @@ function renderMessages(){
             const kind = m._mediaKind || "image";
             if (kind === "video" || /\.(mp4|webm|mov)(\?|$)/i.test(asset.url)) {
               wrap.innerHTML = `<video controls playsinline src="${escapeHtml(asset.url)}"></video>
-                <div class="gen-media-meta"><a href="${escapeHtml(asset.url)}" target="_blank" rel="noopener">Open video</a></div>`;
+                <div class="gen-media-meta"><span>Video</span><a href="${escapeHtml(asset.url)}" target="_blank" rel="noopener" download>Open / download</a></div>`;
             } else {
-              wrap.innerHTML = `<img src="${escapeHtml(asset.url)}" alt="Generated image" loading="lazy">
-                <div class="gen-media-meta"><a href="${escapeHtml(asset.url)}" target="_blank" rel="noopener">Open full size</a></div>`;
+              wrap.innerHTML = `<img src="${escapeHtml(asset.url)}" alt="Generated image" loading="eager">
+                <div class="gen-media-meta"><span>Image</span><a href="${escapeHtml(asset.url)}" target="_blank" rel="noopener" download>Open / download</a></div>`;
             }
             row.appendChild(wrap);
           }
@@ -5240,14 +5327,18 @@ async function runMediaGeneration(ai, prompt, kind){
   }
   ai._media = assets;
   ai._actualModel = model;
-  // Keep a short text label so markdown / copy still works
-  const lines = assets.map((a, i) => {
-    if (kind === "video") return `Video ${i + 1}: ${a.url}`;
-    return `![Generated image ${i + 1}](${a.url})`;
-  });
-  if (assets[0].revised) lines.push("\n_Revised prompt:_ " + assets[0].revised);
-  ai.content = lines.join("\n");
+  // Caption only — do NOT embed markdown images (that doubled the preview with _media)
+  const n = assets.length;
+  if (kind === "video") {
+    ai.content = n === 1 ? "Generated video." : `Generated ${n} videos.`;
+  } else {
+    ai.content = n === 1 ? "Generated image." : `Generated ${n} images.`;
+  }
+  if (assets[0] && assets[0].revised) {
+    ai.content += "\n\n_Revised prompt:_ " + assets[0].revised;
+  }
   ai.streaming = false;
+  if (ai._genProgressTimer) { clearInterval(ai._genProgressTimer); ai._genProgressTimer = null; }
 }
 
 async function send(){
@@ -5317,6 +5408,7 @@ async function send(){
   if (mediaKind === "image" || mediaKind === "video") {
     state.generating = true;
     ai._mediaKind = mediaKind;
+    ai._genPct = 1;
     updateGeneratingUI();
     try {
       await runMediaGeneration(ai, text, mediaKind);
