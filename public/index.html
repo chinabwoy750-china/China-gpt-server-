@@ -9998,10 +9998,16 @@ function closeQuickModelSwitch(){
 }
 function renderQuickSwitch(){
   const sheet=$("#qsSheet");if(!sheet)return;
-  const makers=[...new Set(state.models.map(m=>makerOf(m.id).key))].sort((a,b)=>providerLabel(a).localeCompare(providerLabel(b)));
+  const catModels = qsModelsForCat(quickSwitchCat);
+  const makers=[...new Set(catModels.map(m=>makerOf(m.id).key))].sort((a,b)=>providerLabel(a).localeCompare(providerLabel(b)));
   const provRow=sheet.querySelector("#qsProviders");
   const titleText=sheet.querySelector("#qsSheetTitleText");
   const titleDot=sheet.querySelector("#qsSheetTitle .dot");
+  const catLabel=sheet.querySelector("#qsCatLabel");
+  if(catLabel){
+    const meta = QS_CATS.find(c => c.id === quickSwitchCat);
+    catLabel.textContent = meta ? meta.label : quickSwitchCat.toUpperCase();
+  }
   if(!provRow||!titleText)return;
 
   if(quickSwitchMaker==="all"){
@@ -10021,8 +10027,9 @@ function renderQuickSwitch(){
         : `background:${hexToRgba(c,.14)};color:${c};border-color:${hexToRgba(c,.3)}`;
       const url=providerIconUrl(k);
       const letter=safeLetter(k);
+      const bitmap = isBitmapIconUrl(url) ? " is-bitmap" : "";
       const inner = url
-        ? `<span class="tile-icon" style="--icon-url:url('${url}')"></span>`
+        ? `<span class="tile-icon${bitmap}" style="--icon-url:url('${String(url).replace(/'/g,"%27")}')"></span>`
         : letter;
       return `<button type="button" class="qs-prov-tile${active?" is-active":""}" data-qs-maker="${escapeHtml(k)}" title="${escapeHtml(providerLabel(k))}" style="${st}">${inner}</button>`;
     }).join("");
@@ -10033,207 +10040,46 @@ function renderQuickSwitchList(){
   const sheet=$("#qsSheet");if(!sheet)return;
   const list=sheet.querySelector("#qsList");if(!list)return;
   const q=(quickSwitchQuery||"").trim().toLowerCase();
-  const usingGroups = Array.isArray(state.modelGroups) && state.modelGroups.length > 0;
-  let rows;
-  if (usingGroups) {
-    rows = state.modelGroups
-      .map(g => state.models.find(m => m.id === g.primary) || { id: g.primary })
-      .filter(m => {
-        const maker = makerOf(m.id);
-        if (quickSwitchMaker !== "all" && maker.key !== quickSwitchMaker) return false;
-        if (q) {
-          const g = groupForModelId(m.id);
-          if (g) {
-            const hit = g.variants.some(v => {
-              const id = v.id || v;
-              return String(id).toLowerCase().includes(q) || cleanModelName(id).toLowerCase().includes(q);
-            }) || g.canonical.includes(q);
-            if (!hit) return false;
-          } else if (!m.id.toLowerCase().includes(q) && !cleanModelName(m.id).toLowerCase().includes(q)) return false;
-        }
-        return true;
-      })
-      .sort((a,b)=>cleanModelName(a.id).localeCompare(cleanModelName(b.id)));
-  } else {
-    rows=state.models.filter(m=>{
-      const maker=makerOf(m.id);
-      if(quickSwitchMaker!=="all" && maker.key!==quickSwitchMaker) return false;
-      if(q && !m.id.toLowerCase().includes(q) && !cleanModelName(m.id).toLowerCase().includes(q) && !maker.label.toLowerCase().includes(q)) return false;
-      return true;
-    });
-    rows.sort((a,b)=>cleanModelName(a.id).localeCompare(cleanModelName(b.id)));
-  }
-  
-  rows = applyFreeFilter(Array.isArray(rows) ? rows.map(r => {
-    if (!r) return null;
-    if (r.id) return r;
-    if (r.primary) { const m = state.models.find(x => x.id === r.primary); return m || { id: r.primary }; }
-    return r;
-  }).filter(Boolean) : []);
+  const pool = qsModelsForCat(quickSwitchCat);
+  let rows = pool.filter(m => {
+    if (!m || !m.id) return false;
+    const maker = makerOf(m.id);
+    if (quickSwitchMaker !== "all" && maker.key !== quickSwitchMaker) return false;
+    if (q) {
+      const name = cleanModelName(m.id).toLowerCase();
+      if (!m.id.toLowerCase().includes(q) && !name.includes(q) && !maker.label.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+  rows.sort((a,b)=>cleanModelName(a.id).localeCompare(cleanModelName(b.id)));
+
   list.innerHTML=rows.length?rows.map(m=>{
     const maker=makerOf(m.id),isActive=m.id===state.model;
     const ctx=fmtContext(m.context_length||m.contextWindow);
     const c=providerColor(maker.key);
+    const priceIn = m.pricing && (m.pricing.prompt ?? m.pricing.input);
+    const priceOut = m.pricing && (m.pricing.completion ?? m.pricing.output);
+    const priceLine = (priceIn != null || priceOut != null)
+      ? `${ctx || "—"} · ${fmtPrice(priceOut ?? priceIn)}/1M out`
+      : (ctx ? ctx + " ctx" : "");
     return `<div class="qs-row${isActive?" is-active":""}" data-qs-model="${escapeHtml(m.id)}" role="button" tabindex="0">
       ${renderTile(maker.key,"tile-sm")}
       <span class="qs-row-main">
         <b>${escapeHtml(cleanModelName(m.id))}</b>
-        ${(() => { const h = capsHtml(m, "qs-cap"); return h ? `<span class="qs-row-caps">${h}</span>` : ""; })()}
-        <small><span class="prov-dot" style="background:${c}"></span>${escapeHtml(maker.label)} · ${ctx} ctx</small>
-        ${(() => {
-          const g = groupForModelId(m.id);
-          if (!g || g.variants.length <= 1) return "";
-          return `<button type="button" class="group-variants-chip" data-qs-open="${escapeHtml(g.canonical)}" style="margin-top:4px">+${g.variants.length - 1}</button>`;
-        })()}
+        <small><span class="prov-dot" style="background:${c}"></span>${escapeHtml(maker.label)}${priceLine ? " · " + escapeHtml(priceLine) : ""}</small>
       </span>
-      <button type="button" class="qs-copy-id" data-copy-id="${escapeHtml(m.id)}" title="Copy model ID">${COPY_ICON}</button>
       <span class="qs-radio"></span>
     </div>`;
-  }).join(""):`<div class="qs-empty">No models match.</div>`;
-  list.querySelectorAll("[data-qs-open]").forEach(chip => {
-    chip.onclick = (e) => {
-      e.stopPropagation();
-      const g = state.modelGroups.find(x => x.canonical === chip.dataset.qsOpen);
-      if (!g) return;
-      closeQuickModelSwitch();
-      openVariantSheet(g);
-    };
-  });
-  list.querySelectorAll("[data-qs-model]").forEach(b=>{
-    b.onclick=(e)=>{
-      if(e.target.closest("[data-copy-id]"))return;
-      if(e.target.closest("[data-qs-open]"))return;
-      selectModel(b.dataset.qsModel);
+  }).join(""):`<div class="qs-empty">No ${escapeHtml(quickSwitchCat)} models in this category.</div>`;
+
+  list.querySelectorAll("[data-qs-model]").forEach(row=>{
+    row.onclick=()=>{
+      selectModel(row.dataset.qsModel);
       closeQuickModelSwitch();
     };
-    b.onkeydown=(e)=>{
-      if(e.key==="Enter"||e.key===" "){
-        if(e.target.closest("[data-copy-id]"))return;
-        if(e.target.closest("[data-qs-open]"))return;
-        e.preventDefault();
-        selectModel(b.dataset.qsModel);
-        closeQuickModelSwitch();
-      }
-    };
-  });
-  list.querySelectorAll("[data-copy-id]").forEach(b=>b.onclick=(e)=>{
-    e.stopPropagation();
-    copyText(b.dataset.copyId);
-    flashCopyIcon(b);
   });
 }
 
-/* ============================================================
-   WIRING
-   ============================================================ */
-$("#brandLogo").innerHTML=LOGO_SVG;
-
-document.querySelectorAll(".admin-nav button[data-icon]").forEach(b => {
-  const svg = (ICONS[b.dataset.icon] || "");
-  const label = b.textContent.trim();
-  b.innerHTML = `${svg}<span>${escapeHtml(label)}</span>`;
-});
-(function injectChromeIcons(){
-  const set = (sel, html) => { const el = document.querySelector(sel); if (el) el.innerHTML = html; };
-  set("#drawerClose", ICONS.x);
-  set("#newChat", `${ICONS.compose}<span>New</span>`);
-  set("#navModels", `${ICONS.models}<span>Models</span>`);
-  set("#navChats", `${ICONS.chats}<span>Chats</span>`);
-  set("#apiDocsBtn", `${ICONS.code}<span>API</span>`);
-  set("#adminMobileClose", ICONS.menu);
-  set("#adminCloseBtn", ICONS.x);
-  set("#screenPageClose", ICONS.x);
-  set("#searchBtn", ICONS.search);
-  document.querySelectorAll(".page-close").forEach(b => b.innerHTML = ICONS.x);
-  const attach = document.getElementById("attachLabel");
-  if (attach && !attach.querySelector("svg")) attach.insertAdjacentHTML("afterbegin", ICONS.paperclip);
-})();
-
-
-$("#freeOnlyBtn") && ($("#freeOnlyBtn").onclick = () => setFreeOnly(!state.freeOnly));
-document.addEventListener("click", (e) => {
-  if (e.target.closest("#qsFreeOnlyBtn")) {
-    e.preventDefault();
-    setFreeOnly(!state.freeOnly);
-  }
-}, true);
-updateFreeToggleUI();
-
-$("#modelsClose").onclick=closeModelsPage;
-$("#modelSearch").addEventListener("input",e=>{catalogQuery=e.target.value;renderCatalog()});
-// favorites / recent / sort controls removed from catalogue UI
-
-$("#sendBtn").onclick=send;
-$("#stopBtn").onclick=stopGeneration;
-$("#prompt").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
-$("#prompt").addEventListener("input",e=>{e.target.style.height="";e.target.style.height=Math.min(200,e.target.scrollHeight)+"px"});
-$("#newChat").onclick=()=>{
-  if(state.generating){toast("Wait for the response to finish.");return}
-  if(state.messages.length&&!confirm("Start a new chat? Your current conversation will remain saved."))return;
-  state.messages=[];state.attachments=[];state.conversationId="";
-  localStorage.removeItem("chinaGPTConversationId");
-  renderAttachments();renderMessages();renderRecent();
-  $("#prompt").focus();$("#shell").classList.remove("nav-open");
-};
-$("#headNewChat").onclick=()=>$("#newChat").click();
-$("#navModels").onclick=openModelsPage;
-$("#navChats").onclick=openChatManager;
-$("#apiDocsBtn").onclick=openApiDocs;
-$("#accountBtn").onclick=openAccountPage;
-$("#fileInput").addEventListener("change",e=>{handleFiles(e.target.files);e.target.value=""});
-const composerDrop=$("#composer");
-["dragenter","dragover"].forEach(ev=>composerDrop.addEventListener(ev,e=>{e.preventDefault();composerDrop.classList.add("is-dragging")}));
-["dragleave","drop"].forEach(ev=>composerDrop.addEventListener(ev,e=>{e.preventDefault();composerDrop.classList.remove("is-dragging")}));
-composerDrop.addEventListener("drop",e=>{if(e.dataTransfer?.files?.length)handleFiles(e.dataTransfer.files)});
-$("#modelBtn").onclick=openModelsPage;
-$("#composerModelChip").onclick=()=>openQuickModelSwitch();
-$("#menuBtn").onclick=()=>$("#shell").classList.add("nav-open");
-$("#drawerClose").onclick=()=>$("#shell").classList.remove("nav-open");
-$("#scrim").onclick=()=>$("#shell").classList.remove("nav-open");
-$("#searchBtn").onclick=toggleWebSearch;
-if ($("#searchProviderPill")) $("#searchProviderPill").onclick = (e) => {
-  e.stopPropagation();
-  openSearchProviderMenu($("#searchProviderPill"));
-};
-$("#qsBackdrop").addEventListener("click",closeQuickModelSwitch);
-
-document.addEventListener("keydown",e=>{
-  if(e.key==="Escape"){
-    if($("#qsSheet").classList.contains("open")){closeQuickModelSwitch();return}
-    if($("#authPage").classList.contains("open")){closeAuthPage();return}
-    if(pageStack.length>0){popPage();return}
-    if($("#modelsPage").classList.contains("open")){closeModelsPage();return}
-    if($("#adminPage").classList.contains("open")){closeAdmin();return}
-    $("#shell").classList.remove("nav-open");
-  }
-});
-
-
-/* ============================================================
-   SITE LOCK — takeover screen + boot check
-   ============================================================ */
-let _lockCountdownTimer = null;
-
-async function checkSiteLock(){
-  try{
-    const r = await apiFetch(WORKER_BASE + "/site-lock", { headers: authHeaders(false) });
-    if(!r.ok) return false;
-    const j = await r.json();
-    if(!j.locked) return false;
-
-    // Admin: let the app boot, but show the red banner.
-    if(j.isAdmin){
-      showAdminLockBanner(j);
-      return false;
-    }
-    showLockTakeover(j);
-    return true;
-  }catch{
-    // Network error on the check itself — fail open. The middleware
-    // will still 423 any real API call if the site is actually locked.
-    return false;
-  }
-}
 
 function showLockTakeover(j){
   const existing = document.getElementById("lockTakeover");
