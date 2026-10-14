@@ -10142,6 +10142,27 @@ function renderQuickSwitchList(){
 }
 
 
+async function checkSiteLock(){
+  try{
+    const r = await fetch(WORKER_BASE + "/site-lock", { headers: authHeaders(false) });
+    if(!r.ok) return false;
+    const j = await r.json();
+    if(!j.locked) return false;
+
+    // Admin: let the app boot, but show the red banner.
+    if(j.isAdmin){
+      showAdminLockBanner(j);
+      return false;
+    }
+    showLockTakeover(j);
+    return true;
+  }catch{
+    // Network error on the check itself — fail open. The middleware
+    // will still 423 any real API call if the site is actually locked.
+    return false;
+  }
+}
+
 function showLockTakeover(j){
   const existing = document.getElementById("lockTakeover");
   if(existing) existing.remove();
