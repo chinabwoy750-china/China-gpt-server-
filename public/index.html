@@ -5186,8 +5186,16 @@ async function runMediaGeneration(ai, prompt, kind){
   ai._mediaKind = kind;
 
   const endpoint = kind === "image" ? "/v1/image-generation" : "/v1/video-generation";
+  // Match 9Router image API (e.g. nb/nanobanana-flash):
+  // size/quality/background "auto", output_format png
   const body = { model, prompt, n: 1 };
-  if (kind === "image") body.size = "1024x1024";
+  if (kind === "image") {
+    body.size = "auto";
+    body.quality = "auto";
+    body.background = "auto";
+    body.image_detail = "high";
+    body.output_format = "png";
+  }
 
   const r = await apiFetch(API_BASE + endpoint, {
     method: "POST",
