@@ -245,6 +245,16 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
   -webkit-mask-position:center;
           mask-position:center;
 }
+/* PNG/JPEG/WebP/GIF icons: full-color image (mask would wash them out) */
+.tile-icon.is-bitmap{
+  background-color:transparent;
+  background-image:var(--icon-url);
+  background-size:contain;
+  background-repeat:no-repeat;
+  background-position:center;
+  -webkit-mask-image:none;
+          mask-image:none;
+}
 .tile.tile-sm{width:18px;height:18px;border-radius:6px}
 .tile.tile-sm .tile-icon{width:72%;height:72%}
 .tile.tile-xs{width:16px;height:16px;border-radius:4px;font-size:9px}
@@ -2859,8 +2869,14 @@ body.is-locked .auth-page{ display:none !important; }
   .free-toggle{padding:0 10px;font-size:11.5px;height:30px}
 }
 
-.catalog-tabs{display:flex;gap:6px;padding:12px 20px 4px;flex-wrap:wrap}
+.catalog-tabs{
+  display:flex;gap:6px;padding:12px 20px 4px;
+  flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.catalog-tabs::-webkit-scrollbar{display:none}
 .catalog-tab{
+  flex:0 0 auto;
   display:inline-flex;align-items:center;gap:6px;
   height:32px;padding:0 14px;border-radius:99px;
   border:1px solid var(--line);background:var(--panel-3);
@@ -3506,7 +3522,13 @@ async function warmIconCache(){
   if (iconWarmupRunning) return;
   iconWarmupRunning = true;
   try {
-    const keys = new Set(state.models.map(m => makerOf(m.id).key));
+    const cat = state.modelsByCategory || {};
+    const keys = new Set([
+      ...state.models.map(m => makerOf(m.id).key),
+      ...(cat.image || []).map(m => makerOf(m.id).key),
+      ...(cat.video || []).map(m => makerOf(m.id).key),
+      ...(cat.audio || []).map(m => makerOf(m.id).key)
+    ]);
     await Promise.all([...keys].map(async (k) => {
       if (iconCache.has(k)) return;
       const override = adminIconOverrides[k];
@@ -3725,21 +3747,32 @@ function safeLetter(key){
   const l = String(providerLabel(key) || "?")[0].toUpperCase();
   return /^[A-Z0-9]$/.test(l) ? l : "?";
 }
+function isBitmapIconUrl(url){
+  if (!url) return false;
+  const u = String(url).toLowerCase();
+  if (u.startsWith("data:image/svg")) return false;
+  if (u.startsWith("data:image/")) return true;
+  return /\.(png|jpe?g|gif|webp|ico|bmp)(\?|#|$)/i.test(u);
+}
 function renderTile(key, sizeClass=""){
   const color = providerColor(key);
   const tint = hexToRgba(color, .16);
   const border = hexToRgba(color, .35);
   const url = providerIconUrl(key);
   const letter = safeLetter(key);
+  const bitmap = isBitmapIconUrl(url) ? " is-bitmap" : "";
   const inner = url
-    ? `<span class="tile-icon" style="--icon-url:url('${url}')"></span>`
+    ? `<span class="tile-icon${bitmap}" style="--icon-url:url('${String(url).replace(/'/g, "%27")}')"></span>`
     : letter;
   return `<span class="tile ${sizeClass}" style="background:${tint};color:${color};border:1px solid ${border}">${inner}</span>`;
 }
 function renderChipIcon(key){
   const url = providerIconUrl(key);
   const letter = safeLetter(key);
-  if (url) return `<span class="tile-icon" style="--icon-url:url('${url}')"></span>`;
+  if (url) {
+    const bitmap = isBitmapIconUrl(url) ? " is-bitmap" : "";
+    return `<span class="tile-icon${bitmap}" style="--icon-url:url('${String(url).replace(/'/g, "%27")}')"></span>`;
+  }
   return letter;
 }
 
@@ -7621,7 +7654,7 @@ async function renderProviderIconsPage(){
         </div>
         ${status}
         <div class="provider-row-input">
-          <input placeholder="https://example.com/icon.svg" value="${/^data:/.test(override) ? "" : escapeHtml(override)}" data-provider-input="${escapeHtml(k)}">
+          <input placeholder="https://example.com/icon.png or .svg" value="${/^data:/.test(override) ? "" : escapeHtml(override)}" data-provider-input="${escapeHtml(k)}">
           <label class="file-label" style="display:inline-flex;align-items:center;gap:6px;padding:10px 14px;background:var(--panel-3);border:1px solid var(--line);border-radius:8px;cursor:pointer">
             Upload
             <input type="file" accept="image/*,.svg" data-provider-file="${escapeHtml(k)}" hidden>
@@ -7633,7 +7666,7 @@ async function renderProviderIconsPage(){
   }).join("");
 
   c.innerHTML = `
-    <p class="admin-kicker">Paste a custom icon URL for any provider. Overrides take priority over the automatic Lobe&nbsp;→&nbsp;Simple&nbsp;Icons&nbsp;→&nbsp;models.dev chain. Clear an override to fall back to auto-resolution.</p>
+    <p class="admin-kicker">Paste a custom icon URL (PNG, SVG, JPEG, WebP, or GIF) for any provider. Overrides take priority over the automatic Lobe → Simple Icons → models.dev chain. Clear an override to fall back to auto-resolution.</p>
     <div class="provider-grid">${rows}</div>
   `;
 
