@@ -3058,10 +3058,6 @@ body.is-locked .auth-page{ display:none !important; }
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.6" stroke-width="1.6"/><path d="m16 16 4.4 4.4" stroke-width="1.6" stroke-linecap="round"/></svg>
         <input id="modelSearch" placeholder="Search models or providers" aria-label="Search models">
       </label>
-      <button type="button" class="free-toggle" id="freeOnlyBtn" title="Show only free models">
-        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5L15.5 10"/></svg>
-        <span>Free only</span>
-      </button>
     </div>
     <div class="catalog-tabs" id="catalogTabs">
       <button type="button" class="catalog-tab is-active" data-tab="chat">Chat <span class="count" data-count="chat">0</span></button>
@@ -3070,7 +3066,6 @@ body.is-locked .auth-page{ display:none !important; }
       <button type="button" class="catalog-tab" data-tab="audio">Audio <span class="count" data-count="audio">0</span></button>
     </div>
     <div class="filters" id="modelFilters"></div>
-    <div class="model-tools"><button class="model-tool" id="favoritesOnlyBtn">☆ Favorites</button><button class="model-tool" id="recentOnlyBtn">◷ Recently used</button><select class="model-tool" id="modelSort"><option value="name">Sort: Name</option><option value="provider">Sort: Provider</option></select></div>
     <div class="page-body">
       <div class="model-table">
         <div class="model-head"><span>Model</span><span>Context</span><span>Input / 1M</span><span>Output / 1M</span><span></span><span></span></div>
@@ -3584,13 +3579,21 @@ const MAKERS = [
   { re:/(^|\/)(nemotron|parakeet)/i, key:"nvidia", label:"NVIDIA" },
   { re:/(^|\/)north(-mini-code)/i, key:"cohere", label:"Cohere" },
   { re:/(^|\/)(seedream|doubao)/i, key:"bytedance", label:"ByteDance" },
+  // Image-generation families (full id match — beats cf/ aggregator)
+  { re:/black-forest-labs|\bflux[-_]?[0-9]|flux-1|flux-2|flux-schnell|flux-dev|flux-pro/i, key:"black-forest-labs", label:"Black Forest Labs" },
+  { re:/stable[-_]?diffusion|sdxl|sd-v1|inpainting/i, key:"stability", label:"Stability AI" },
+  { re:/dreamshaper/i, key:"lykon", label:"Lykon" },
+  { re:/lucid[-_]?origin/i, key:"leonardo", label:"Leonardo" },
+  { re:/phoenix[-_]?1/i, key:"phoenix", label:"Phoenix" },
+  { re:/nanobanana|(^|\/)nb\//i, key:"google", label:"Google" },
+
   { re:/(^|\/)mimo/i, key:"xiaomi", label:"Xiaomi" },
   { re:/(^|\/)(hy\d|hunyuan)/i, key:"tencent", label:"Tencent" },
   { re:/(^|\/)longcat/i, key:"meituan", label:"Meituan" },
   { re:/(^|\/)sensenova/i, key:"sensetime", label:"SenseTime" }
 ];
 const AGGREGATOR_LABELS = {
-  crax:"Crax", Dahl:"Dahl", kr:"Krea", cf:"Cloudflare",
+  crax:"Crax", Dahl:"Dahl", kr:"Krea", cf:"Cloudflare", nb:"Google",
   ollama:"Ollama", openrouter:"OpenRouter", gemini:"Google",
   nvidia:"NVIDIA NIM", xkiro:"xKiro",
   bpm:"Bpm", seed:"ByteDance Seed"
@@ -7582,7 +7585,13 @@ async function renderProviderIconsPage(){
     }
   } catch {}
 
-  const providers = [...new Set(state.models.map(m => makerOf(m.id).key))].sort((a,b)=>providerLabel(a).localeCompare(providerLabel(b)));
+  const cat = state.modelsByCategory || {};
+  const providers = [...new Set([
+    ...state.models.map(m => makerOf(m.id).key),
+    ...(cat.image || []).map(m => makerOf(m.id).key),
+    ...(cat.video || []).map(m => makerOf(m.id).key),
+    ...(cat.audio || []).map(m => makerOf(m.id).key)
+  ])].sort((a,b)=>providerLabel(a).localeCompare(providerLabel(b)));
 
   if (!providers.length) {
     c.innerHTML = `<p class="admin-kicker">No models loaded. Provider icons will appear once the catalogue is available.</p>`;
@@ -7860,13 +7869,24 @@ async function renderProviderMappingPage(){
   c.innerHTML = `<p class="admin-kicker">Loading…</p>`;
 
   if (!state.models.length && isAuthenticated()) {
-    try { await loadModels(); } catch {}
+    try { await loadModels(); await loadCategorizedModels(); } catch {}
+  } else if (isAuthenticated()) {
+    try { await loadCategorizedModels(); } catch {}
   }
   await loadProviderOverrides();
 
-  const allIds = state.models.map(m => m.id);
+  // Chat + image + video + audio so mapping works for media models too
+  const cat = state.modelsByCategory || {};
+  const allIds = [...new Set([
+    ...state.models.map(m => m.id),
+    ...(cat.chat || []).map(m => m.id),
+    ...(cat.image || []).map(m => m.id),
+    ...(cat.video || []).map(m => m.id),
+    ...(cat.audio || []).map(m => m.id)
+  ].filter(Boolean))];
   const allProviderKeys = [...new Set([
     ...PM_KNOWN_PROVIDERS,
+    "black-forest-labs", "stability", "lykon", "leonardo", "phoenix", "google", "cloudflare",
     ...allIds.map(id => makerOf(id).key)
   ])].sort((a,b)=>providerLabel(a).localeCompare(providerLabel(b)));
 
@@ -9921,10 +9941,7 @@ function openQuickModelSwitch(){
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.6"/><path d="m16 16 4.4 4.4"/></svg>
           <input id="qsSearchInput" placeholder="Search models" autocomplete="off">
         </label>
-        <button type="button" class="free-toggle" id="qsFreeOnlyBtn" title="Show only free models">
-          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5L15.5 10"/></svg>
-          <span>Free</span>
-        </button>
+        
       </div>
     </div>
     <div class="qs-sheet-providers" id="qsProviders"></div>
@@ -10111,9 +10128,7 @@ updateFreeToggleUI();
 
 $("#modelsClose").onclick=closeModelsPage;
 $("#modelSearch").addEventListener("input",e=>{catalogQuery=e.target.value;renderCatalog()});
-$("#favoritesOnlyBtn").onclick=()=>{state.favoritesOnly=!state.favoritesOnly;state.recentOnly=false;buildFilters();renderCatalog()};
-$("#recentOnlyBtn").onclick=()=>{state.recentOnly=!state.recentOnly;state.favoritesOnly=false;buildFilters();renderCatalog()};
-$("#modelSort").onchange=e=>{catalogSort=e.target.value;renderCatalog()};
+// favorites / recent / sort controls removed from catalogue UI
 
 $("#sendBtn").onclick=send;
 $("#stopBtn").onclick=stopGeneration;
