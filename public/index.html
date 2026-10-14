@@ -5205,7 +5205,17 @@ async function runMediaGeneration(ai, prompt, kind){
   let j = null;
   try { j = await r.json(); } catch {}
   if (!r.ok) {
-    const msg = (j && (j.error?.message || j.error || j.message)) || ("HTTP " + r.status);
+    let msg = (j && (j.error?.message || j.error || j.message)) || ("HTTP " + r.status);
+    // Unwrap nested JSON error strings from the proxy
+    if (typeof msg === "string") {
+      const stripped = msg.replace(/^HTTP\s+\d+\s*[—\-:]?\s*/i, "").trim();
+      if (stripped.startsWith("{")) {
+        try {
+          const inner = JSON.parse(stripped);
+          msg = inner?.error?.message || inner?.message || msg;
+        } catch {}
+      }
+    }
     ai.error = true;
     ai.content = "Generation failed: " + String(msg);
     ai.streaming = false;
