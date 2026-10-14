@@ -10369,6 +10369,91 @@ async function renderSiteLockAdminPage(){
 }
 
 /* ============================================================
+   WIRING
+   ============================================================ */
+$("#brandLogo").innerHTML=LOGO_SVG;
+
+document.querySelectorAll(".admin-nav button[data-icon]").forEach(b => {
+  const svg = (ICONS[b.dataset.icon] || "");
+  const label = b.textContent.trim();
+  b.innerHTML = `${svg}<span>${escapeHtml(label)}</span>`;
+});
+(function injectChromeIcons(){
+  const set = (sel, html) => { const el = document.querySelector(sel); if (el) el.innerHTML = html; };
+  set("#drawerClose", ICONS.x);
+  set("#newChat", `${ICONS.compose}<span>New</span>`);
+  set("#navModels", `${ICONS.models}<span>Models</span>`);
+  set("#navChats", `${ICONS.chats}<span>Chats</span>`);
+  set("#apiDocsBtn", `${ICONS.code}<span>API</span>`);
+  set("#adminMobileClose", ICONS.menu);
+  set("#adminCloseBtn", ICONS.x);
+  set("#screenPageClose", ICONS.x);
+  set("#searchBtn", ICONS.search);
+  document.querySelectorAll(".page-close").forEach(b => b.innerHTML = ICONS.x);
+  const attach = document.getElementById("attachLabel");
+  if (attach && !attach.querySelector("svg")) attach.insertAdjacentHTML("afterbegin", ICONS.paperclip);
+})();
+
+
+$("#freeOnlyBtn") && ($("#freeOnlyBtn").onclick = () => setFreeOnly(!state.freeOnly));
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#qsFreeOnlyBtn")) {
+    e.preventDefault();
+    setFreeOnly(!state.freeOnly);
+  }
+}, true);
+updateFreeToggleUI();
+
+$("#modelsClose").onclick=closeModelsPage;
+$("#modelSearch").addEventListener("input",e=>{catalogQuery=e.target.value;renderCatalog()});
+// favorites / recent / sort controls removed from catalogue UI
+
+$("#sendBtn").onclick=send;
+$("#stopBtn").onclick=stopGeneration;
+$("#prompt").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
+$("#prompt").addEventListener("input",e=>{e.target.style.height="";e.target.style.height=Math.min(200,e.target.scrollHeight)+"px"});
+$("#newChat").onclick=()=>{
+  if(state.generating){toast("Wait for the response to finish.");return}
+  if(state.messages.length&&!confirm("Start a new chat? Your current conversation will remain saved."))return;
+  state.messages=[];state.attachments=[];state.conversationId="";
+  localStorage.removeItem("chinaGPTConversationId");
+  renderAttachments();renderMessages();renderRecent();
+  $("#prompt").focus();$("#shell").classList.remove("nav-open");
+};
+$("#headNewChat").onclick=()=>$("#newChat").click();
+$("#navModels").onclick=openModelsPage;
+$("#navChats").onclick=openChatManager;
+$("#apiDocsBtn").onclick=openApiDocs;
+$("#accountBtn").onclick=openAccountPage;
+$("#fileInput").addEventListener("change",e=>{handleFiles(e.target.files);e.target.value=""});
+const composerDrop=$("#composer");
+["dragenter","dragover"].forEach(ev=>composerDrop.addEventListener(ev,e=>{e.preventDefault();composerDrop.classList.add("is-dragging")}));
+["dragleave","drop"].forEach(ev=>composerDrop.addEventListener(ev,e=>{e.preventDefault();composerDrop.classList.remove("is-dragging")}));
+composerDrop.addEventListener("drop",e=>{if(e.dataTransfer?.files?.length)handleFiles(e.dataTransfer.files)});
+$("#modelBtn").onclick=openModelsPage;
+$("#composerModelChip").onclick=()=>openQuickModelSwitch();
+$("#menuBtn").onclick=()=>$("#shell").classList.add("nav-open");
+$("#drawerClose").onclick=()=>$("#shell").classList.remove("nav-open");
+$("#scrim").onclick=()=>$("#shell").classList.remove("nav-open");
+$("#searchBtn").onclick=toggleWebSearch;
+if ($("#searchProviderPill")) $("#searchProviderPill").onclick = (e) => {
+  e.stopPropagation();
+  openSearchProviderMenu($("#searchProviderPill"));
+};
+$("#qsBackdrop").addEventListener("click",closeQuickModelSwitch);
+
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){
+    if($("#qsSheet").classList.contains("open")){closeQuickModelSwitch();return}
+    if($("#authPage").classList.contains("open")){closeAuthPage();return}
+    if(pageStack.length>0){popPage();return}
+    if($("#modelsPage").classList.contains("open")){closeModelsPage();return}
+    if($("#adminPage").classList.contains("open")){closeAdmin();return}
+    $("#shell").classList.remove("nav-open");
+  }
+});
+
+/* ============================================================
    INIT
    ============================================================ */
 updateAccountBadge();
