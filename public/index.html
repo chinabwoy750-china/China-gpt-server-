@@ -2169,33 +2169,62 @@ body.is-locked .auth-page{ display:none !important; }
 
 /* ============ Generated media (image / video) ============ */
 .gen-media-wrap{
-  margin:10px 0 6px;
-  max-width:min(100%,520px);
-  border-radius:16px;
+  margin:8px 0 4px;
+  max-width:min(52vw, 220px);
+  width:fit-content;
+  border-radius:14px;
   overflow:hidden;
   border:1px solid var(--line);
   background:var(--panel-2);
+  cursor:pointer;
+  transition:transform .15s ease, box-shadow .15s ease;
 }
+.gen-media-wrap:active{transform:scale(.98)}
 .gen-media-wrap img{
   display:block;
   width:100%;
   height:auto;
-  max-height:none;
-  object-fit:contain;
+  max-height:min(52vh, 360px);
+  object-fit:cover;
   vertical-align:middle;
   background:#0a0a0a;
 }
 .gen-media-wrap video{
-  display:block;width:100%;height:auto;max-height:70vh;object-fit:contain;background:#0a0a0a;
+  display:block;width:100%;height:auto;max-height:min(52vh,360px);object-fit:contain;background:#0a0a0a;
 }
-.gen-media-meta{
-  display:flex;align-items:center;justify-content:space-between;gap:8px;
-  padding:8px 12px;font-size:12px;color:var(--muted);
-  border-top:1px solid var(--line);background:var(--panel-3);
-}
-.gen-media-meta a{color:var(--accent);text-decoration:none}
-.gen-media-meta a:hover{text-decoration:underline}
+.gen-media-wrap.is-video{max-width:min(90vw,420px);cursor:default}
 .chip-btn.is-media-on{background:rgba(245,166,35,.16);border-color:rgba(245,166,35,.45);color:#f5a623}
+
+/* Fullscreen image viewer (tap image → download / share) */
+.img-viewer{
+  position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,.92);
+  display:flex;flex-direction:column;
+  animation:imgv-in .18s ease;
+}
+@keyframes imgv-in{from{opacity:0}to{opacity:1}}
+.img-viewer-top{
+  flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;gap:8px;
+  padding:calc(10px + env(safe-area-inset-top,0px)) 12px 8px;
+}
+.img-viewer-btn{
+  width:40px;height:40px;border-radius:50%;
+  display:grid;place-items:center;
+  background:rgba(255,255,255,.12);border:0;color:#fff;cursor:pointer;
+  font-size:18px;
+}
+.img-viewer-btn:active{background:rgba(255,255,255,.2)}
+.img-viewer-btn.share-pill{
+  width:auto;padding:0 16px;border-radius:999px;font-size:14px;font-weight:600;gap:6px;
+  display:inline-flex;align-items:center;
+}
+.img-viewer-stage{
+  flex:1;min-height:0;display:grid;place-items:center;padding:8px 12px 24px;
+}
+.img-viewer-stage img{
+  max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;
+  user-select:none;-webkit-user-select:none;
+}
 
 /* ChatGPT-style image generation progress */
 .gen-progress{
@@ -4415,29 +4444,32 @@ function renderMessages(){
         m._attachments.length > 0;
 
       if (!isEmptyUserWithAttachments) {
-        const b = document.createElement("div");b.className="bubble";
-        if (m.role === "assistant" && !m.streaming && !m.error) {
-          const html = renderMarkdownSafe(text);
-          if (html !== null) { b.classList.add("md"); b.innerHTML = html; enhanceRenderedMarkdown(b); }
-          else b.textContent = text;
-        } else {
-          b.textContent = text;
+        const b = document.createElement("div");const hasMediaOnly = m.role === "assistant" && Array.isArray(m._media) && m._media.length && !String(text || "").trim() && !m.error;
+        if (!hasMediaOnly) {
+          b.className="bubble";
+          if (m.role === "assistant" && !m.streaming && !m.error) {
+            const html = renderMarkdownSafe(text);
+            if (html !== null) { b.classList.add("md"); b.innerHTML = html; enhanceRenderedMarkdown(b); }
+            else b.textContent = text;
+          } else {
+            b.textContent = text;
+          }
+          row.appendChild(b);
         }
-        row.appendChild(b);
 
-        // Generated image / video assets (from media mode)
+        // Generated image / video — compact card; tap image → viewer (download / share)
         if (m.role === "assistant" && Array.isArray(m._media) && m._media.length) {
           for (const asset of m._media) {
             if (!asset || !asset.url) continue;
             const wrap = document.createElement("div");
-            wrap.className = "gen-media-wrap";
             const kind = m._mediaKind || "image";
-            if (kind === "video" || /\.(mp4|webm|mov)(\?|$)/i.test(asset.url)) {
-              wrap.innerHTML = `<video controls playsinline src="${escapeHtml(asset.url)}"></video>
-                <div class="gen-media-meta"><span>Video</span><a href="${escapeHtml(asset.url)}" target="_blank" rel="noopener" download>Open / download</a></div>`;
+            const isVid = kind === "video" || /\.(mp4|webm|mov)(\?|$)/i.test(asset.url);
+            wrap.className = "gen-media-wrap" + (isVid ? " is-video" : "");
+            if (isVid) {
+              wrap.innerHTML = `<video controls playsinline src="${escapeHtml(asset.url)}"></video>`;
             } else {
-              wrap.innerHTML = `<img src="${escapeHtml(asset.url)}" alt="Generated image" loading="eager">
-                <div class="gen-media-meta"><span>Image</span><a href="${escapeHtml(asset.url)}" target="_blank" rel="noopener" download>Open / download</a></div>`;
+              wrap.innerHTML = `<img src="${escapeHtml(asset.url)}" alt="" loading="eager" draggable="false">`;
+              wrap.onclick = () => openImageViewer(asset.url);
             }
             row.appendChild(wrap);
           }
@@ -5268,6 +5300,82 @@ function parseMediaResponse(j, kind){
   if (!out.length && typeof j?.image === "string") out.push({ url: j.image });
   return out;
 }
+
+function openImageViewer(url){
+  if (!url) return;
+  closeImageViewer();
+  const layer = document.createElement("div");
+  layer.className = "img-viewer";
+  layer.id = "imgViewer";
+  layer.innerHTML = `
+    <div class="img-viewer-top">
+      <button type="button" class="img-viewer-btn" data-imgv-close aria-label="Close">✕</button>
+      <button type="button" class="img-viewer-btn" data-imgv-dl aria-label="Download">↓</button>
+      <button type="button" class="img-viewer-btn share-pill" data-imgv-share aria-label="Share">Share</button>
+    </div>
+    <div class="img-viewer-stage"><img src="${escapeHtml(url)}" alt=""></div>
+  `;
+  document.body.appendChild(layer);
+  document.body.style.overflow = "hidden";
+  layer.querySelector("[data-imgv-close]").onclick = closeImageViewer;
+  layer.addEventListener("click", (e) => { if (e.target === layer || e.target.classList.contains("img-viewer-stage")) closeImageViewer(); });
+  layer.querySelector("[data-imgv-dl]").onclick = (e) => { e.stopPropagation(); downloadMediaUrl(url, "china-gpt-image.png"); };
+  layer.querySelector("[data-imgv-share]").onclick = async (e) => {
+    e.stopPropagation();
+    try {
+      if (navigator.share) {
+        // Prefer sharing a file when possible
+        if (url.startsWith("data:")) {
+          const blob = await (await fetch(url)).blob();
+          const file = new File([blob], "china-gpt-image.png", { type: blob.type || "image/png" });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: "China-GPT image" });
+            return;
+          }
+        }
+        await navigator.share({ title: "China-GPT image", url: url.startsWith("http") ? url : undefined, text: "Generated with China-GPT" });
+      } else {
+        await downloadMediaUrl(url, "china-gpt-image.png");
+        toast("Saved — share from your gallery");
+      }
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
+      toast("Share cancelled");
+    }
+  };
+}
+function closeImageViewer(){
+  const el = document.getElementById("imgViewer");
+  if (el) el.remove();
+  document.body.style.overflow = "";
+}
+async function downloadMediaUrl(url, filename){
+  try {
+    let href = url;
+    if (url.startsWith("data:")) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename || "image.png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      return;
+    }
+    const r = await fetch(url);
+    const blob = await r.blob();
+    href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = filename || "image.png";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 2000);
+  } catch {
+    window.open(url, "_blank");
+  }
+}
+
 async function runMediaGeneration(ai, prompt, kind){
   const model = pickMediaModel(kind);
   if (!model) {
@@ -5327,16 +5435,8 @@ async function runMediaGeneration(ai, prompt, kind){
   }
   ai._media = assets;
   ai._actualModel = model;
-  // Caption only — do NOT embed markdown images (that doubled the preview with _media)
-  const n = assets.length;
-  if (kind === "video") {
-    ai.content = n === 1 ? "Generated video." : `Generated ${n} videos.`;
-  } else {
-    ai.content = n === 1 ? "Generated image." : `Generated ${n} images.`;
-  }
-  if (assets[0] && assets[0].revised) {
-    ai.content += "\n\n_Revised prompt:_ " + assets[0].revised;
-  }
+  // Image/video only — no caption, no revised-prompt text
+  ai.content = "";
   ai.streaming = false;
   if (ai._genProgressTimer) { clearInterval(ai._genProgressTimer); ai._genProgressTimer = null; }
 }
@@ -9525,15 +9625,55 @@ function updateCatalogTabCounts(){
   });
 }
 
+function categoryProviderKey(m){
+  if (m.source === "custom") return String(m.provider || "custom").toLowerCase();
+  if (typeof makerOf === "function") return makerOf(m.id).key;
+  const id = String(m.id || "");
+  const slash = id.indexOf("/");
+  return slash > 0 ? id.slice(0, slash).toLowerCase() : "other";
+}
+function categoryProviderLabel(m){
+  if (m.source === "custom") return m.providerLabel || m.provider || "Custom";
+  if (typeof makerOf === "function") return makerOf(m.id).label;
+  const k = categoryProviderKey(m);
+  return typeof providerLabel === "function" ? providerLabel(k) : k;
+}
 function renderCategoryList(category){
   const box = document.getElementById("modelResults");
   const countEl = document.getElementById("catalogCount");
+  const filtersBox = document.getElementById("modelFilters");
   if (!box) { console.error("[catalog] #modelResults not found"); return; }
 
   const all = (state.modelsByCategory && state.modelsByCategory[category]) || [];
-  const filtered = (typeof applyFreeFilter === "function") ? applyFreeFilter(all) : all;
+  let filtered = (typeof applyFreeFilter === "function") ? applyFreeFilter(all) : all.slice();
 
-  console.log("[catalog] renderCategoryList", category, "total:", all.length, "shown:", filtered.length);
+  // Provider filter (same UX as chat catalogue)
+  const providers = [...new Set(filtered.map(categoryProviderKey))].sort((a,b) => {
+    const la = typeof providerLabel === "function" ? providerLabel(a) : a;
+    const lb = typeof providerLabel === "function" ? providerLabel(b) : b;
+    return String(la).localeCompare(String(lb));
+  });
+  if (!state._catProviderFilter) state._catProviderFilter = "all";
+  if (state._catProviderFilter !== "all" && !providers.includes(state._catProviderFilter)) {
+    state._catProviderFilter = "all";
+  }
+  if (filtersBox) {
+    filtersBox.style.display = "";
+    filtersBox.innerHTML =
+      `<button type="button" class="filter${state._catProviderFilter === "all" ? " is-active" : ""}" data-cat-filter="all">All providers</button>` +
+      providers.map(k => {
+        const lab = typeof providerLabel === "function" ? providerLabel(k) : k;
+        const tile = typeof renderTile === "function" ? renderTile(k, "tile-xs") : "";
+        return `<button type="button" class="filter${state._catProviderFilter === k ? " is-active" : ""}" data-cat-filter="${escapeHtml(k)}">${tile}${escapeHtml(lab)}</button>`;
+      }).join("");
+    filtersBox.querySelectorAll("[data-cat-filter]").forEach(b => b.onclick = () => {
+      state._catProviderFilter = b.dataset.catFilter;
+      renderCategoryList(category);
+    });
+  }
+  if (state._catProviderFilter !== "all") {
+    filtered = filtered.filter(m => categoryProviderKey(m) === state._catProviderFilter);
+  }
 
   if (!filtered.length){
     box.innerHTML = `<div class="side-empty" style="padding:20px">No ${escapeHtml(category)} models configured. An admin can add them under Providers.</div>`;
@@ -9541,36 +9681,52 @@ function renderCategoryList(category){
     return;
   }
 
-  if (countEl) countEl.textContent = `${filtered.length} ${category} model${filtered.length === 1 ? "" : "s"}`;
+  if (countEl) countEl.textContent = `${filtered.length} ${category} model${filtered.length === 1 ? "" : "s"} · ${providers.length} provider${providers.length === 1 ? "" : "s"}`;
 
-  box.innerHTML = filtered.map(m => {
-    const isCustom = m.source === "custom";
-    const label = isCustom
-      ? (m.providerLabel || m.provider || "Custom")
-      : (typeof makerOf === "function" ? makerOf(m.id).label : "9Router");
-    const makerKey = isCustom
-      ? (m.provider || "other")
-      : (typeof makerOf === "function" ? makerOf(m.id).key : "other");
-    const isActive = m.id === state.model;
-    const tileHtml = (typeof renderTile === "function") ? renderTile(makerKey) : "";
-    return `<div class="model-row${isActive ? " is-active" : ""}">
-      <button type="button" class="model-main" data-model="${escapeHtml(m.id)}">
-        <span class="model-id">
-          ${tileHtml}
-          <span class="model-id-text">
-            <b>${escapeHtml(cleanModelName(m.id))}</b>
-            <span class="model-meta">
-              <small>${escapeHtml(label)}</small>
-              ${isCustom ? `<span class="cap-badge">Custom</span>` : ""}
+  // Group by provider
+  const groups = new Map();
+  for (const m of filtered) {
+    const k = categoryProviderKey(m);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(m);
+  }
+  const orderedKeys = [...groups.keys()].sort((a,b) => {
+    const la = typeof providerLabel === "function" ? providerLabel(a) : a;
+    const lb = typeof providerLabel === "function" ? providerLabel(b) : b;
+    return String(la).localeCompare(String(lb));
+  });
+
+  box.innerHTML = orderedKeys.map(k => {
+    const list = groups.get(k);
+    const lab = typeof providerLabel === "function" ? providerLabel(k) : k;
+    const tile = typeof renderTile === "function" ? renderTile(k, "tile-xs") : "";
+    const rows = list.map(m => {
+      const isCustom = m.source === "custom";
+      const isActive = m.id === state.model;
+      const tileHtml = typeof renderTile === "function" ? renderTile(categoryProviderKey(m)) : "";
+      return `<div class="model-row${isActive ? " is-active" : ""}">
+        <button type="button" class="model-main" data-model="${escapeHtml(m.id)}">
+          <span class="model-id">
+            ${tileHtml}
+            <span class="model-id-text">
+              <b>${escapeHtml(cleanModelName(m.id))}</b>
+              <span class="model-meta">
+                <small>${escapeHtml(categoryProviderLabel(m))}</small>
+                ${isCustom ? `<span class="cap-badge">Custom</span>` : ""}
+              </span>
             </span>
           </span>
-        </span>
-        <span class="model-cell">—</span>
-        <span class="model-cell price">—</span>
-        <span class="model-cell price">—</span>
-      </button>
-      <button type="button" class="model-copy-id" data-copy-id="${escapeHtml(m.id)}" aria-label="Copy model ID">${COPY_ICON}</button>
-      <span></span>
+          <span class="model-cell">—</span>
+          <span class="model-cell price">—</span>
+          <span class="model-cell price">—</span>
+        </button>
+        <button type="button" class="model-copy-id" data-copy-id="${escapeHtml(m.id)}" aria-label="Copy model ID">${COPY_ICON}</button>
+        <span></span>
+      </div>`;
+    }).join("");
+    return `<div class="cat-provider-group" style="margin:0 0 14px">
+      <div class="side-label" style="display:flex;align-items:center;gap:8px;padding:8px 4px 6px">${tile}<span>${escapeHtml(lab)}</span><span style="color:var(--dim);font-weight:400">· ${list.length}</span></div>
+      ${rows}
     </div>`;
   }).join("");
 
@@ -9740,7 +9896,7 @@ function renderCatalog(){
 function openModelsPage(){
   document.querySelectorAll("#catalogTabs .catalog-tab").forEach(x =>
     x.classList.toggle("is-active", x.dataset.tab === state.catalogTab));
-  $("#modelFilters").style.display = state.catalogTab === "chat" ? "" : "none";
+  $("#modelFilters").style.display = "";
   if (state.catalogTab === "chat") { buildFilters(); renderCatalog(); }
   else { renderCategoryList(state.catalogTab); }
   $("#modelSearch").value = catalogQuery;
