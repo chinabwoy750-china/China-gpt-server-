@@ -2900,11 +2900,7 @@ body.is-locked .auth-page{ display:none !important; }
           <div class="composer-bar">
             <label class="chip-btn" aria-label="Attach files" title="Attach files" id="attachLabel"><input id="fileInput" type="file" hidden multiple accept="image/*,.pdf,.txt,.md,.markdown,.json,.csv,.js,.ts,.html,.css,.xml,.yaml,.yml,.log,.py,.java,.c,.cpp,.h,.hpp,.sql,.sh,.go,.rs,.php,.jsx,.tsx,.vue"></label>
             <button class="chip-btn" id="searchBtn" aria-label="Web search" title="Web search"></button>
-            <button class="chip-btn" id="imageGenBtn" aria-label="Image generation" title="Image generation" type="button">🖼</button>
-            <button class="chip-btn" id="videoGenBtn" aria-label="Video generation" title="Video generation" type="button">🎬</button>
-
-            <button class="chip-btn" id="personalitiesBtn" aria-label="Personalities" title="Personalities"></button>
-            <span class="composer-spacer"></span>
+<span class="composer-spacer"></span>
             <button class="send" id="sendBtn" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V6m0 0-6 6m6-6 6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             <button class="send stop-btn" id="stopBtn" style="display:none" title="Stop generating" aria-label="Stop generating"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
           </div>
@@ -5134,6 +5130,16 @@ function updateMediaModeUI(){
     else ta.placeholder = "Ask China-GPT anything";
   }
 }
+function resolveMediaKindForSend(){
+  // Prefer explicit mode if ever set; otherwise infer from selected model category.
+  if (state.mediaMode === "image" || state.mediaMode === "video") return state.mediaMode;
+  const id = state.model;
+  if (!id) return null;
+  const by = state.modelsByCategory || {};
+  if ((by.image || []).some(m => m.id === id)) return "image";
+  if ((by.video || []).some(m => m.id === id)) return "video";
+  return null;
+}
 function pickMediaModel(kind){
   const list = (state.modelsByCategory && state.modelsByCategory[kind]) || [];
   if (state.model && list.some(m => m.id === state.model)) return state.model;
@@ -5277,13 +5283,15 @@ async function send(){
   renderMessages();
   persistCurrentConversation();
 
-  // Image / video generation mode (API: /v1/image-generation | /v1/video-generation)
-  if (state.mediaMode === "image" || state.mediaMode === "video") {
+  // Image / video generation when the selected catalogue model is in that category
+  // (no composer chips — pick a model under Models → Images / Video).
+  const mediaKind = resolveMediaKindForSend();
+  if (mediaKind === "image" || mediaKind === "video") {
     state.generating = true;
-    ai._mediaKind = state.mediaMode;
+    ai._mediaKind = mediaKind;
     updateGeneratingUI();
     try {
-      await runMediaGeneration(ai, text, state.mediaMode);
+      await runMediaGeneration(ai, text, mediaKind);
     } catch (e) {
       if (e.name !== "AbortError") {
         ai.error = true;
@@ -9797,7 +9805,6 @@ document.querySelectorAll(".admin-nav button[data-icon]").forEach(b => {
   set("#adminCloseBtn", ICONS.x);
   set("#screenPageClose", ICONS.x);
   set("#searchBtn", ICONS.search);
-  set("#personalitiesBtn", ICONS.sparkles);
   document.querySelectorAll(".page-close").forEach(b => b.innerHTML = ICONS.x);
   const attach = document.getElementById("attachLabel");
   if (attach && !attach.querySelector("svg")) attach.insertAdjacentHTML("afterbegin", ICONS.paperclip);
@@ -9843,14 +9850,10 @@ const composerDrop=$("#composer");
 composerDrop.addEventListener("drop",e=>{if(e.dataTransfer?.files?.length)handleFiles(e.dataTransfer.files)});
 $("#modelBtn").onclick=openModelsPage;
 $("#composerModelChip").onclick=()=>openQuickModelSwitch();
-$("#personalitiesBtn").onclick=openPersonalities;
 $("#menuBtn").onclick=()=>$("#shell").classList.add("nav-open");
 $("#drawerClose").onclick=()=>$("#shell").classList.remove("nav-open");
 $("#scrim").onclick=()=>$("#shell").classList.remove("nav-open");
 $("#searchBtn").onclick=toggleWebSearch;
-if ($("#imageGenBtn")) $("#imageGenBtn").onclick = () => setMediaMode("image");
-if ($("#videoGenBtn")) $("#videoGenBtn").onclick = () => setMediaMode("video");
-updateMediaModeUI();
 if ($("#searchProviderPill")) $("#searchProviderPill").onclick = (e) => {
   e.stopPropagation();
   openSearchProviderMenu($("#searchProviderPill"));
