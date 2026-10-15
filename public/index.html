@@ -4535,10 +4535,15 @@ function renderMessages(){
             const wrap = document.createElement("div");
             const kind = m._mediaKind || "image";
             const isVid = kind === "video" || /\.(mp4|webm|mov)(\?|$)/i.test(asset.url);
-            wrap.className = "gen-media-wrap" + (isVid ? " is-video" : "");
-            if (isVid) {
+            const isAud = kind === "audio" || /\.(mp3|wav|ogg|m4a|flac)(\?|$)/i.test(asset.url) || /^data:audio\//i.test(asset.url);
+            if (isAud) {
+              wrap.className = "gen-media-wrap is-audio";
+              wrap.innerHTML = `<div class="gen-audio-label">Generated audio</div><audio controls src="${escapeHtml(asset.url)}"></audio>`;
+            } else if (isVid) {
+              wrap.className = "gen-media-wrap is-video";
               wrap.innerHTML = `<video controls playsinline src="${escapeHtml(asset.url)}"></video>`;
             } else {
+              wrap.className = "gen-media-wrap";
               wrap.innerHTML = `<img src="${escapeHtml(asset.url)}" alt="" loading="eager" draggable="false">`;
               wrap.onclick = () => openImageViewer(asset.url);
             }
@@ -5287,8 +5292,8 @@ function stopGeneration(){
 
 /* ============================================================
    IMAGE / VIDEO GENERATION
-   Uses /v1/image-generation and /v1/video-generation (→ 9Router
-   /v1/images/generations and /v1/videos/generations).
+   Uses /v1/image-generation, /v1/video-generation, /v1/audio
+   (→ 9Router images/generations, videos/generations, audio/speech).
    ============================================================ */
 function setMediaMode(mode){
   // Toggle off if same mode clicked again
@@ -5317,6 +5322,7 @@ function updateMediaModeUI(){
   if (ta) {
     if (state.mediaMode === "image") ta.placeholder = "Describe the image to generate…";
     else if (state.mediaMode === "video") ta.placeholder = "Describe the video to generate…";
+    else if (state.mediaMode === "audio") ta.placeholder = "Text to speak…";
     else ta.placeholder = "Ask China-GPT anything";
   }
 }
@@ -5461,9 +5467,12 @@ async function runMediaGeneration(ai, prompt, kind){
   ai._mediaKind = kind;
 
   // API_BASE is already "/v1" — do not prefix another /v1 or you get /v1/v1/... → Endpoint not found
-  const endpoint = kind === "image" ? "/image-generation" : "/video-generation";
+  const endpoint = kind === "image" ? "/image-generation"
+    : kind === "video" ? "/video-generation"
+    : "/audio";
   // Match 9Router image API (e.g. nb/nanobanana-flash):
   // size/quality/background "auto", output_format png
+  // Audio (OpenAI TTS style): input + voice; backend maps prompt→input
   const body = { model, prompt, n: 1 };
   if (kind === "image") {
     body.size = "auto";
@@ -5471,6 +5480,10 @@ async function runMediaGeneration(ai, prompt, kind){
     body.background = "auto";
     body.image_detail = "high";
     body.output_format = "png";
+  } else if (kind === "audio") {
+    body.input = prompt;
+    body.voice = "alloy";
+    body.response_format = "mp3";
   }
 
   const r = await apiFetch(API_BASE + endpoint, {
@@ -5478,11 +5491,13 @@ async function runMediaGeneration(ai, prompt, kind){
     headers: authHeaders(),
     body: JSON.stringify(body)
   });
+  const ct = (r.headers.get("content-type") || "").toLowerCase();
   let j = null;
-  try { j = await r.json(); } catch {}
+  let assets = [];
+
   if (!r.ok) {
+    try { j = await r.json(); } catch {}
     let msg = (j && (j.error?.message || j.error || j.message)) || ("HTTP " + r.status);
-    // Unwrap nested JSON error strings from the proxy
     if (typeof msg === "string") {
       const stripped = msg.replace(/^HTTP\s+\d+\s*[—\-:]?\s*/i, "").trim();
       if (stripped.startsWith("{")) {
@@ -5495,18 +5510,37 @@ async function runMediaGeneration(ai, prompt, kind){
     ai.error = true;
     ai.content = "Generation failed: " + String(msg);
     ai.streaming = false;
+    if (ai._genProgressTimer) { clearInterval(ai._genProgressTimer); ai._genProgressTimer = null; }
     return;
   }
-  const assets = parseMediaResponse(j, kind);
+
+  // Binary audio/video (TTS often returns audio/mpeg body)
+  if (ct.includes("audio/") || ct.includes("video/") || ct.includes("octet-stream")) {
+    const buf = await r.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    const b64 = btoa(binary);
+    const mime = ct.split(";")[0].trim() || (kind === "audio" ? "audio/mpeg" : "video/mp4");
+    assets = [{ url: "data:" + mime + ";base64," + b64 }];
+  } else {
+    try { j = await r.json(); } catch {}
+    assets = parseMediaResponse(j, kind);
+  }
+
   if (!assets.length) {
     ai.error = true;
     ai.content = "Provider returned no media. Raw: " + JSON.stringify(j).slice(0, 400);
     ai.streaming = false;
+    if (ai._genProgressTimer) { clearInterval(ai._genProgressTimer); ai._genProgressTimer = null; }
     return;
   }
   ai._media = assets;
   ai._actualModel = model;
-  // Image/video only — no caption, no revised-prompt text
+  // Media only — no caption text
   ai.content = "";
   ai.streaming = false;
   if (ai._genProgressTimer) { clearInterval(ai._genProgressTimer); ai._genProgressTimer = null; }
@@ -5565,8 +5599,8 @@ async function send(){
     requestedModel: state.model,
     _actualModel: null,
     _modelSupportsTools: !!(state.models.find(m => m.id === state.model)?.capabilities?.tools),
-    _mediaKind: (mediaKind === "image" || mediaKind === "video") ? mediaKind : null,
-    _genPct: (mediaKind === "image" || mediaKind === "video") ? 1 : 0
+    _mediaKind: (mediaKind === "image" || mediaKind === "video" || mediaKind === "audio") ? mediaKind : null,
+    _genPct: (mediaKind === "image" || mediaKind === "video" || mediaKind === "audio") ? 1 : 0
   };
 
   ensureConversation();
@@ -5579,7 +5613,7 @@ async function send(){
   persistCurrentConversation();
 
   // Image / video generation when the selected catalogue model is in that category
-  if (mediaKind === "image" || mediaKind === "video") {
+  if (mediaKind === "image" || mediaKind === "video" || mediaKind === "audio") {
     state.generating = true;
     updateGeneratingUI();
     try {
