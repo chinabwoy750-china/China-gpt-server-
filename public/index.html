@@ -9211,7 +9211,7 @@ function openProviderForm(id){
       <div class="row" style="flex-wrap:wrap;gap:8px">
         <input id="pfPathChat" value="${escapeHtml(existing?.paths?.chat || "/v1/chat/completions")}" placeholder="/v1/chat/completions" spellcheck="false">
         <input id="pfPathImage" value="${escapeHtml(existing?.paths?.image || "/v1/images/generations")}" placeholder="/v1/images/generations" spellcheck="false">
-        <input id="pfPathVideo" value="${escapeHtml(existing?.paths?.video || "/v1/videos/generations")}" placeholder="/v1/videos/generations" spellcheck="false">
+        <input id="pfPathVideo" value="${escapeHtml(existing?.paths?.video || "/v1/videos/generations")}" placeholder="/v1/videos/generations or your custom path" spellcheck="false">
         <input id="pfPathAudio" value="${escapeHtml(existing?.paths?.audio || "/v1/audio/speech")}" placeholder="/v1/audio/speech" spellcheck="false">
       </div>
     </div>
@@ -9219,10 +9219,10 @@ function openProviderForm(id){
       <div class="row" style="flex-wrap:wrap;gap:8px">
         <textarea id="pfChat" class="editor-textarea" style="min-height:90px" placeholder="gpt-4o">${escapeHtml((existing?.models?.chat||[]).join("\n"))}</textarea>
         <textarea id="pfImage" class="editor-textarea" style="min-height:90px" placeholder="flux-1-schnell">${escapeHtml((existing?.models?.image||[]).join("\n"))}</textarea>
-        <textarea id="pfVideo" class="editor-textarea" style="min-height:90px" placeholder="flux-2-dev">${escapeHtml((existing?.models?.video||[]).join("\n"))}</textarea>
+        <textarea id="pfVideo" class="editor-textarea" style="min-height:90px" placeholder="my-video-model (one per line)">${escapeHtml((existing?.models?.video||[]).join("\n"))}</textarea>
         <textarea id="pfAudio" class="editor-textarea" style="min-height:90px" placeholder="melotts">${escapeHtml((existing?.models?.audio||[]).join("\n"))}</textarea>
       </div>
-      <div class="editor-hint">Order: Chat / Images / Videos / Audio.</div>
+      <div class="editor-hint">Order: Chat / Images / Videos / Audio. For video without NineRouter paid plans: set Base URL to your video API, Path (video) to its generations path, and list model IDs under Videos. Models appear as <code style="font-family:var(--mono)">providerId/modelId</code>.</div>
     </div>
     <label style="display:flex;align-items:center;gap:8px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);margin:10px 0">
       <input type="checkbox" id="pfEnabled" ${existing?.enabled !== false ? "checked" : ""} style="all:revert;width:18px;height:18px">
