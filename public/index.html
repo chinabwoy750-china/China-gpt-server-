@@ -5416,12 +5416,17 @@ function updateMediaModeUI(){
 }
 function resolveMediaKindForSend(){
   // Prefer explicit mode if ever set; otherwise infer from selected model category.
-  if (state.mediaMode === "image" || state.mediaMode === "video") return state.mediaMode;
+  if (state.mediaMode === "image" || state.mediaMode === "video" || state.mediaMode === "audio") return state.mediaMode;
   const id = state.model;
   if (!id) return null;
   const by = state.modelsByCategory || {};
   if ((by.image || []).some(m => m.id === id)) return "image";
   if ((by.video || []).some(m => m.id === id)) return "video";
+  if ((by.audio || []).some(m => m.id === id)) return "audio";
+  // Fallback by id — never send TTS models through chat (Gemini TEXT modality error)
+  const s = String(id).toLowerCase();
+  if (/(tts|speech|melotts|bark|piper|xtts|kokoro)/i.test(s)) return "audio";
+  if (/(veo|sora|runway|kling|seedance|hailuo|luma|pika|cogvideo|hunyuan)/i.test(s)) return "video";
   return null;
 }
 function pickMediaModel(kind){
