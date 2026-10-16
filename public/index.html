@@ -10237,6 +10237,23 @@ function renderQuickSwitchList(){
 }
 
 
+async function checkSiteLock(){
+  try{
+    const r = await fetch(WORKER_BASE + "/site-lock", { headers: authHeaders(false) });
+    if(!r.ok) return false;
+    const j = await r.json();
+    if(!j.locked) return false;
+    if(j.isAdmin){
+      showAdminLockBanner(j);
+      return false;
+    }
+    showLockTakeover(j);
+    return true;
+  }catch{
+    return false;
+  }
+}
+
 function showLockTakeover(j){
   const existing = document.getElementById("lockTakeover");
   if(existing) existing.remove();
