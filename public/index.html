@@ -10159,7 +10159,16 @@ function renderQuickSwitchList(){
     if (quickSwitchMaker !== "all" && maker.key !== quickSwitchMaker) return false;
     if (q) {
       const name = cleanModelName(m.id).toLowerCase();
-      if (!m.id.toLowerCase().includes(q) && !name.includes(q) && !maker.label.toLowerCase().includes(q)) return false;
+      const g = typeof groupForModelId === "function" ? groupForModelId(m.id) : null;
+      if (g) {
+        const hit = g.variants.some(v => {
+          const id = v.id || v;
+          return String(id).toLowerCase().includes(q) || cleanModelName(id).toLowerCase().includes(q);
+        }) || String(g.canonical || "").includes(q);
+        if (!hit && !m.id.toLowerCase().includes(q) && !name.includes(q) && !maker.label.toLowerCase().includes(q)) return false;
+      } else if (!m.id.toLowerCase().includes(q) && !name.includes(q) && !maker.label.toLowerCase().includes(q)) {
+        return false;
+      }
     }
     return true;
   });
@@ -10171,48 +10180,62 @@ function renderQuickSwitchList(){
     const c=providerColor(maker.key);
     const priceIn = m.pricing && (m.pricing.prompt ?? m.pricing.input);
     const priceOut = m.pricing && (m.pricing.completion ?? m.pricing.output);
-    const priceLine = (priceIn != null || priceOut != null)
-      ? `${ctx || "—"} · ${fmtPrice(priceOut ?? priceIn)}/1M out`
-      : (ctx ? ctx + " ctx" : "");
+    const priceBits = [];
+    if (ctx) priceBits.push(ctx + " ctx");
+    if (priceIn != null || priceOut != null) {
+      try {
+        if (typeof fmtPrice === "function") {
+          priceBits.push(fmtPrice(priceOut ?? priceIn) + "/1M out");
+        }
+      } catch {}
+    }
+    const metaLine = priceBits.length ? priceBits.join(" · ") : "";
+    const caps = (typeof capsHtml === "function") ? capsHtml(m, "qs-cap") : "";
+    const g = typeof groupForModelId === "function" ? groupForModelId(m.id) : null;
+    const variantChip = (g && g.variants && g.variants.length > 1)
+      ? `<button type="button" class="group-variants-chip" data-qs-open="${escapeHtml(g.canonical)}" style="margin-top:4px">+${g.variants.length - 1}</button>`
+      : "";
+    const copyBtn = (typeof COPY_ICON !== "undefined")
+      ? `<button type="button" class="qs-copy-id" data-copy-id="${escapeHtml(m.id)}" title="Copy model ID">${COPY_ICON}</button>`
+      : "";
     return `<div class="qs-row${isActive?" is-active":""}" data-qs-model="${escapeHtml(m.id)}" role="button" tabindex="0">
       ${renderTile(maker.key,"tile-sm")}
       <span class="qs-row-main">
         <b>${escapeHtml(cleanModelName(m.id))}</b>
-        <small><span class="prov-dot" style="background:${c}"></span>${escapeHtml(maker.label)}${priceLine ? " · " + escapeHtml(priceLine) : ""}</small>
+        ${caps ? `<span class="qs-row-caps">${caps}</span>` : ""}
+        <small><span class="prov-dot" style="background:${c}"></span>${escapeHtml(maker.label)}${metaLine ? " · " + escapeHtml(metaLine) : ""}</small>
+        ${variantChip}
       </span>
+      ${copyBtn}
       <span class="qs-radio"></span>
     </div>`;
   }).join(""):`<div class="qs-empty">No ${escapeHtml(quickSwitchCat)} models in this category.</div>`;
 
-  list.querySelectorAll("[data-qs-model]").forEach(row=>{
-    row.onclick=()=>{
+  list.querySelectorAll("[data-qs-open]").forEach(chip => {
+    chip.onclick = (e) => {
+      e.stopPropagation();
+      const g = (state.modelGroups || []).find(x => x.canonical === chip.dataset.qsOpen);
+      if (!g) return;
+      closeQuickModelSwitch();
+      if (typeof openVariantSheet === "function") openVariantSheet(g);
+    };
+  });
+  list.querySelectorAll("[data-copy-id]").forEach(b => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      if (typeof copyText === "function") copyText(b.dataset.copyId);
+      if (typeof flashCopyIcon === "function") flashCopyIcon(b);
+    };
+  });
+  list.querySelectorAll("[data-qs-model]").forEach(row => {
+    row.onclick = (e) => {
+      if (e.target.closest("[data-copy-id]") || e.target.closest("[data-qs-open]")) return;
       selectModel(row.dataset.qsModel);
       closeQuickModelSwitch();
     };
   });
 }
 
-
-async function checkSiteLock(){
-  try{
-    const r = await fetch(WORKER_BASE + "/site-lock", { headers: authHeaders(false) });
-    if(!r.ok) return false;
-    const j = await r.json();
-    if(!j.locked) return false;
-
-    // Admin: let the app boot, but show the red banner.
-    if(j.isAdmin){
-      showAdminLockBanner(j);
-      return false;
-    }
-    showLockTakeover(j);
-    return true;
-  }catch{
-    // Network error on the check itself — fail open. The middleware
-    // will still 423 any real API call if the site is actually locked.
-    return false;
-  }
-}
 
 function showLockTakeover(j){
   const existing = document.getElementById("lockTakeover");
