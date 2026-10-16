@@ -9811,7 +9811,7 @@ function renderCategoryList(category){
   const all = (state.modelsByCategory && state.modelsByCategory[category]) || [];
   let filtered = (typeof applyFreeFilter === "function") ? applyFreeFilter(all) : all.slice();
 
-  // Provider filter (same UX as chat catalogue)
+  // Provider filter chips (same UX as before)
   const providers = [...new Set(filtered.map(categoryProviderKey))].sort((a,b) => {
     const la = typeof providerLabel === "function" ? providerLabel(a) : a;
     const lb = typeof providerLabel === "function" ? providerLabel(b) : b;
@@ -9845,57 +9845,72 @@ function renderCategoryList(category){
     return;
   }
 
-  if (countEl) countEl.textContent = `${filtered.length} ${category} model${filtered.length === 1 ? "" : "s"} · ${providers.length} provider${providers.length === 1 ? "" : "s"}`;
-
-  // Group by provider
-  const groups = new Map();
-  for (const m of filtered) {
-    const k = categoryProviderKey(m);
-    if (!groups.has(k)) groups.set(k, []);
-    groups.get(k).push(m);
-  }
-  const orderedKeys = [...groups.keys()].sort((a,b) => {
-    const la = typeof providerLabel === "function" ? providerLabel(a) : a;
-    const lb = typeof providerLabel === "function" ? providerLabel(b) : b;
-    return String(la).localeCompare(String(lb));
+  // Same dedupe as chat: group by canonical model name (last path segment)
+  // so cf/.../flux-2-klein-9b and another-provider/.../flux-2-klein-9b collapse.
+  const modelGroups = clientGroupModels(filtered);
+  modelGroups.sort((a, b) => {
+    const na = typeof groupDisplayName === "function" ? groupDisplayName(a) : a.canonical;
+    const nb = typeof groupDisplayName === "function" ? groupDisplayName(b) : b.canonical;
+    return String(na).localeCompare(String(nb));
   });
 
-  box.innerHTML = orderedKeys.map(k => {
-    const list = groups.get(k);
-    const lab = typeof providerLabel === "function" ? providerLabel(k) : k;
-    const tile = typeof renderTile === "function" ? renderTile(k, "tile-xs") : "";
-    const rows = list.map(m => {
-      const isCustom = m.source === "custom";
-      const isActive = m.id === state.model;
-      const tileHtml = typeof renderTile === "function" ? renderTile(categoryProviderKey(m)) : "";
-      return `<div class="model-row${isActive ? " is-active" : ""}">
-        <button type="button" class="model-main" data-model="${escapeHtml(m.id)}">
-          <span class="model-id">
-            ${tileHtml}
-            <span class="model-id-text">
-              <b>${escapeHtml(cleanModelName(m.id))}</b>
-              <span class="model-meta">
-                <small>${escapeHtml(categoryProviderLabel(m))}</small>
-                ${isCustom ? `<span class="cap-badge">Custom</span>` : ""}
-              </span>
+  const uniqueCount = modelGroups.length;
+  const variantTotal = filtered.length;
+  if (countEl) {
+    countEl.textContent = uniqueCount === variantTotal
+      ? `${uniqueCount} ${category} model${uniqueCount === 1 ? "" : "s"} · ${providers.length} provider${providers.length === 1 ? "" : "s"}`
+      : `${uniqueCount} ${category} model${uniqueCount === 1 ? "" : "s"} · ${variantTotal} variants · ${providers.length} provider${providers.length === 1 ? "" : "s"}`;
+  }
+
+  // Cache for variant sheet open from this category view
+  state._categoryModelGroups = modelGroups;
+
+  box.innerHTML = modelGroups.map(g => {
+    const primary = g.variants.find(v => (v.id || v) === g.primary) || g.variants[0] || { id: g.primary };
+    const primaryId = primary.id || g.primary;
+    const maker = makerOf(primaryId);
+    const isActive = g.variants.some(v => (v.id || v) === state.model);
+    const multi = g.variants.length > 1;
+    const c = providerColor(maker.key);
+    const isCustom = g.variants.some(v => v && v.source === "custom");
+    const name = typeof groupDisplayName === "function" ? groupDisplayName(g) : cleanModelName(primaryId);
+    // Show primary provider; +N opens all variants (other providers)
+    const provLabel = multi
+      ? (maker.label + (g.providers && g.providers.length > 1 ? ` · ${g.providers.length} providers` : ""))
+      : maker.label;
+
+    return `<div class="model-row${isActive ? " is-active" : ""}">
+      <button type="button" class="model-main" data-group-primary="${escapeHtml(g.primary)}">
+        <span class="model-id">
+          ${renderTile(maker.key)}
+          <span class="model-id-text">
+            <b>${escapeHtml(name)}</b>
+            <span class="model-meta">
+              <small style="color:${c}">${escapeHtml(provLabel)}</small>
+              ${isCustom ? `<span class="cap-badge">Custom</span>` : ""}
+              ${multi ? `<span role="button" class="group-variants-chip" data-open-cat-variants="${escapeHtml(g.canonical)}" title="${g.variants.length} variants">+${g.variants.length - 1}</span>` : ""}
             </span>
           </span>
-          <span class="model-cell">—</span>
-          <span class="model-cell price">—</span>
-          <span class="model-cell price">—</span>
-        </button>
-        <button type="button" class="model-copy-id" data-copy-id="${escapeHtml(m.id)}" aria-label="Copy model ID">${COPY_ICON}</button>
-        <span></span>
-      </div>`;
-    }).join("");
-    return `<div class="cat-provider-group" style="margin:0 0 14px">
-      <div class="side-label" style="display:flex;align-items:center;gap:8px;padding:8px 4px 6px">${tile}<span>${escapeHtml(lab)}</span><span style="color:var(--dim);font-weight:400">· ${list.length}</span></div>
-      ${rows}
+        </span>
+        <span class="model-cell">—</span>
+        <span class="model-cell price">—</span>
+        <span class="model-cell price">${isActive ? '<span class="selected-flag">✓ Selected</span>' : "—"}</span>
+      </button>
+      <button type="button" class="model-copy-id" data-copy-id="${escapeHtml(g.primary)}" aria-label="Copy model ID">${COPY_ICON}</button>
+      <span></span>
     </div>`;
   }).join("");
 
-  box.querySelectorAll("[data-model]").forEach(b => b.onclick = () => {
-    if (typeof selectModel === "function") selectModel(b.dataset.model);
+  box.querySelectorAll("[data-group-primary]").forEach(b => b.onclick = e => {
+    if (e.target.closest("[data-open-cat-variants]")) return;
+    if (typeof selectModel === "function") selectModel(b.dataset.groupPrimary);
+  });
+  box.querySelectorAll("[data-open-cat-variants]").forEach(chip => {
+    chip.onclick = e => {
+      e.stopPropagation();
+      const g = (state._categoryModelGroups || []).find(x => x.canonical === chip.dataset.openCatVariants);
+      if (g && typeof openVariantSheet === "function") openVariantSheet(g);
+    };
   });
   box.querySelectorAll("[data-copy-id]").forEach(b => b.onclick = e => {
     e.stopPropagation();
