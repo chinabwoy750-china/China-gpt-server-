@@ -4988,47 +4988,95 @@ function chatMessages(uptoIndex){
 }
 
 /* Split chain-of-thought text from the final answer when upstream
-   dumps both into `content` (common with DeepSeek via some proxies). */
+   dumps both into `content` or only into `reasoning` (DeepSeek proxies,
+   MiniMax, etc.). */
 function trySplitReasoningAnswer(text) {
-  const s = String(text || "");
-  if (s.length < 40) return null;
+  const s = String(text || "").trim();
+  if (s.length < 24) return null;
 
-  // Explicit markers DeepSeek / R1-style models use
-  const RE_MARK = /^(.*?)(?:\bNeed final\.?|\bFinal answer:|\bFinal response:|\bHere(?:'s| is) my final answer:|\bFinal:)\s*/is;
+  // Explicit markers (DeepSeek R1 / myproxy often: "… Final.You're welcome")
+  const RE_MARK = /^(.*?)(?:\bNeed final\.?|\bFinal answer\s*:|\bFinal response\s*:|\bHere(?:'s| is) my final answer\s*:|\bEnsure no analysis\.?\s*Final\.?|\bFinal\s*[:.]|\bFinal\b)\s*/is;
   const m = s.match(RE_MARK);
-  if (m && m[1].length >= 8) {
-    return { reasoning: m[1].trim(), answer: s.slice(m[0].length).trim() };
+  if (m && m[1].trim().length >= 8) {
+    const answer = s.slice(m[0].length).trim();
+    if (answer.length >= 2) return { reasoning: m[1].trim(), answer };
   }
 
-  // CoT language present?
-  const cot = /\b(the user (just )?(said|asked|wants|is)|I should|I need to|I'll |my (response|reply)|keep it (friendly|simple|warm)|no need for|this is a simple|likely wants|encourage further)\b/i;
+  const cot = /\b(the user (just )?(said|asked|wants|is)|User said|I should|I need to|I'll |We need|Need (answer|respond|ensure)|my (response|reply)|keep it (friendly|simple|warm)|no need for|this is a simple|likely wants|encourage further|Need final|Ensure no analysis)\b/i;
   if (!cot.test(s)) return null;
 
-  // Last short conversational paragraph after blank line
+  // Paragraph split
   const parts = s.split(/\n\n+/);
   if (parts.length >= 2) {
     const last = parts[parts.length - 1].trim();
-    if (last.length >= 8 && last.length <= 320) {
-      const head = parts.slice(0, -1).join("\n\n").trim();
-      if (head.length > 40 && cot.test(head)) {
-        return { reasoning: head, answer: last };
+    const head = parts.slice(0, -1).join("\n\n").trim();
+    if (last.length >= 6 && head.length > 24 && cot.test(head) && !cot.test(last.slice(0, Math.min(80, last.length)))) {
+      return { reasoning: head, answer: last };
+    }
+    // Last para still has a bit of CoT then answer on same block
+    if (last.length >= 20 && head.length > 24 && cot.test(head)) {
+      const inner = trySplitReasoningAnswer(last);
+      if (inner && inner.answer) {
+        return { reasoning: (head + "\n\n" + inner.reasoning).trim(), answer: inner.answer };
       }
     }
   }
 
-  // Answer glued after period: "...needs.Hello! I'm DeepSeek..."
-  const glued = s.match(/^([\s\S]{40,}?[.!?])\s*((?:Hello|Hi\b|Hey\b|Sure\b|Of course|Yes[,!]|Got it|Absolutely|Thanks|Thank you|Here(?:'s| is))[\s\S]{0,400})$/i);
-  if (glued) {
+  // Answer glued after period: "...needs.Hello! …" or "…Final.You're welcome"
+  const glued = s.match(/^([\s\S]{20,}?[.!?])\s*((?:Hello|Hi\b|Hey\b|Sure\b|Of course|Yes[,!]|Got it|Absolutely|Thanks|Thank you|You(?:'re| are) welcome|Here(?:'s| is)|What can I)[\s\S]{0,500})$/i);
+  if (glued && cot.test(glued[1])) {
     return { reasoning: glued[1].trim(), answer: glued[2].trim() };
   }
 
   // Last sentence if short and head is long CoT
-  const lastSent = s.match(/^([\s\S]+[.!?])\s+([A-Z][^.!?\n]{8,240}[.!?]?)\s*$/);
-  if (lastSent && lastSent[1].length > 80 && cot.test(lastSent[1])) {
+  const lastSent = s.match(/^([\s\S]+[.!?])\s+([A-Z][^.!?\n]{6,280}[.!?]?)\s*$/);
+  if (lastSent && lastSent[1].length > 40 && cot.test(lastSent[1])) {
     return { reasoning: lastSent[1].trim(), answer: lastSent[2].trim() };
   }
 
   return null;
+}
+
+/** After a stream finishes, fix cases where answer landed in reasoning or CoT in content. */
+function normalizeReasoningAnswer(target) {
+  if (!target) return;
+  const r = String(target.reasoning || "").trim();
+  const c = String(target.content || "").trim();
+
+  // Answer only in reasoning (MiniMax often does this)
+  if (r.length >= 24 && c.length < 2) {
+    const split = trySplitReasoningAnswer(r);
+    if (split && split.answer) {
+      target.reasoning = split.reasoning;
+      target.content = split.answer;
+      if (!target.reasoningStartedAt) target.reasoningStartedAt = Date.now();
+      target.reasoningEndedAt = Date.now();
+      return;
+    }
+  }
+
+  // CoT + answer glued into content (DeepSeek / myproxy)
+  if (c.length >= 40) {
+    const split = trySplitReasoningAnswer(c);
+    if (split && split.reasoning && split.answer) {
+      target.reasoning = ((r ? r + "\n\n" : "") + split.reasoning).trim();
+      target.content = split.answer;
+      if (!target.reasoningStartedAt) target.reasoningStartedAt = Date.now();
+      target.reasoningEndedAt = Date.now();
+      return;
+    }
+  }
+
+  // Both filled but content still looks like CoT and reasoning is tiny
+  if (r.length < 20 && c.length >= 40 && trySplitReasoningAnswer(c)) {
+    const split = trySplitReasoningAnswer(c);
+    if (split && split.answer) {
+      target.reasoning = split.reasoning;
+      target.content = split.answer;
+      if (!target.reasoningStartedAt) target.reasoningStartedAt = Date.now();
+      target.reasoningEndedAt = Date.now();
+    }
+  }
 }
 
 async function readCompletionResponse(response, onChunk, onReasoning, onModel, onToolEvent){
@@ -5210,17 +5258,8 @@ async function requestCompletion(target, messages, model=state.model){
     }
     if(tail.content) target.content += tail.content;
 
-    // Final safety net: if the whole reply looks like CoT + answer glued
-    // into content (proxy never sent reasoning_content), split it now.
-    if ((!target.reasoning || target.reasoning.length < 12) && target.content && target.content.length > 60) {
-      const split = trySplitReasoningAnswer(target.content);
-      if (split && split.reasoning && split.answer) {
-        if (!target.reasoningStartedAt) target.reasoningStartedAt = Date.now();
-        target.reasoning = (target.reasoning || "") + split.reasoning;
-        target.content = split.answer;
-        target.reasoningEndedAt = Date.now();
-      }
-    }
+    // Final safety nets: CoT in content, or answer stuck inside reasoning.
+    normalizeReasoningAnswer(target);
     updateStreamingMessage(target);
     return result;
   }finally{state.abortController=null;}
@@ -5270,6 +5309,7 @@ function handleToolEvent(target, evt){
   }
 }
 function finalizeAssistantMessage(ai){
+  normalizeReasoningAnswer(ai);
   if(ai.reasoningStartedAt && !ai.reasoningEndedAt){
     ai.reasoningEndedAt=Date.now();
   }
