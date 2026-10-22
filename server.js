@@ -233,6 +233,7 @@ app.post("/admin/model-health/disable-provider", auth.requireAdmin, modelHealth.
 app.post("/admin/model-health/enable-provider", auth.requireAdmin, modelHealth.enableProvider);
 app.post("/admin/model-health/disable-batch", auth.requireAdmin, modelHealth.disableBatch);
 app.post("/admin/model-health/enable-all", auth.requireAdmin, modelHealth.enableAll);
+app.post("/admin/model-health/prune", auth.requireAdmin, modelHealth.prune);
 
 // ---- Model groups (canonical grouping + admin pins) ----
 app.get("/admin/model-groups", auth.requireAdmin, modelGroups.adminList);

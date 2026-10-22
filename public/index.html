@@ -5136,7 +5136,7 @@ async function readCompletionResponse(response, onChunk, onReasoning, onModel, o
     const j=await response.json();
     const msg=j.choices?.[0]?.message;
     if (j.model && onModel) onModel(j.model);
-    const r=msg?.reasoning_content||msg?.reasoning;
+    const r=msg?.reasoning_content||msg?.reasoning||msg?.thinking||msg?.reasoning_text;
     if(r&&onReasoning)onReasoning(r);
     if(msg?.content) onChunk(msg.content);
     return j.usage||null;
@@ -5216,7 +5216,7 @@ async function readCompletionResponse(response, onChunk, onReasoning, onModel, o
       if (j.model && onModel) onModel(j.model);
       const delta = j.choices?.[0]?.delta;
 
-      const rText = delta?.reasoning_content || delta?.reasoning;
+      const rText = delta?.reasoning_content || delta?.reasoning || delta?.thinking || delta?.reasoning_text;
       if (rText) { reasoningSeen = true; if (onReasoning) onReasoning(rText); }
 
       const c = delta?.content;
@@ -8707,11 +8707,15 @@ function renderModelHealthTable(){
     byProvider[maker.key].models.push(m);
   }
 
+  const liveIds = new Set(mhAllModels.map(m => m.id));
   const total = mhAllModels.length;
-  const okCount = Object.values(mhState.results).filter(r => r.status === "ok").length;
-  const failCount = Object.values(mhState.results).filter(r => r.status === "failed").length;
-  const disabledCount = mhState.disabledModels.length;
-  const untestedCount = total - okCount - failCount;
+  // Only score models that still exist in the live catalogue (ignore orphan health rows)
+  const okCount = mhAllModels.filter(m => mhState.results[m.id]?.status === "ok").length;
+  const failCount = mhAllModels.filter(m => mhState.results[m.id]?.status === "failed" && !disabledSet.has(m.id)).length;
+  const disabledCount = mhState.disabledModels.filter(id => liveIds.has(id)).length;
+  const untestedCount = Math.max(0, total - okCount - failCount - disabledCount);
+  const orphanResults = Object.keys(mhState.results || {}).filter(id => !liveIds.has(id)).length;
+  const orphanDisabled = mhState.disabledModels.filter(id => !liveIds.has(id)).length;
 
   const f = mhState.filter;
   const STALE_MS = 24 * 60 * 60 * 1000;
@@ -8764,6 +8768,7 @@ function renderModelHealthTable(){
       <div class="mh-bulk-actions">
         <button class="btn-ghost mh-danger" id="mhDisableAllFailing" ${failCount === 0 || mhState.running ? "disabled" : ""}>⊘ Disable all failing (${failCount})</button>
         <button class="btn-ghost mh-accent" id="mhEnableAll" ${disabledCount === 0 ? "disabled" : ""}>✓ Enable all disabled (${disabledCount})</button>
+        <button class="btn-ghost" id="mhPruneStale" title="Remove health records for models no longer in the live catalogue">${(orphanResults + orphanDisabled) > 0 ? `🧹 Prune stale (${orphanResults + orphanDisabled})` : "🧹 Prune stale"}</button>
       </div>
       <span class="spacer"></span>
       ${mhState.running ? `
@@ -8861,6 +8866,8 @@ function renderModelHealthTable(){
   // Enable all disabled
   const enableAllBtn = c.querySelector("#mhEnableAll");
   if (enableAllBtn) enableAllBtn.onclick = () => mhEnableAll();
+  const pruneBtn = c.querySelector("#mhPruneStale");
+  if (pruneBtn) pruneBtn.onclick = () => mhPruneStale();
 
   // Stop
   const stopBtn = c.querySelector("#mhStop");
@@ -9066,6 +9073,24 @@ async function mhDisableAllFailing() {
     toast(`Disabled ${j.added || failing.length} model${(j.added || failing.length) === 1 ? "" : "s"}`);
   } catch (e) {
     toast(e.message || "Could not disable");
+  }
+}
+
+/* Drop health rows for models that are no longer in the live 9Router catalogue. */
+async function mhPruneStale() {
+  if (!confirm("Remove health results and disabled flags for models that are no longer in the live catalogue? Current models are kept.")) return;
+  try {
+    const r = await apiFetch(WORKER_BASE + "/admin/model-health/prune", {
+      method: "POST", headers: authHeaders()
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.error || "Prune failed");
+    mhState.results = j.results || {};
+    mhState.disabledModels = j.disabledModels || [];
+    renderModelHealthTable();
+    toast(`Pruned ${j.resultsRemoved || 0} result(s), ${j.disabledRemoved || 0} disabled`);
+  } catch (e) {
+    toast(e.message || "Could not prune");
   }
 }
 
@@ -10282,8 +10307,21 @@ function renderQuickSwitchList(){
   });
   rows.sort((a,b)=>cleanModelName(a.id).localeCompare(cleanModelName(b.id)));
 
+  // Collapse duplicate names (same as chat catalogue) — one row per canonical model
+  if (typeof clientGroupModels === "function" && rows.length) {
+    const groups = clientGroupModels(rows);
+    const byId = new Map(rows.map(m => [m.id, m]));
+    rows = groups.map(g => {
+      const primaryId = g.primary;
+      const primary = byId.get(primaryId) || g.variants[0] || { id: primaryId };
+      // attach group meta for chip
+      primary._qsGroup = g;
+      return primary;
+    }).sort((a,b)=>cleanModelName(a.id).localeCompare(cleanModelName(b.id)));
+  }
+
   list.innerHTML=rows.length?rows.map(m=>{
-    const maker=makerOf(m.id),isActive=m.id===state.model;
+    const maker=makerOf(m.id),isActive=m.id===state.model || (m._qsGroup && m._qsGroup.variants.some(v => (v.id||v)===state.model));
     const ctx=fmtContext(m.context_length||m.contextWindow);
     const c=providerColor(maker.key);
     const priceIn = m.pricing && (m.pricing.prompt ?? m.pricing.input);
@@ -10299,7 +10337,7 @@ function renderQuickSwitchList(){
     }
     const metaLine = priceBits.length ? priceBits.join(" · ") : "";
     const caps = (typeof capsHtml === "function") ? capsHtml(m, "qs-cap") : "";
-    const g = typeof groupForModelId === "function" ? groupForModelId(m.id) : null;
+    const g = m._qsGroup || (typeof groupForModelId === "function" ? groupForModelId(m.id) : null);
     const variantChip = (g && g.variants && g.variants.length > 1)
       ? `<button type="button" class="group-variants-chip" data-qs-open="${escapeHtml(g.canonical)}" style="margin-top:4px">+${g.variants.length - 1}</button>`
       : "";
@@ -10322,7 +10360,11 @@ function renderQuickSwitchList(){
   list.querySelectorAll("[data-qs-open]").forEach(chip => {
     chip.onclick = (e) => {
       e.stopPropagation();
-      const g = (state.modelGroups || []).find(x => x.canonical === chip.dataset.qsOpen);
+      let g = (state.modelGroups || []).find(x => x.canonical === chip.dataset.qsOpen);
+      if (!g) {
+        const row = rows.find(m => m._qsGroup && m._qsGroup.canonical === chip.dataset.qsOpen);
+        g = row && row._qsGroup;
+      }
       if (!g) return;
       closeQuickModelSwitch();
       if (typeof openVariantSheet === "function") openVariantSheet(g);
