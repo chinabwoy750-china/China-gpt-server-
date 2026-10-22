@@ -10261,15 +10261,23 @@ function qsShiftCat(dir){
   quickSwitchQuery = "";
   const search = document.querySelector("#qsSearchInput");
   if (search) search.value = "";
-  // Ensure media buckets are loaded when leaving chat
-  (async () => {
-    try {
-      const by = state.modelsByCategory || {};
-      const need = !(by.image && by.image.length) || !(by.audio && by.audio.length);
-      if (need && typeof loadCategorizedModels === "function") await loadCategorizedModels();
-    } catch {}
-    renderQuickSwitch();
-  })();
+  // Paint immediately from whatever is cached, then refresh if media buckets are empty
+  renderQuickSwitch();
+  const by = state.modelsByCategory || {};
+  const need =
+    (quickSwitchCat === "image" && !(by.image && by.image.length)) ||
+    (quickSwitchCat === "video" && !(by.video && by.video.length)) ||
+    (quickSwitchCat === "audio" && !(by.audio && by.audio.length)) ||
+    (quickSwitchCat === "chat" && !(by.chat && by.chat.length) && !(state.models && state.models.length));
+  if (need && typeof loadCategorizedModels === "function") {
+    const list = document.querySelector("#qsList");
+    if (list && !list.children.length) {
+      list.innerHTML = `<div class="qs-empty">Loading models…</div>`;
+    }
+    loadCategorizedModels().then(() => {
+      if ($("#qsSheet") && $("#qsSheet").classList.contains("open")) renderQuickSwitch();
+    }).catch(() => {});
+  }
 }
 function openQuickModelSwitch(){
   if(!isAuthenticated()){openLogin("model");return}
@@ -10306,12 +10314,17 @@ function openQuickModelSwitch(){
   `;
   quickSwitchMaker="all";
   quickSwitchQuery="";
-  (async () => {
-    try { await loadCategorizedModels(); } catch {}
-    renderQuickSwitch();
-  })();
+  // First paint immediately so the sheet is never blank while models load
+  renderQuickSwitch();
   backdrop.classList.add("open");
   requestAnimationFrame(()=>sheet.classList.add("open"));
+  // Refresh categories in the background, then re-render if still open
+  (async () => {
+    try {
+      if (typeof loadCategorizedModels === "function") await loadCategorizedModels();
+    } catch {}
+    if (sheet.classList.contains("open")) renderQuickSwitch();
+  })();
   const input=sheet.querySelector("#qsSearchInput");
   input.addEventListener("input",()=>{quickSwitchQuery=input.value;renderQuickSwitchList()});
   sheet.querySelector("#qsCatPrev").onclick = () => qsShiftCat(-1);
@@ -10368,10 +10381,9 @@ function renderQuickSwitch(){
 function renderQuickSwitchList(){
   const sheet=$("#qsSheet");if(!sheet)return;
   const list=sheet.querySelector("#qsList");if(!list)return;
-  // Always wipe first so a previous category never "bleeds" into the next
-  list.innerHTML = "";
   const q=(quickSwitchQuery||"").trim().toLowerCase();
   const cat = quickSwitchCat || "chat";
+  const catLabel = (QS_CATS.find(c => c.id === cat) || { label: cat }).label;
   const pool = qsModelsForCat(cat);
   let rows = pool.filter(m => {
     if (!m || !m.id) return false;
@@ -10379,7 +10391,7 @@ function renderQuickSwitchList(){
     if (quickSwitchMaker !== "all" && maker.key !== quickSwitchMaker) return false;
     if (q) {
       const name = cleanModelName(m.id).toLowerCase();
-      const idLow = m.id.toLowerCase();
+      const idLow = String(m.id).toLowerCase();
       const lab = maker.label.toLowerCase();
       if (!idLow.includes(q) && !name.includes(q) && !lab.includes(q)) return false;
     }
@@ -10387,44 +10399,65 @@ function renderQuickSwitchList(){
   });
   rows.sort((a,b)=>cleanModelName(a.id).localeCompare(cleanModelName(b.id)));
 
-  // Collapse duplicate names within THIS category only (never use chat modelGroups)
-  if (typeof clientGroupModels === "function" && rows.length) {
-    const groups = clientGroupModels(rows);
-    const byId = new Map(rows.map(m => [m.id, m]));
-    rows = groups.map(g => {
-      const primaryId = g.primary;
-      const primary = byId.get(primaryId) || g.variants[0] || { id: primaryId };
-      primary._qsGroup = g;
-      return primary;
-    }).sort((a,b)=>cleanModelName(a.id).localeCompare(cleanModelName(b.id)));
+  // Collapse duplicates within this category; if grouping yields nothing, keep flat rows
+  if (typeof clientGroupModels === "function" && rows.length > 1) {
+    try {
+      const groups = clientGroupModels(rows);
+      if (groups && groups.length) {
+        const byId = new Map(rows.map(m => [m.id, m]));
+        const grouped = groups.map(g => {
+          const primaryId = g.primary;
+          const primary = byId.get(primaryId) || (g.variants && g.variants[0]) || { id: primaryId };
+          // shallow copy so we don't mutate catalogue objects
+          const row = { ...primary, _qsGroup: g };
+          return row;
+        }).sort((a,b)=>cleanModelName(a.id).localeCompare(cleanModelName(b.id)));
+        if (grouped.length) rows = grouped;
+      }
+    } catch (e) {
+      console.warn("[qs] group failed", e);
+    }
   }
 
-  list.innerHTML=rows.length?rows.map(m=>{
-    const maker=makerOf(m.id),isActive=m.id===state.model || (m._qsGroup && m._qsGroup.variants.some(v => (v.id||v)===state.model));
-    const ctx=fmtContext(m.context_length||m.contextWindow);
-    const c=providerColor(maker.key);
-    const priceIn = m.pricing && (m.pricing.prompt ?? m.pricing.input);
-    const priceOut = m.pricing && (m.pricing.completion ?? m.pricing.output);
-    const priceBits = [];
-    if (ctx) priceBits.push(ctx + " ctx");
-    if (priceIn != null || priceOut != null) {
+  if (!rows.length) {
+    const loading = !pool.length && (
+      cat === "chat" ? !(state.models && state.models.length) : true
+    );
+    // If chat has state.models but pool empty, something else is wrong — still show empty
+    list.innerHTML = loading
+      ? `<div class="qs-empty">Loading models…</div>`
+      : `<div class="qs-empty">No ${escapeHtml(String(catLabel).toLowerCase())} models in this category.</div>`;
+    return;
+  }
+
+  try {
+    list.innerHTML = rows.map(m => {
+      const maker = makerOf(m.id);
+      const variants = (m._qsGroup && m._qsGroup.variants) || [];
+      const isActive = m.id === state.model || variants.some(v => (v && (v.id || v)) === state.model);
+      const ctx = typeof fmtContext === "function" ? fmtContext(m.context_length || m.contextWindow) : "";
+      const c = providerColor(maker.key);
+      const priceBits = [];
+      if (ctx) priceBits.push(ctx + " ctx");
       try {
-        if (typeof fmtPrice === "function") {
+        const priceIn = m.pricing && (m.pricing.prompt ?? m.pricing.input);
+        const priceOut = m.pricing && (m.pricing.completion ?? m.pricing.output);
+        if ((priceIn != null || priceOut != null) && typeof fmtPrice === "function") {
           priceBits.push(fmtPrice(priceOut ?? priceIn) + "/1M out");
         }
       } catch {}
-    }
-    const metaLine = priceBits.length ? priceBits.join(" · ") : "";
-    const caps = (typeof capsHtml === "function") ? capsHtml(m, "qs-cap") : "";
-    const g = m._qsGroup || (typeof groupForModelId === "function" ? groupForModelId(m.id) : null);
-    const variantChip = (g && g.variants && g.variants.length > 1)
-      ? `<button type="button" class="group-variants-chip" data-qs-open="${escapeHtml(g.canonical)}" style="margin-top:4px">+${g.variants.length - 1}</button>`
-      : "";
-    const copyBtn = (typeof COPY_ICON !== "undefined")
-      ? `<button type="button" class="qs-copy-id" data-copy-id="${escapeHtml(m.id)}" title="Copy model ID">${COPY_ICON}</button>`
-      : "";
-    return `<div class="qs-row${isActive?" is-active":""}" data-qs-model="${escapeHtml(m.id)}" role="button" tabindex="0">
-      ${renderTile(maker.key,"tile-sm")}
+      const metaLine = priceBits.join(" · ");
+      let caps = "";
+      try { if (typeof capsHtml === "function") caps = capsHtml(m, "qs-cap") || ""; } catch {}
+      const g = m._qsGroup;
+      const variantChip = (g && g.variants && g.variants.length > 1)
+        ? `<button type="button" class="group-variants-chip" data-qs-open="${escapeHtml(g.canonical)}" style="margin-top:4px">+${g.variants.length - 1}</button>`
+        : "";
+      const copyBtn = (typeof COPY_ICON !== "undefined")
+        ? `<button type="button" class="qs-copy-id" data-copy-id="${escapeHtml(m.id)}" title="Copy model ID">${COPY_ICON}</button>`
+        : "";
+      return `<div class="qs-row${isActive ? " is-active" : ""}" data-qs-model="${escapeHtml(m.id)}" role="button" tabindex="0">
+      ${typeof renderTile === "function" ? renderTile(maker.key, "tile-sm") : ""}
       <span class="qs-row-main">
         <b>${escapeHtml(cleanModelName(m.id))}</b>
         ${caps ? `<span class="qs-row-caps">${caps}</span>` : ""}
@@ -10434,7 +10467,12 @@ function renderQuickSwitchList(){
       ${copyBtn}
       <span class="qs-radio"></span>
     </div>`;
-  }).join(""):`<div class="qs-empty">No ${(QS_CATS.find(c=>c.id===cat)||{label:cat}).label.toLowerCase()} models in this category.</div>`;
+    }).join("");
+  } catch (e) {
+    console.error("[qs] render rows failed", e);
+    list.innerHTML = `<div class="qs-empty">Could not render models. Try closing and reopening.</div>`;
+    return;
+  }
 
   list.querySelectorAll("[data-qs-open]").forEach(chip => {
     chip.onclick = (e) => {
