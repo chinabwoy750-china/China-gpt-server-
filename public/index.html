@@ -141,21 +141,27 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
   position:relative;
   display:flex;flex-direction:column;gap:4px;
   padding:10px 12px 8px;
-  background-color:var(--panel-2);
-  background-image:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0) 55%);
-  border:1px solid var(--line-strong);
+  /* Frosted glass / translucent — modern floating field */
+  background-color:rgba(28,28,32,.55);
+  background-image:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02) 50%,rgba(255,255,255,0));
+  border:1px solid rgba(255,255,255,.12);
   border-radius:28px;
+  -webkit-backdrop-filter:blur(18px) saturate(1.35);
+  backdrop-filter:blur(18px) saturate(1.35);
   box-shadow:
-    0 1px 0 rgba(255,255,255,.03) inset,
-    0 12px 32px -20px rgba(0,0,0,.9);
-  transition:border-color var(--t-base),box-shadow var(--t-base);
+    0 1px 0 rgba(255,255,255,.06) inset,
+    0 8px 28px -12px rgba(0,0,0,.55),
+    0 2px 8px rgba(0,0,0,.2);
+  transition:border-color var(--t-base),box-shadow var(--t-base),background-color var(--t-base);
 }
 .composer:focus-within{
-  border-color:rgba(139,92,246,.5);
+  background-color:rgba(32,32,38,.62);
+  border-color:rgba(167,139,250,.45);
   box-shadow:
-    0 1px 0 rgba(255,255,255,.04) inset,
-    0 0 0 4px rgba(139,92,246,.13),
-    0 16px 40px -22px rgba(139,92,246,.55);
+    0 1px 0 rgba(255,255,255,.08) inset,
+    0 0 0 3px rgba(139,92,246,.14),
+    0 12px 36px -16px rgba(139,92,246,.4),
+    0 4px 12px rgba(0,0,0,.25);
 }
 .composer.is-dragging{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
 
@@ -201,11 +207,12 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
 .chip-btn{
   display:grid;place-items:center;width:34px;height:34px;padding:0;
   color:var(--muted);font-size:15px;
-  border:1px solid var(--line);border-radius:50%;
+  border:1px solid rgba(255,255,255,.1);border-radius:50%;
+  background:rgba(255,255,255,.04);
   flex:0 0 auto;
   transition:background-color var(--t-base),color var(--t-base),border-color var(--t-base),transform var(--t-fast);
 }
-.chip-btn:hover{background:var(--panel-3);color:var(--text);border-color:var(--line-strong)}
+.chip-btn:hover{background:rgba(255,255,255,.1);color:var(--text);border-color:rgba(255,255,255,.18)}
 .chip-btn:active{transform:scale(.94)}
 .chip-btn.is-on{color:var(--accent);border-color:rgba(61,125,255,.4);background:var(--accent-soft)}
 
@@ -1513,8 +1520,16 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
 }
 :root[data-theme="light"] .admin-head{background:rgba(255,255,255,.92)}
 :root[data-theme="light"] .composer{
-  background-image:linear-gradient(180deg,rgba(0,0,0,.01),rgba(0,0,0,0) 55%);
-  box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 12px 32px -22px rgba(0,0,0,.18);
+  background-color:rgba(255,255,255,.62);
+  background-image:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,.25));
+  border-color:rgba(0,0,0,.08);
+  -webkit-backdrop-filter:blur(18px) saturate(1.4);
+  backdrop-filter:blur(18px) saturate(1.4);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 10px 28px -18px rgba(0,0,0,.2);
+}
+:root[data-theme="light"] .composer:focus-within{
+  background-color:rgba(255,255,255,.78);
+  border-color:rgba(99,102,241,.35);
 }
 :root[data-theme="light"] .send{color:#fff}
 :root[data-theme="light"] .send:hover{background:#000}
@@ -1525,7 +1540,14 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
   --bg:#000; --panel:#000; --panel-2:#050505; --panel-3:#0c0c0c; --raised:#131313;
   --line:#1a1a1a; --line-strong:#242424; --text:#f0f0f0; --muted:#8f8f8f; --dim:#5c5c5c;
 }
-:root[data-theme="amoled"] .composer{background-color:#050505}
+:root[data-theme="amoled"] .composer{
+  background-color:rgba(0,0,0,.45);
+  background-image:linear-gradient(180deg,rgba(255,255,255,.05),transparent 55%);
+  border-color:rgba(255,255,255,.1);
+}
+:root[data-theme="amoled"] .composer:focus-within{
+  background-color:rgba(8,8,8,.55);
+}
 
 /* ============ Density / font ============ */
 :root[data-fontsize="small"] .bubble, :root[data-fontsize="small"] .composer textarea{font-size:12.5px}
@@ -1542,11 +1564,37 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
 }
-.reasoning-block{margin:0 0 10px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--panel-2);max-width:min(100%,640px)}
-.reasoning-toggle{display:flex;align-items:center;gap:7px;width:100%;text-align:left;padding:9px 12px;color:var(--muted);font-size:12.5px;font-weight:500}
-.reasoning-toggle:hover{color:var(--text)}
-.reasoning-body{display:none;padding:9px 12px 12px;color:var(--dim);font-size:12.5px;white-space:pre-wrap;line-height:1.55;border-top:1px solid var(--line);margin-top:2px}
+.reasoning-block{
+  margin:0 0 14px;
+  max-width:min(100%,640px);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:16px;
+  background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+  overflow:hidden;
+}
+.reasoning-toggle{
+  display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+  padding:11px 14px;color:var(--muted);font-size:13px;font-weight:500;
+  letter-spacing:.01em;
+}
+.reasoning-toggle:hover{color:var(--text);background:rgba(255,255,255,.02)}
+.reasoning-body{
+  display:none;
+  padding:4px 16px 16px;
+  color:rgba(180,190,210,.78);
+  font-size:13px;
+  white-space:pre-wrap;
+  line-height:1.7;
+  border-top:1px solid rgba(255,255,255,.05);
+  letter-spacing:.005em;
+}
 .reasoning-block.open .reasoning-body{display:block}
+.msg-assistant .bubble{
+  margin-top:2px;
+}
+.msg-assistant .reasoning-block + .bubble{
+  margin-top:4px;
+}
  
 .reasoning-caret{transition:transform var(--t-fast);display:inline-block}
 .msg-error .bubble{color:var(--danger)}
@@ -4484,7 +4532,16 @@ function renderMessages(){
           </button>
           <div class="reasoning-body" id="${bodyId}" role="region" aria-label="Reasoning"></div>
         `;
-        rb.querySelector(".reasoning-body").textContent = m.reasoning;
+        const rbody = rb.querySelector(".reasoning-body");
+        // Prefer readable paragraph spacing over a single dense pre-wrap block
+        const rtxt = String(m.reasoning || "").trim();
+        if (rtxt.includes("\n\n") || rtxt.includes("\n")) {
+          rbody.innerHTML = rtxt.split(/\n\n+/).map(para =>
+            `<p style="margin:0 0 10px;line-height:1.7">${escapeHtml(para).replace(/\n/g, "<br>")}</p>`
+          ).join("");
+        } else {
+          rbody.textContent = rtxt;
+        }
 
         const toggle = rb.querySelector(".reasoning-toggle");
         const copyBtn = rb.querySelector(".reasoning-copy");
@@ -4720,7 +4777,19 @@ function updateStreamingMessage(ai){
     const rb=row.querySelector(".reasoning-block");
     if(!rb){renderMessages();return}
     const body=rb.querySelector(".reasoning-body");
-    if(body&&body.textContent!==ai.reasoning)body.textContent=ai.reasoning;
+    if(body){
+      const rtxt = String(ai.reasoning||"");
+      if (body.dataset.raw !== rtxt) {
+        body.dataset.raw = rtxt;
+        if (rtxt.includes("\n")) {
+          body.innerHTML = rtxt.trim().split(/\n\n+/).map(para =>
+            `<p style="margin:0 0 10px;line-height:1.7">${escapeHtml(para).replace(/\n/g,"<br>")}</p>`
+          ).join("");
+        } else {
+          body.textContent = rtxt;
+        }
+      }
+    }
   }
   const b=row.querySelector(".bubble");
   if(!b){renderMessages();return}
@@ -10174,18 +10243,33 @@ const QS_CATS = [
 let quickSwitchCat = "chat";
 function qsModelsForCat(cat){
   const by = state.modelsByCategory || {};
-  if (cat === "chat") {
+  const key = String(cat || "chat");
+  if (key === "chat") {
+    // Chat: prefer categorized chat list; fall back to /v1/models only for chat
     const list = by.chat && by.chat.length ? by.chat : state.models;
-    return list || [];
+    return Array.isArray(list) ? list.slice() : [];
   }
-  return (by[cat] || []).slice();
+  // Image / video / audio: only that bucket — never fall back to chat models
+  const list = by[key];
+  return Array.isArray(list) ? list.slice() : [];
 }
 function qsShiftCat(dir){
   const i = QS_CATS.findIndex(c => c.id === quickSwitchCat);
   const next = QS_CATS[(i + dir + QS_CATS.length) % QS_CATS.length];
   quickSwitchCat = next.id;
   quickSwitchMaker = "all";
-  renderQuickSwitch();
+  quickSwitchQuery = "";
+  const search = document.querySelector("#qsSearchInput");
+  if (search) search.value = "";
+  // Ensure media buckets are loaded when leaving chat
+  (async () => {
+    try {
+      const by = state.modelsByCategory || {};
+      const need = !(by.image && by.image.length) || !(by.audio && by.audio.length);
+      if (need && typeof loadCategorizedModels === "function") await loadCategorizedModels();
+    } catch {}
+    renderQuickSwitch();
+  })();
 }
 function openQuickModelSwitch(){
   if(!isAuthenticated()){openLogin("model");return}
@@ -10223,7 +10307,7 @@ function openQuickModelSwitch(){
   quickSwitchMaker="all";
   quickSwitchQuery="";
   (async () => {
-    try { if (!state.modelsByCategory || !(state.modelsByCategory.image||[]).length) await loadCategorizedModels(); } catch {}
+    try { await loadCategorizedModels(); } catch {}
     renderQuickSwitch();
   })();
   backdrop.classList.add("open");
@@ -10284,37 +10368,32 @@ function renderQuickSwitch(){
 function renderQuickSwitchList(){
   const sheet=$("#qsSheet");if(!sheet)return;
   const list=sheet.querySelector("#qsList");if(!list)return;
+  // Always wipe first so a previous category never "bleeds" into the next
+  list.innerHTML = "";
   const q=(quickSwitchQuery||"").trim().toLowerCase();
-  const pool = qsModelsForCat(quickSwitchCat);
+  const cat = quickSwitchCat || "chat";
+  const pool = qsModelsForCat(cat);
   let rows = pool.filter(m => {
     if (!m || !m.id) return false;
     const maker = makerOf(m.id);
     if (quickSwitchMaker !== "all" && maker.key !== quickSwitchMaker) return false;
     if (q) {
       const name = cleanModelName(m.id).toLowerCase();
-      const g = typeof groupForModelId === "function" ? groupForModelId(m.id) : null;
-      if (g) {
-        const hit = g.variants.some(v => {
-          const id = v.id || v;
-          return String(id).toLowerCase().includes(q) || cleanModelName(id).toLowerCase().includes(q);
-        }) || String(g.canonical || "").includes(q);
-        if (!hit && !m.id.toLowerCase().includes(q) && !name.includes(q) && !maker.label.toLowerCase().includes(q)) return false;
-      } else if (!m.id.toLowerCase().includes(q) && !name.includes(q) && !maker.label.toLowerCase().includes(q)) {
-        return false;
-      }
+      const idLow = m.id.toLowerCase();
+      const lab = maker.label.toLowerCase();
+      if (!idLow.includes(q) && !name.includes(q) && !lab.includes(q)) return false;
     }
     return true;
   });
   rows.sort((a,b)=>cleanModelName(a.id).localeCompare(cleanModelName(b.id)));
 
-  // Collapse duplicate names (same as chat catalogue) — one row per canonical model
+  // Collapse duplicate names within THIS category only (never use chat modelGroups)
   if (typeof clientGroupModels === "function" && rows.length) {
     const groups = clientGroupModels(rows);
     const byId = new Map(rows.map(m => [m.id, m]));
     rows = groups.map(g => {
       const primaryId = g.primary;
       const primary = byId.get(primaryId) || g.variants[0] || { id: primaryId };
-      // attach group meta for chip
       primary._qsGroup = g;
       return primary;
     }).sort((a,b)=>cleanModelName(a.id).localeCompare(cleanModelName(b.id)));
@@ -10355,7 +10434,7 @@ function renderQuickSwitchList(){
       ${copyBtn}
       <span class="qs-radio"></span>
     </div>`;
-  }).join(""):`<div class="qs-empty">No ${escapeHtml(quickSwitchCat)} models in this category.</div>`;
+  }).join(""):`<div class="qs-empty">No ${(QS_CATS.find(c=>c.id===cat)||{label:cat}).label.toLowerCase()} models in this category.</div>`;
 
   list.querySelectorAll("[data-qs-open]").forEach(chip => {
     chip.onclick = (e) => {
