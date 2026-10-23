@@ -4061,7 +4061,9 @@ function clientGroupModels(models) {
     if (!g) { g = { canonical: key, variants: [], hasFree: false, providers: [], primary: m.id, pinned: null }; map.set(key, g) }
     g.variants.push(m);
     if (/:free$/i.test(m.id)) g.hasFree = true;
-    const prov = (m.id.split("/")[0] || "").toLowerCase();
+    const prov = (typeof makerOf === "function")
+      ? makerOf(m.id).key
+      : (m.id.split("/")[0] || "").toLowerCase();
     if (prov && !g.providers.includes(prov)) g.providers.push(prov);
   }
   for (const g of map.values()) {
@@ -9970,15 +9972,16 @@ function updateCatalogTabCounts(){
 }
 
 function categoryProviderKey(m){
-  if (m.source === "custom") return String(m.provider || "custom").toLowerCase();
-  if (typeof makerOf === "function") return makerOf(m.id).key;
-  const id = String(m.id || "");
+  // Always prefer family detection (Seedance/Vivix/…) over the custom gateway prefix
+  if (m && m.id && typeof makerOf === "function") return makerOf(m.id).key;
+  if (m && m.source === "custom") return String(m.provider || "custom").toLowerCase();
+  const id = String((m && m.id) || "");
   const slash = id.indexOf("/");
   return slash > 0 ? id.slice(0, slash).toLowerCase() : "other";
 }
 function categoryProviderLabel(m){
-  if (m.source === "custom") return m.providerLabel || m.provider || "Custom";
-  if (typeof makerOf === "function") return makerOf(m.id).label;
+  if (m && m.id && typeof makerOf === "function") return makerOf(m.id).label;
+  if (m && m.source === "custom") return m.providerLabel || m.provider || "Custom";
   const k = categoryProviderKey(m);
   return typeof providerLabel === "function" ? providerLabel(k) : k;
 }
