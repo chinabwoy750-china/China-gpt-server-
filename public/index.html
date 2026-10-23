@@ -3644,7 +3644,7 @@ const PROVIDER_COLORS = {
   qwen:"#615ced", meta:"#0866ff", mistral:"#fa520f", xai:"#c9c9c9",
   moonshot:"#5a4fcf", zai:"#2b5797", nvidia:"#76b900", microsoft:"#0078d4",
   cohere:"#39594d", bytedance:"#325ab4", xiaomi:"#ff6900", tencent:"#1296db",
-  minimax:"#e94a3a"
+  minimax:"#e94a3a", seedance:"#3b82f6", vivix:"#a855f7", kling:"#f59e0b", runway:"#22c55e", luma:"#06b6d4", pika:"#ec4899", talknova:"#8b5cf6"
 };
 function providerColor(key){
   if (PROVIDER_COLORS[key]) return PROVIDER_COLORS[key];
@@ -3678,6 +3678,17 @@ const MAKERS = [
   { re:/(^|\/)(nemotron|parakeet)/i, key:"nvidia", label:"NVIDIA" },
   { re:/(^|\/)north(-mini-code)/i, key:"cohere", label:"Cohere" },
   { re:/(^|\/)(seedream|doubao)/i, key:"bytedance", label:"ByteDance" },
+  // Video / media families (match even behind custom gateways like talknova/)
+  { re:/seedance/i, key:"seedance", label:"Seedance" },
+  { re:/vivix/i, key:"vivix", label:"Vivix AI" },
+  { re:/kling/i, key:"kling", label:"Kling" },
+  { re:/runway|gen-3|gen-4/i, key:"runway", label:"Runway" },
+  { re:/\bluma\b|dream-machine/i, key:"luma", label:"Luma" },
+  { re:/\bpika\b/i, key:"pika", label:"Pika" },
+  { re:/\bsora\b/i, key:"openai", label:"OpenAI" },
+  { re:/gpt-image/i, key:"openai", label:"OpenAI" },
+  { re:/qwen-image/i, key:"qwen", label:"Qwen" },
+  { re:/talknova-(text|image)-to-video/i, key:"talknova", label:"TalkNova" },
   // Image-generation families (full id match — beats cf/ aggregator)
   { re:/black-forest-labs|\bflux[-_]?[0-9]|flux-1|flux-2|flux-schnell|flux-dev|flux-pro/i, key:"black-forest-labs", label:"Black Forest Labs" },
   { re:/stable[-_]?diffusion|sdxl|sd-v1|inpainting/i, key:"stability", label:"Stability AI" },
@@ -3695,7 +3706,8 @@ const AGGREGATOR_LABELS = {
   crax:"Crax", Dahl:"Dahl", kr:"Krea", cf:"Cloudflare", nb:"Google",
   ollama:"Ollama", openrouter:"OpenRouter", gemini:"Google",
   nvidia:"NVIDIA NIM", xkiro:"xKiro",
-  bpm:"Bpm", seed:"ByteDance Seed"
+  bpm:"Bpm", seed:"ByteDance Seed",
+  talknova:"TalkNova", myproxy:"Myproxy"
 };
 function applyOverrideKey(id){
   const ov = state.providerOverrides || {};
@@ -3825,7 +3837,11 @@ function makerOf(modelId){
   const id = String(modelId||"");
   const override = applyOverrideKey(id);
   if (override) return { key: override, label: providerLabel(override) };
-  for (const m of MAKERS){ if (m.re.test(id)) return { key:m.key, label:m.label }; }
+  // Match family on full id and after the first slash so talknova/seedance-… → Seedance
+  const rest = id.includes("/") ? id.slice(id.indexOf("/") + 1) : id;
+  for (const m of MAKERS) {
+    if (m.re.test(id) || m.re.test(rest)) return { key: m.key, label: m.label };
+  }
   const agg = (id.split("/")[0]||"").toLowerCase();
   const label = AGGREGATOR_LABELS[agg] || (agg ? agg[0].toUpperCase()+agg.slice(1) : "Other");
   return { key: agg || "other", label };
