@@ -3737,8 +3737,18 @@ const ENDPOINT_TYPE_MAP = {
   "anthropic":          "chat",
   "gemini":             "chat",
   "typesafe-decisions": "chat",
+  "chat":               "chat",
+  "text":               "chat",
+  "llm":                "chat",
   "aihorde":            "image",
   "image-generation":   "image",
+  "image":              "image",
+  "images":             "image",
+  "video":              "video",
+  "videos":             "video",
+  "audio":              "audio",
+  "tts":                "audio",
+  "speech":             "audio",
   "embedding":          "embedding"
 };
 
@@ -3760,13 +3770,20 @@ function categorizeByIdName(id){
   const s = String(id || "").toLowerCase();
   if (/(^|[/_.-])(bge-|e5-|embed|embeddinggemma|voyage|gte-|jina-?embed|jina-?code-?embed)/i.test(s)) return "embedding";
   if (/(^|[/_.-])(tts|whisper|melotts|voice|speech|vocal|audio|music|bark|piper|xtts|kokoro|parler|aura-[12]|nova-3|deepgram)/i.test(s)) return "audio";
-  if (/(^|[/_.-])(veo|sora|runway|kling|seedance|hailuo|luma|pika|gen-?[23]|mochi|cogvideo|hunyuan-?video|wan-?2|ltx-?video|svd)/i.test(s)) return "video";
-  if (/(^|[/_.-])(flux|dall-?e|imagen|seedream|sd-?\d|sdxl|stable-?diffusion|midjourney|kandinsky|pixart|deepfloyd)/i.test(s)) return "image";
+  if (/(^|[/_.-])(veo|sora|runway|kling|seedance|hailuo|luma|pika|gen-?[23]|mochi|cogvideo|hunyuan-?video|wan-?2|ltx-?video|svd|vivix|text-to-video|image-to-video)/i.test(s)) return "video";
+  if (/(^|[/_.-])(flux|dall-?e|gpt-image|qwen-image|imagen|seedream|sd-?\d|sdxl|stable-?diffusion|midjourney|kandinsky|pixart|deepfloyd)/i.test(s)) return "image";
   if (/\b(albedobase|amponyxl|anything-?v|autismmix|cyberrealistic|dreamshaper|juggernaut|prefect-?pony|tunix-?pony|ponyxl|illustrious|swamponyxl|rev-?animated|nova-?anime|nova-?furry|flat-?2d|quiet-?goodnight|k2-?horizon|ntr-?mix|mn-?violet|space-?bunny|diffusiongemma|sdxl-?lightning|phoenix-?1|lucid-?origin|wai-)/i.test(s)) return "image";
   return "chat";
 }
 
 function categorizeModel(m){
+  if (typeof m === "object" && m) {
+    const t = String(m.type || m.category || "").toLowerCase();
+    if (t === "chat" || t === "text" || t === "llm") return "chat";
+    if (t === "image" || t === "images") return "image";
+    if (t === "video" || t === "videos") return "video";
+    if (t === "audio" || t === "tts") return "audio";
+  }
   const id = typeof m === "string" ? m : (m && m.id) || "";
   const types = (typeof m === "object" && m) ? m.supported_endpoint_types : null;
   const fromTypes = categorizeFromEndpointTypes(types);
@@ -9398,7 +9415,7 @@ function openProviderForm(id){
       <div class="row" style="flex-wrap:wrap;gap:8px">
         <input id="pfPathChat" value="${escapeHtml(existing?.paths?.chat || "/v1/chat/completions")}" placeholder="/v1/chat/completions" spellcheck="false">
         <input id="pfPathImage" value="${escapeHtml(existing?.paths?.image || "/v1/images/generations")}" placeholder="/v1/images/generations" spellcheck="false">
-        <input id="pfPathVideo" value="${escapeHtml(existing?.paths?.video || "/v1/videos/generations")}" placeholder="/v1/videos/generations or your custom path" spellcheck="false">
+        <input id="pfPathVideo" value="${escapeHtml(existing?.paths?.video || "/v1/video")}" placeholder="/v1/video (TalkNova) or /v1/videos/generations" spellcheck="false">
         <input id="pfPathAudio" value="${escapeHtml(existing?.paths?.audio || "/v1/audio/speech")}" placeholder="/v1/audio/speech" spellcheck="false">
       </div>
     </div>
@@ -10245,11 +10262,12 @@ function qsModelsForCat(cat){
   const by = state.modelsByCategory || {};
   const key = String(cat || "chat");
   if (key === "chat") {
-    // Chat: prefer categorized chat list; fall back to /v1/models only for chat
-    const list = by.chat && by.chat.length ? by.chat : state.models;
-    return Array.isArray(list) ? list.slice() : [];
+    const a = Array.isArray(by.chat) ? by.chat : [];
+    const b = Array.isArray(state.models) ? state.models : [];
+    if (a.length && b.length) return (a.length >= b.length ? a : b).slice();
+    if (a.length) return a.slice();
+    return b.slice();
   }
-  // Image / video / audio: only that bucket — never fall back to chat models
   const list = by[key];
   return Array.isArray(list) ? list.slice() : [];
 }
