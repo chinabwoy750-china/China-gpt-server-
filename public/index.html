@@ -2256,9 +2256,9 @@ body.is-locked .auth-page{ display:none !important; }
 /* Video options bar in composer */
 .video-opts{
   display:none;flex-wrap:wrap;gap:6px;align-items:center;
-  padding:2px 2px 4px;margin:0;
+  padding:4px 2px 6px;margin:0;width:100%;
 }
-.video-opts.is-on{display:flex}
+.video-opts.is-on{display:flex !important}
 .vo-chip{
   display:inline-flex;align-items:center;gap:4px;
   height:28px;padding:0 10px;border-radius:999px;
@@ -3150,25 +3150,7 @@ body.is-locked .auth-page{ display:none !important; }
           </button>
           <textarea id="prompt" placeholder="Ask China-GPT anything" rows="1" aria-label="Message"></textarea>
           <div id="attachmentStrip" class="attachment-strip"></div>
-          <div class="video-opts" id="videoOpts" aria-label="Video options">
-            <div class="vo-group" data-vo="aspect">
-              <span class="vo-label">Shape</span>
-              <button type="button" class="vo-chip is-active" data-aspect="16:9">16:9</button>
-              <button type="button" class="vo-chip" data-aspect="9:16">9:16</button>
-              <button type="button" class="vo-chip" data-aspect="1:1">1:1</button>
-            </div>
-            <div class="vo-group" data-vo="duration">
-              <span class="vo-label">Length</span>
-              <button type="button" class="vo-chip is-active" data-duration="5">5s</button>
-              <button type="button" class="vo-chip" data-duration="10">10s</button>
-              <button type="button" class="vo-chip" data-duration="15">15s</button>
-            </div>
-            <div class="vo-group" data-vo="quality">
-              <span class="vo-label">Quality</span>
-              <button type="button" class="vo-chip is-active" data-quality="720p">720p</button>
-              <button type="button" class="vo-chip" data-quality="1080p">1080p</button>
-            </div>
-          </div>
+          <div class="video-opts" id="videoOpts" aria-label="Video options"></div>
           <div class="composer-bar">
             <label class="chip-btn" aria-label="Attach files" title="Attach files" id="attachLabel"><input id="fileInput" type="file" hidden multiple accept="image/*,.pdf,.txt,.md,.markdown,.json,.csv,.js,.ts,.html,.css,.xml,.yaml,.yml,.log,.py,.java,.c,.cpp,.h,.hpp,.sql,.sh,.go,.rs,.php,.jsx,.tsx,.vue"></label>
             <button class="chip-btn" id="searchBtn" aria-label="Web search" title="Web search"></button>
@@ -4258,6 +4240,7 @@ function updateBadge(){
     }
   }
   updateAccountBadge();
+  if (typeof updateComposerMediaChrome === "function") updateComposerMediaChrome();
 }
 function refreshCatalogIfOpen(){if($("#modelsPage").classList.contains("open")){buildFilters();renderCatalog()}}
 
@@ -5653,24 +5636,140 @@ function updateMediaModeUI(){
   }
 }
 
+function findModelMeta(id){
+  if (!id) return null;
+  const by = state.modelsByCategory || {};
+  for (const cat of ["video", "image", "audio", "chat"]) {
+    const hit = (by[cat] || []).find(m => m && m.id === id);
+    if (hit) return hit;
+  }
+  return (state.models || []).find(m => m && m.id === id) || null;
+}
+
+/** Pull aspect / duration / quality lists from model metadata when present. */
+function videoOptionsForModel(id){
+  const m = findModelMeta(id) || {};
+  const s = String(id || "").toLowerCase();
+  const cap = m.capabilities && typeof m.capabilities === "object" ? m.capabilities : {};
+
+  const arr = (...cands) => {
+    for (const c of cands) {
+      if (Array.isArray(c) && c.length) return c.map(x => String(x).trim()).filter(Boolean);
+      if (typeof c === "string" && c.trim()) return c.split(/[,|]/).map(x => x.trim()).filter(Boolean);
+    }
+    return null;
+  };
+  const numArr = (...cands) => {
+    const a = arr(...cands);
+    if (!a) return null;
+    return a.map(x => Number(String(x).replace(/s$/i, ""))).filter(n => Number.isFinite(n) && n > 0);
+  };
+
+  let aspects = arr(
+    m.aspect_ratios, m.supported_aspect_ratios, m.aspects, m.supported_aspects,
+    cap.aspect_ratios, cap.supported_aspect_ratios, m.sizes, m.supported_sizes
+  );
+  let durations = numArr(
+    m.durations, m.supported_durations, m.duration_options, m.lengths, m.supported_lengths,
+    cap.durations, cap.supported_durations
+  );
+  let qualities = arr(
+    m.qualities, m.supported_qualities, m.resolutions, m.supported_resolutions,
+    m.quality_options, cap.qualities, cap.resolutions
+  );
+
+  // Family hints only when the model itself exposes nothing
+  if (!aspects) {
+    if (/9[:x-]16|portrait|vertical|shorts|tiktok|reels/i.test(s)) aspects = ["9:16", "16:9", "1:1"];
+    else if (/1[:x-]1|square/i.test(s)) aspects = ["1:1", "16:9", "9:16"];
+    else aspects = ["16:9", "9:16", "1:1"];
+  }
+  // Normalize size-like values to aspect labels when possible
+  aspects = aspects.map(a => {
+    const t = String(a).toLowerCase();
+    if (t === "1280x720" || t === "1920x1080") return "16:9";
+    if (t === "720x1280" || t === "1080x1920") return "9:16";
+    if (t === "1024x1024" || t === "512x512") return "1:1";
+    return a;
+  });
+  aspects = [...new Set(aspects)];
+
+  if (!durations) {
+    if (m.max_duration || cap.max_duration) {
+      const max = Number(m.max_duration || cap.max_duration) || 15;
+      durations = [5, 10, 15, 20].filter(d => d <= max);
+      if (!durations.length) durations = [Math.min(5, max)];
+    } else if (/seedance/i.test(s)) durations = [5, 10];
+    else if (/vivix|talknova/i.test(s)) durations = [5, 10, 15];
+    else durations = [5, 10, 15];
+  }
+  durations = [...new Set(durations)].sort((a, b) => a - b);
+
+  if (!qualities) {
+    if (/1080|fhd/i.test(s)) qualities = ["1080p", "720p"];
+    else if (/480|sd/i.test(s)) qualities = ["480p", "720p"];
+    else qualities = ["720p", "1080p"];
+  }
+  qualities = [...new Set(qualities.map(q => {
+    const t = String(q).toLowerCase();
+    if (/1080|1920/.test(t)) return "1080p";
+    if (/720|1280/.test(t)) return "720p";
+    if (/480/.test(t)) return "480p";
+    return String(q);
+  }))];
+
+  return { aspects, durations, qualities };
+}
+
+function updateComposerMediaChrome(){
+  const kind = resolveMediaKindForSend();
+  const ta = document.getElementById("prompt");
+  const searchBtn = document.getElementById("searchBtn");
+  // Hide web-search for pure media models
+  if (searchBtn) {
+    searchBtn.style.display = (kind === "image" || kind === "video" || kind === "audio") ? "none" : "";
+  }
+  if (ta) {
+    if (kind === "image") ta.placeholder = "Describe the image to generate…";
+    else if (kind === "video") ta.placeholder = "Describe the video to generate…";
+    else if (kind === "audio") ta.placeholder = "Text to speak…";
+    else if (!state.mediaMode) ta.placeholder = "Ask China-GPT anything";
+  }
+  updateVideoOptsBar();
+}
+
 function updateVideoOptsBar(){
   const bar = document.getElementById("videoOpts");
   if (!bar) return;
-  const kind = typeof resolveMediaKindForSend === "function" ? resolveMediaKindForSend() : null;
+  const kind = resolveMediaKindForSend();
   const on = kind === "video";
   bar.classList.toggle("is-on", on);
-  if (!on) return;
-  const vo = state.videoOpts || (state.videoOpts = { aspect: "16:9", duration: 5, quality: "720p" });
-  bar.querySelectorAll("[data-aspect]").forEach(b => {
-    b.classList.toggle("is-active", b.dataset.aspect === String(vo.aspect));
-  });
-  bar.querySelectorAll("[data-duration]").forEach(b => {
-    b.classList.toggle("is-active", Number(b.dataset.duration) === Number(vo.duration));
-  });
-  bar.querySelectorAll("[data-quality]").forEach(b => {
-    b.classList.toggle("is-active", b.dataset.quality === String(vo.quality));
-  });
+  if (!on) {
+    bar.innerHTML = "";
+    return;
+  }
+  const opts = videoOptionsForModel(state.model);
+  const vo = state.videoOpts || (state.videoOpts = {});
+  // Clamp selection to what this model supports
+  if (!opts.aspects.includes(String(vo.aspect))) vo.aspect = opts.aspects[0];
+  if (!opts.durations.includes(Number(vo.duration))) vo.duration = opts.durations[0];
+  if (!opts.qualities.includes(String(vo.quality))) vo.quality = opts.qualities[0];
+
+  const chip = (attrs, label, active) =>
+    `<button type="button" class="vo-chip${active ? " is-active" : ""}" ${attrs}>${label}</button>`;
+
+  bar.innerHTML =
+    `<div class="vo-group" data-vo="aspect"><span class="vo-label">Shape</span>` +
+    opts.aspects.map(a => chip(`data-aspect="${escapeHtml(a)}"`, escapeHtml(a), String(vo.aspect) === String(a))).join("") +
+    `</div>` +
+    `<div class="vo-group" data-vo="duration"><span class="vo-label">Length</span>` +
+    opts.durations.map(d => chip(`data-duration="${d}"`, d + "s", Number(vo.duration) === Number(d))).join("") +
+    `</div>` +
+    `<div class="vo-group" data-vo="quality"><span class="vo-label">Quality</span>` +
+    opts.qualities.map(q => chip(`data-quality="${escapeHtml(q)}"`, escapeHtml(q), String(vo.quality) === String(q))).join("") +
+    `</div>`;
 }
+
 function bindVideoOptsBar(){
   const bar = document.getElementById("videoOpts");
   if (!bar || bar._bound) return;
@@ -5678,7 +5777,7 @@ function bindVideoOptsBar(){
   bar.addEventListener("click", (e) => {
     const btn = e.target.closest(".vo-chip");
     if (!btn) return;
-    const vo = state.videoOpts || (state.videoOpts = { aspect: "16:9", duration: 5, quality: "720p" });
+    const vo = state.videoOpts || (state.videoOpts = {});
     if (btn.dataset.aspect) vo.aspect = btn.dataset.aspect;
     if (btn.dataset.duration) vo.duration = Number(btn.dataset.duration) || 5;
     if (btn.dataset.quality) vo.quality = btn.dataset.quality;
@@ -5688,7 +5787,6 @@ function bindVideoOptsBar(){
 }
 
 function resolveMediaKindForSend(){
-  // Prefer explicit mode if ever set; otherwise infer from selected model category.
   if (state.mediaMode === "image" || state.mediaMode === "video" || state.mediaMode === "audio") return state.mediaMode;
   const id = state.model;
   if (!id) return null;
@@ -5696,10 +5794,10 @@ function resolveMediaKindForSend(){
   if ((by.image || []).some(m => m.id === id)) return "image";
   if ((by.video || []).some(m => m.id === id)) return "video";
   if ((by.audio || []).some(m => m.id === id)) return "audio";
-  // Fallback by id — never send TTS models through chat (Gemini TEXT modality error)
   const s = String(id).toLowerCase();
   if (/(tts|speech|melotts|bark|piper|xtts|kokoro)/i.test(s)) return "audio";
-  if (/(veo|sora|runway|kling|seedance|hailuo|luma|pika|cogvideo|hunyuan)/i.test(s)) return "video";
+  if (/(veo|sora|runway|kling|seedance|hailuo|luma|pika|cogvideo|hunyuan|vivix|text-to-video|image-to-video|talknova-.*video)/i.test(s)) return "video";
+  if (/(gpt-image|qwen-image|dall-?e|flux|stable-?diffusion|imagen)/i.test(s)) return "image";
   return null;
 }
 function pickMediaModel(kind){
@@ -10043,20 +10141,12 @@ function selectModel(id){
   if(!isAuthenticated()){openLogin("model");return}
   state.model=id;localStorage.setItem("chinaGPTModel",id);
   markModelUsed(id);persistCurrentConversation();updateBadge();
-  if (typeof updateVideoOptsBar === "function") updateVideoOptsBar();
   closeModelsPage();
-  // Hint when an image/video catalogue model is selected (composer has no media chips)
-  const by = state.modelsByCategory || {};
-  const ta = $("#prompt");
-  if ((by.image || []).some(m => m.id === id)) {
-    if (ta) ta.placeholder = "Describe the image to generate…";
-    toast("Image model selected — send a prompt to generate");
-  } else if ((by.video || []).some(m => m.id === id)) {
-    if (ta) ta.placeholder = "Describe the video to generate…";
-    toast("Video model selected — send a prompt to generate");
-  } else if (ta) {
-    ta.placeholder = "Ask China-GPT anything";
-  }
+  if (typeof updateComposerMediaChrome === "function") updateComposerMediaChrome();
+  else if (typeof updateVideoOptsBar === "function") updateVideoOptsBar();
+  const kind = typeof resolveMediaKindForSend === "function" ? resolveMediaKindForSend() : null;
+  if (kind === "image") toast("Image model selected — send a prompt to generate");
+  else if (kind === "video") toast("Video model selected — send a prompt to generate");
 }
 function fmtContext(n){
   if(!n) return "—";
@@ -10142,6 +10232,7 @@ async function loadCategorizedModels(){
 
     if (typeof refreshCatalogIfOpen === "function") refreshCatalogIfOpen();
     if (typeof updateBadge === "function") updateBadge();
+    if (typeof updateComposerMediaChrome === "function") updateComposerMediaChrome();
     if (typeof warmIconCache === "function") warmIconCache();
   }catch(e){
     console.error("[loadCategorizedModels] failed:", e);
@@ -11060,7 +11151,8 @@ renderMessages();
       const _vo = JSON.parse(localStorage.getItem("chinaGPTVideoOpts") || "null");
       if (_vo && typeof _vo === "object") Object.assign(state.videoOpts, _vo);
     } catch {}
-    if (typeof updateVideoOptsBar === "function") updateVideoOptsBar();
+    if (typeof updateComposerMediaChrome === "function") updateComposerMediaChrome();
+    else if (typeof updateVideoOptsBar === "function") updateVideoOptsBar();
   } else {
     updateBadge();
   }
