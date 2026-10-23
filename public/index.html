@@ -2259,6 +2259,13 @@ body.is-locked .auth-page{ display:none !important; }
   padding:4px 2px 6px;margin:0;width:100%;
 }
 .video-opts.is-on{display:flex !important}
+
+.composer.is-media-model #searchBtn{display:none !important}
+.composer.is-media-model .video-opts.is-on{
+  display:flex !important;
+  margin-top:2px;
+}
+
 .vo-chip{
   display:inline-flex;align-items:center;gap:4px;
   height:28px;padding:0 10px;border-radius:999px;
@@ -3148,9 +3155,9 @@ body.is-locked .auth-page{ display:none !important; }
               <span class="cmc-caps" id="composerChipCaps"></span>
             <svg class="cmc-caret" viewBox="0 0 24 24"><path d="m8 10.2 4 4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
           </button>
+          <div class="video-opts" id="videoOpts" aria-label="Video options"></div>
           <textarea id="prompt" placeholder="Ask China-GPT anything" rows="1" aria-label="Message"></textarea>
           <div id="attachmentStrip" class="attachment-strip"></div>
-          <div class="video-opts" id="videoOpts" aria-label="Video options"></div>
           <div class="composer-bar">
             <label class="chip-btn" aria-label="Attach files" title="Attach files" id="attachLabel"><input id="fileInput" type="file" hidden multiple accept="image/*,.pdf,.txt,.md,.markdown,.json,.csv,.js,.ts,.html,.css,.xml,.yaml,.yml,.log,.py,.java,.c,.cpp,.h,.hpp,.sql,.sh,.go,.rs,.php,.jsx,.tsx,.vue"></label>
             <button class="chip-btn" id="searchBtn" aria-label="Web search" title="Web search"></button>
@@ -5647,8 +5654,37 @@ function findModelMeta(id){
 }
 
 /** Pull aspect / duration / quality lists from model metadata when present. */
+/** Known media capability tables (TalkNova-style) keyed by model leaf id. */
+const KNOWN_MEDIA_META = {
+  "seedance-2.0-fast": { mode: "Text to video", durations: [5,10,15], qualities: ["480p","720p"], aspects: ["16:9","9:16","1:1","4:3","3:4"] },
+  "seedance-2.0-fast-image-to-video": { mode: "Image to video", durations: [5,10,15], qualities: ["480p","720p"], aspects: ["16:9","9:16","1:1","4:3","3:4"] },
+  "seedance-2.0-ultra-fast": { mode: "Text to video", durations: [5,10,15], qualities: ["480p","720p"], aspects: ["16:9","9:16","1:1","4:3","3:4"] },
+  "seedance-2.0-ultra-fast-image-to-video": { mode: "Image to video", durations: [5,10,15], qualities: ["480p","720p"], aspects: ["16:9","9:16","1:1","4:3","3:4"] },
+  "talknova-image-to-video": { mode: "Image to video", durations: [5,7,10], qualities: ["720p"], aspects: ["16:9","9:16","1:1"] },
+  "talknova-text-to-video": { mode: "Text to video", durations: [5,7,10], qualities: ["720p"], aspects: ["16:9","9:16","1:1"] },
+  "vivix-ai-digital-human": { mode: "Text to video", durations: null, qualities: ["480p","720p"], aspects: ["16:9","9:16"], lengthByModel: true },
+  "vivix-ai-image-to-video": { mode: "Image to video", durations: null, qualities: ["480p","720p"], aspects: ["16:9","9:16"], lengthByModel: true },
+  "gpt-image-2": { mode: "Image", qualities: ["auto"], aspects: ["1:1","16:9","9:16"] },
+  "qwen-image-2.1-turbo": { mode: "Image", qualities: ["auto"], aspects: ["1:1","16:9","9:16"] }
+};
+function knownMediaMeta(id){
+  const leaf = String(id || "").split("/").pop().toLowerCase();
+  if (KNOWN_MEDIA_META[leaf]) return KNOWN_MEDIA_META[leaf];
+  // fuzzy
+  for (const [k, v] of Object.entries(KNOWN_MEDIA_META)) {
+    if (leaf.includes(k) || k.includes(leaf)) return v;
+  }
+  if (/seedance/i.test(leaf)) return KNOWN_MEDIA_META["seedance-2.0-fast"];
+  if (/vivix/i.test(leaf) && /image/i.test(leaf)) return KNOWN_MEDIA_META["vivix-ai-image-to-video"];
+  if (/vivix/i.test(leaf)) return KNOWN_MEDIA_META["vivix-ai-digital-human"];
+  if (/talknova.*image.*video|image-to-video/i.test(leaf)) return KNOWN_MEDIA_META["talknova-image-to-video"];
+  if (/talknova.*text.*video|text-to-video/i.test(leaf)) return KNOWN_MEDIA_META["talknova-text-to-video"];
+  return null;
+}
+
 function videoOptionsForModel(id){
   const m = findModelMeta(id) || {};
+  const known = knownMediaMeta(id) || {};
   const s = String(id || "").toLowerCase();
   const cap = m.capabilities && typeof m.capabilities === "object" ? m.capabilities : {};
 
@@ -5667,15 +5703,15 @@ function videoOptionsForModel(id){
 
   let aspects = arr(
     m.aspect_ratios, m.supported_aspect_ratios, m.aspects, m.supported_aspects,
-    cap.aspect_ratios, cap.supported_aspect_ratios, m.sizes, m.supported_sizes
+    known.aspects, cap.aspect_ratios, cap.supported_aspect_ratios, m.sizes, m.supported_sizes
   );
   let durations = numArr(
     m.durations, m.supported_durations, m.duration_options, m.lengths, m.supported_lengths,
-    cap.durations, cap.supported_durations
+    known.durations, cap.durations, cap.supported_durations
   );
   let qualities = arr(
     m.qualities, m.supported_qualities, m.resolutions, m.supported_resolutions,
-    m.quality_options, cap.qualities, cap.resolutions
+    known.qualities, m.quality_options, cap.qualities, cap.resolutions
   );
 
   // Family hints only when the model itself exposes nothing
@@ -5725,10 +5761,10 @@ function updateComposerMediaChrome(){
   const kind = resolveMediaKindForSend();
   const ta = document.getElementById("prompt");
   const searchBtn = document.getElementById("searchBtn");
-  // Hide web-search for pure media models
-  if (searchBtn) {
-    searchBtn.style.display = (kind === "image" || kind === "video" || kind === "audio") ? "none" : "";
-  }
+  const composer = document.getElementById("composer");
+  const isMedia = kind === "image" || kind === "video" || kind === "audio";
+  if (composer) composer.classList.toggle("is-media-model", !!isMedia);
+  if (searchBtn) searchBtn.style.display = isMedia ? "none" : "";
   if (ta) {
     if (kind === "image") ta.placeholder = "Describe the image to generate…";
     else if (kind === "video") ta.placeholder = "Describe the video to generate…";
@@ -5758,16 +5794,24 @@ function updateVideoOptsBar(){
   const chip = (attrs, label, active) =>
     `<button type="button" class="vo-chip${active ? " is-active" : ""}" ${attrs}>${label}</button>`;
 
-  bar.innerHTML =
-    `<div class="vo-group" data-vo="aspect"><span class="vo-label">Shape</span>` +
-    opts.aspects.map(a => chip(`data-aspect="${escapeHtml(a)}"`, escapeHtml(a), String(vo.aspect) === String(a))).join("") +
-    `</div>` +
-    `<div class="vo-group" data-vo="duration"><span class="vo-label">Length</span>` +
-    opts.durations.map(d => chip(`data-duration="${d}"`, d + "s", Number(vo.duration) === Number(d))).join("") +
-    `</div>` +
-    `<div class="vo-group" data-vo="quality"><span class="vo-label">Quality</span>` +
-    opts.qualities.map(q => chip(`data-quality="${escapeHtml(q)}"`, escapeHtml(q), String(vo.quality) === String(q))).join("") +
-    `</div>`;
+  const known = knownMediaMeta(state.model) || {};
+  let html = "";
+  if (opts.aspects && opts.aspects.length) {
+    html += `<div class="vo-group" data-vo="aspect"><span class="vo-label">Shape</span>` +
+      opts.aspects.map(a => chip(`data-aspect="${escapeHtml(a)}"`, escapeHtml(a), String(vo.aspect) === String(a))).join("") +
+      `</div>`;
+  }
+  if (!known.lengthByModel && opts.durations && opts.durations.length) {
+    html += `<div class="vo-group" data-vo="duration"><span class="vo-label">Length</span>` +
+      opts.durations.map(d => chip(`data-duration="${d}"`, d + "s", Number(vo.duration) === Number(d))).join("") +
+      `</div>`;
+  }
+  if (opts.qualities && opts.qualities.length) {
+    html += `<div class="vo-group" data-vo="quality"><span class="vo-label">Quality</span>` +
+      opts.qualities.map(q => chip(`data-quality="${escapeHtml(q)}"`, escapeHtml(q), String(vo.quality) === String(q))).join("") +
+      `</div>`;
+  }
+  bar.innerHTML = html || `<div class="vo-group"><span class="vo-label">Options set by model</span></div>`;
 }
 
 function bindVideoOptsBar(){
@@ -9798,11 +9842,27 @@ function openProviderForm(id){
       }
 
       const buckets = { chat: [], image: [], video: [], audio: [], embedding: [] };
+      const modelsMeta = {};
       for (const m of filtered) {
         const cat = categorizeModel(m);
         if (buckets[cat]) buckets[cat].push(m.id);
         else buckets.chat.push(m.id);
+        if (m && m.id) {
+          modelsMeta[m.id] = {
+            name: m.name,
+            type: m.type || cat,
+            mode: m.mode || m.modality,
+            aspect_ratios: m.aspect_ratios || m.supported_aspect_ratios || m.aspects,
+            durations: m.durations || m.supported_durations || m.duration_options,
+            qualities: m.qualities || m.resolutions || m.supported_qualities,
+            max_duration: m.max_duration,
+            description: m.description,
+            capabilities: m.capabilities,
+            supported_endpoint_types: m.supported_endpoint_types
+          };
+        }
       }
+      resultBox._pfModelsMeta = modelsMeta;
 
       const sectionOrder = ["chat", "image", "video", "audio", "embedding"];
       const sectionLabels = { chat: "Chat", image: "Images", video: "Videos", audio: "Audio", embedding: "Embeddings" };
@@ -9938,7 +9998,8 @@ $f("pfSave").onclick = async () => {
         video: $f("pfVideo").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean),
         audio: $f("pfAudio").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
       },
-      enabled: $f("pfEnabled").checked
+      enabled: $f("pfEnabled").checked,
+      modelsMeta: ($f("pfProbeResult") && $f("pfProbeResult")._pfModelsMeta) || existing?.modelsMeta || {}
     };
     try {
       const r = await apiFetch(WORKER_BASE + "/admin/providers/upsert", {
@@ -10109,18 +10170,55 @@ function openVariantSheet(group){
 
 function modelCaps(m){
   const caps=[];
-  const c=m.capabilities||{};
-  if(c.vision) caps.push("Vision");
-  if(c.tools) caps.push("Tools");
-  if(c.reasoning) caps.push("Reasoning");
-  if(c.audioInput) caps.push("Audio");
+  if (!m) return caps;
+  const c = m.capabilities || {};
+  const id = String(m.id || "");
+  const known = (typeof knownMediaMeta === "function") ? knownMediaMeta(id) : null;
+  const cat = m.category || m.type || "";
+  const isVideo = cat === "video" || /video|seedance|vivix|sora|kling/i.test(id);
+  const isImage = cat === "image" || /image|flux|dall|imagen/i.test(id);
+  const isAudio = cat === "audio" || /tts|speech|audio/i.test(id);
+
+  if (isVideo || isImage || isAudio) {
+    const mode = m.mode || known?.mode;
+    if (mode) caps.push(mode);
+    else if (isVideo && /image-to-video|img2vid/i.test(id)) caps.push("Image to video");
+    else if (isVideo && /text-to-video|txt2vid/i.test(id)) caps.push("Text to video");
+    else if (isVideo) caps.push("Video");
+    else if (isImage) caps.push("Image");
+    else if (isAudio) caps.push("Audio");
+
+    let durations = m.durations || m.supported_durations || known?.durations;
+    if (known?.lengthByModel) caps.push("Length by model");
+    else if (Array.isArray(durations) && durations.length) {
+      const nums = durations.map(Number).filter(n => Number.isFinite(n));
+      if (nums.length === 1) caps.push(nums[0] + "s");
+      else if (nums.length > 1) caps.push(Math.min(...nums) + "–" + Math.max(...nums) + "s");
+    }
+
+    let qualities = m.qualities || m.resolutions || m.supported_qualities || known?.qualities;
+    if (Array.isArray(qualities) && qualities.length) {
+      caps.push(qualities.slice(0, 3).join(" / "));
+    }
+
+    let aspects = m.aspect_ratios || m.supported_aspect_ratios || known?.aspects;
+    if (Array.isArray(aspects) && aspects.length) {
+      caps.push(aspects.slice(0, 4).join(", "));
+    }
+    return caps;
+  }
+
+  if (c.vision) caps.push("Vision");
+  if (c.tools) caps.push("Tools");
+  if (c.reasoning) caps.push("Reasoning");
+  if (c.audioInput) caps.push("Audio");
   const ctx = Number(c.contextWindow || m.contextWindow || m.context_length || 0);
   if (ctx >= 200000) caps.push("Long ctx");
-  if(!caps.length){
-    const text=JSON.stringify(m).toLowerCase();
-    if(/vision|image|multimodal/.test(text))caps.push("Vision");
-    if(/tool|function/.test(text))caps.push("Tools");
-    if(/reason/.test(text))caps.push("Reasoning");
+  if (!caps.length) {
+    const text = JSON.stringify(m).toLowerCase();
+    if (/vision|image|multimodal/.test(text)) caps.push("Vision");
+    if (/tool|function/.test(text)) caps.push("Tools");
+    if (/reason/.test(text)) caps.push("Reasoning");
   }
   return caps;
 }
@@ -11103,6 +11201,8 @@ const composerDrop=$("#composer");
 composerDrop.addEventListener("drop",e=>{if(e.dataTransfer?.files?.length)handleFiles(e.dataTransfer.files)});
 $("#modelBtn").onclick=openModelsPage;
 $("#composerModelChip").onclick=()=>openQuickModelSwitch();
+if (typeof bindVideoOptsBar === "function") bindVideoOptsBar();
+if (typeof updateComposerMediaChrome === "function") updateComposerMediaChrome();
 $("#menuBtn").onclick=()=>$("#shell").classList.add("nav-open");
 $("#drawerClose").onclick=()=>$("#shell").classList.remove("nav-open");
 $("#scrim").onclick=()=>$("#shell").classList.remove("nav-open");
