@@ -6154,9 +6154,12 @@ async function send(){
     .filter(a => a.text)
     .map(a => `\n\n[Attached file: ${a.name}]\n${a.text}`).join("");
   const fullForModel = (text + attachmentText).trim();
-  if (!fullForModel) { toast("This file type cannot be sent as text."); return; }
-
   const imageAttachments = attachedSnapshot.filter(a => a.dataUrl);
+  // Allow image-only sends for image-to-video / img2img models
+  if (!fullForModel && !imageAttachments.length) {
+    toast("This file type cannot be sent as text.");
+    return;
+  }
   const multimodalContent = imageAttachments.length
     ? [
         { type: "text", text: fullForModel },
@@ -6205,7 +6208,7 @@ async function send(){
     state.generating = true;
     updateGeneratingUI();
     try {
-      await runMediaGeneration(ai, text, mediaKind);
+      await runMediaGeneration(ai, text || "", mediaKind, imageAttachments);
     } catch (e) {
       if (e.name !== "AbortError") {
         ai.error = true;
