@@ -6034,7 +6034,27 @@ async function downloadMediaUrl(url, filename){
   }
 }
 
-async function runMediaGeneration(ai, prompt, kind){
+function modelNeedsInputImage(modelId){
+  const s = String(modelId || "").toLowerCase();
+  return /image-to-video|img2vid|i2v|image2video|img-to-video|image-to-image|img2img|image2image|inpainting|inpaint|image-edit|edit-image|variation/i.test(s);
+}
+
+/** Attach source image(s) for image-to-video / img2img APIs (TalkNova, etc.). */
+function attachMediaImages(body, images){
+  const list = (images || []).filter(a => a && (a.dataUrl || a.url)).map(a => a.dataUrl || a.url);
+  if (!list.length) return body;
+  const primary = list[0];
+  body.image = primary;
+  body.image_url = primary;
+  body.input_image = primary;
+  body.source_image = primary;
+  body.init_image = primary;
+  body.images = list.map(u => ({ url: u }));
+  body.input_images = list;
+  return body;
+}
+
+async function runMediaGeneration(ai, prompt, kind, imageAttachments){
   const model = pickMediaModel(kind);
   if (!model) {
     ai.error = true;
@@ -6047,20 +6067,29 @@ async function runMediaGeneration(ai, prompt, kind){
   ai._actualModel = model;
   ai._mediaKind = kind;
 
+  const imgs = Array.isArray(imageAttachments)
+    ? imageAttachments
+    : (state.attachments || []).filter(a => a && a.dataUrl);
+
+  if ((kind === "video" || kind === "image") && modelNeedsInputImage(model) && !imgs.length) {
+    ai.error = true;
+    ai.content = "This model needs an image. Attach an image (paperclip), then send your prompt.";
+    ai.streaming = false;
+    return;
+  }
+
   // API_BASE is already "/v1" — do not prefix another /v1 or you get /v1/v1/... → Endpoint not found
   const endpoint = kind === "image" ? "/image-generation"
     : kind === "video" ? "/video-generation"
     : "/audio";
-  // Match 9Router image API (e.g. nb/nanobanana-flash):
-  // size/quality/background "auto", output_format png
-  // Audio (OpenAI TTS style): input + voice; backend maps prompt→input
-  const body = { model, prompt, n: 1 };
+  const body = { model, prompt: prompt || "", n: 1 };
   if (kind === "image") {
     body.size = "auto";
     body.quality = "auto";
     body.background = "auto";
     body.image_detail = "high";
     body.output_format = "png";
+    if (imgs.length) attachMediaImages(body, imgs);
   } else if (kind === "video") {
     const vo = state.videoOpts || {};
     body.duration = Number(vo.duration) || 5;
@@ -6068,6 +6097,7 @@ async function runMediaGeneration(ai, prompt, kind){
     body.aspect = body.aspect_ratio;
     body.quality = vo.quality || "720p";
     body.resolution = body.quality;
+    if (imgs.length) attachMediaImages(body, imgs);
   } else if (kind === "audio") {
     body.input = prompt;
     body.voice = "alloy";
