@@ -2260,11 +2260,28 @@ body.is-locked .auth-page{ display:none !important; }
 }
 .video-opts.is-on{display:flex !important}
 
-.composer.is-media-model #searchBtn{display:none !important}
-.composer.is-media-model .video-opts.is-on{
-  display:flex !important;
-  margin-top:2px;
+.composer.is-media-model #searchBtn,
+.composer.is-media-model button#searchBtn,
+#composer.is-media-model #searchBtn{
+  display:none !important;
+  visibility:hidden !important;
+  width:0 !important;height:0 !important;padding:0 !important;margin:0 !important;
+  overflow:hidden !important;border:0 !important;
 }
+.composer.is-media-model .video-opts.is-on,
+#composer .video-opts.is-on{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  gap:6px !important;
+  margin:4px 0 2px !important;
+  width:100% !important;
+  min-height:28px !important;
+  visibility:visible !important;
+  opacity:1 !important;
+}
+.video-opts.is-on .vo-group{display:inline-flex !important;flex-wrap:wrap;gap:4px;align-items:center}
+.video-opts.is-on .vo-chip{display:inline-flex !important}
+
 
 .vo-chip{
   display:inline-flex;align-items:center;gap:4px;
@@ -5758,60 +5775,102 @@ function videoOptionsForModel(id){
 }
 
 function updateComposerMediaChrome(){
-  const kind = resolveMediaKindForSend();
-  const ta = document.getElementById("prompt");
-  const searchBtn = document.getElementById("searchBtn");
-  const composer = document.getElementById("composer");
-  const isMedia = kind === "image" || kind === "video" || kind === "audio";
-  if (composer) composer.classList.toggle("is-media-model", !!isMedia);
-  if (searchBtn) searchBtn.style.display = isMedia ? "none" : "";
-  if (ta) {
-    if (kind === "image") ta.placeholder = "Describe the image to generate…";
-    else if (kind === "video") ta.placeholder = "Describe the video to generate…";
-    else if (kind === "audio") ta.placeholder = "Text to speak…";
-    else if (!state.mediaMode) ta.placeholder = "Ask China-GPT anything";
+  try {
+    const kind = resolveMediaKindForSend();
+    const ta = document.getElementById("prompt");
+    const searchBtn = document.getElementById("searchBtn");
+    const composer = document.getElementById("composer");
+    const isMedia = kind === "image" || kind === "video" || kind === "audio";
+    if (composer) {
+      composer.classList.toggle("is-media-model", !!isMedia);
+      composer.dataset.mediaKind = kind || "";
+    }
+    if (searchBtn) {
+      if (isMedia) {
+        searchBtn.style.display = "none";
+        searchBtn.setAttribute("hidden", "hidden");
+        searchBtn.setAttribute("aria-hidden", "true");
+        searchBtn.classList.remove("is-on");
+      } else {
+        searchBtn.style.display = "";
+        searchBtn.removeAttribute("hidden");
+        searchBtn.removeAttribute("aria-hidden");
+      }
+    }
+    if (ta) {
+      if (kind === "image") ta.placeholder = "Describe the image to generate…";
+      else if (kind === "video") ta.placeholder = "Describe the video to generate…";
+      else if (kind === "audio") ta.placeholder = "Text to speak…";
+      else if (!state.mediaMode) ta.placeholder = "Ask China-GPT anything";
+    }
+    updateVideoOptsBar();
+  } catch (e) {
+    console.error("[updateComposerMediaChrome]", e);
   }
-  updateVideoOptsBar();
 }
 
 function updateVideoOptsBar(){
   const bar = document.getElementById("videoOpts");
   if (!bar) return;
-  const kind = resolveMediaKindForSend();
-  const on = kind === "video";
-  bar.classList.toggle("is-on", on);
-  if (!on) {
-    bar.innerHTML = "";
-    return;
-  }
-  const opts = videoOptionsForModel(state.model);
-  const vo = state.videoOpts || (state.videoOpts = {});
-  // Clamp selection to what this model supports
-  if (!opts.aspects.includes(String(vo.aspect))) vo.aspect = opts.aspects[0];
-  if (!opts.durations.includes(Number(vo.duration))) vo.duration = opts.durations[0];
-  if (!opts.qualities.includes(String(vo.quality))) vo.quality = opts.qualities[0];
+  try {
+    const kind = resolveMediaKindForSend();
+    const on = kind === "video";
+    bar.classList.toggle("is-on", on);
+    if (!on) {
+      bar.innerHTML = "";
+      bar.style.display = "none";
+      return;
+    }
+    bar.style.display = "flex";
+    const opts = videoOptionsForModel(state.model) || { aspects: ["16:9","9:16","1:1"], durations: [5,10,15], qualities: ["720p","1080p"] };
+    const vo = state.videoOpts || (state.videoOpts = {});
+    if (Array.isArray(opts.aspects) && opts.aspects.length && !opts.aspects.includes(String(vo.aspect))) {
+      vo.aspect = opts.aspects[0];
+    }
+    if (Array.isArray(opts.durations) && opts.durations.length && !opts.durations.includes(Number(vo.duration))) {
+      vo.duration = opts.durations[0];
+    }
+    if (Array.isArray(opts.qualities) && opts.qualities.length && !opts.qualities.includes(String(vo.quality))) {
+      vo.quality = opts.qualities[0];
+    }
 
-  const chip = (attrs, label, active) =>
-    `<button type="button" class="vo-chip${active ? " is-active" : ""}" ${attrs}>${label}</button>`;
+    const chip = (attrs, label, active) =>
+      `<button type="button" class="vo-chip${active ? " is-active" : ""}" ${attrs}>${label}</button>`;
 
-  const known = knownMediaMeta(state.model) || {};
-  let html = "";
-  if (opts.aspects && opts.aspects.length) {
-    html += `<div class="vo-group" data-vo="aspect"><span class="vo-label">Shape</span>` +
-      opts.aspects.map(a => chip(`data-aspect="${escapeHtml(a)}"`, escapeHtml(a), String(vo.aspect) === String(a))).join("") +
-      `</div>`;
+    const known = (typeof knownMediaMeta === "function" ? knownMediaMeta(state.model) : null) || {};
+    let html = "";
+    if (opts.aspects && opts.aspects.length) {
+      html += `<div class="vo-group" data-vo="aspect"><span class="vo-label">Shape</span>` +
+        opts.aspects.map(a => chip(`data-aspect="${escapeHtml(String(a))}"`, escapeHtml(String(a)), String(vo.aspect) === String(a))).join("") +
+        `</div>`;
+    }
+    if (!known.lengthByModel && opts.durations && opts.durations.length) {
+      html += `<div class="vo-group" data-vo="duration"><span class="vo-label">Length</span>` +
+        opts.durations.map(d => chip(`data-duration="${d}"`, d + "s", Number(vo.duration) === Number(d))).join("") +
+        `</div>`;
+    }
+    if (opts.qualities && opts.qualities.length) {
+      html += `<div class="vo-group" data-vo="quality"><span class="vo-label">Quality</span>` +
+        opts.qualities.map(q => chip(`data-quality="${escapeHtml(String(q))}"`, escapeHtml(String(q)), String(vo.quality) === String(q))).join("") +
+        `</div>`;
+    }
+    bar.innerHTML = html || `<div class="vo-group"><span class="vo-label">Options set by model</span></div>`;
+  } catch (e) {
+    console.error("[updateVideoOptsBar]", e);
+    bar.classList.add("is-on");
+    bar.style.display = "flex";
+    bar.innerHTML = `<div class="vo-group" data-vo="aspect"><span class="vo-label">Shape</span>
+      <button type="button" class="vo-chip is-active" data-aspect="16:9">16:9</button>
+      <button type="button" class="vo-chip" data-aspect="9:16">9:16</button>
+      <button type="button" class="vo-chip" data-aspect="1:1">1:1</button></div>
+      <div class="vo-group" data-vo="duration"><span class="vo-label">Length</span>
+      <button type="button" class="vo-chip is-active" data-duration="5">5s</button>
+      <button type="button" class="vo-chip" data-duration="10">10s</button>
+      <button type="button" class="vo-chip" data-duration="15">15s</button></div>
+      <div class="vo-group" data-vo="quality"><span class="vo-label">Quality</span>
+      <button type="button" class="vo-chip is-active" data-quality="720p">720p</button>
+      <button type="button" class="vo-chip" data-quality="1080p">1080p</button></div>`;
   }
-  if (!known.lengthByModel && opts.durations && opts.durations.length) {
-    html += `<div class="vo-group" data-vo="duration"><span class="vo-label">Length</span>` +
-      opts.durations.map(d => chip(`data-duration="${d}"`, d + "s", Number(vo.duration) === Number(d))).join("") +
-      `</div>`;
-  }
-  if (opts.qualities && opts.qualities.length) {
-    html += `<div class="vo-group" data-vo="quality"><span class="vo-label">Quality</span>` +
-      opts.qualities.map(q => chip(`data-quality="${escapeHtml(q)}"`, escapeHtml(q), String(vo.quality) === String(q))).join("") +
-      `</div>`;
-  }
-  bar.innerHTML = html || `<div class="vo-group"><span class="vo-label">Options set by model</span></div>`;
 }
 
 function bindVideoOptsBar(){
@@ -5835,10 +5894,17 @@ function resolveMediaKindForSend(){
   const id = state.model;
   if (!id) return null;
   const by = state.modelsByCategory || {};
-  if ((by.image || []).some(m => m.id === id)) return "image";
-  if ((by.video || []).some(m => m.id === id)) return "video";
-  if ((by.audio || []).some(m => m.id === id)) return "audio";
+  if ((by.video || []).some(m => m && m.id === id)) return "video";
+  if ((by.image || []).some(m => m && m.id === id)) return "image";
+  if ((by.audio || []).some(m => m && m.id === id)) return "audio";
   const s = String(id).toLowerCase();
+  const known = (typeof knownMediaMeta === "function") ? knownMediaMeta(id) : null;
+  if (known) {
+    const mode = String(known.mode || "").toLowerCase();
+    if (mode.includes("video")) return "video";
+    if (mode === "image") return "image";
+    if (mode === "audio") return "audio";
+  }
   if (/(tts|speech|melotts|bark|piper|xtts|kokoro)/i.test(s)) return "audio";
   if (/(veo|sora|runway|kling|seedance|hailuo|luma|pika|cogvideo|hunyuan|vivix|text-to-video|image-to-video|talknova-.*video)/i.test(s)) return "video";
   if (/(gpt-image|qwen-image|dall-?e|flux|stable-?diffusion|imagen)/i.test(s)) return "image";
@@ -10748,6 +10814,7 @@ function closeQuickModelSwitch(){
   if(sheet)sheet.classList.remove("open");
   if(backdrop)backdrop.classList.remove("open");
   setTimeout(()=>{if(sheet&&!sheet.classList.contains("open"))sheet.innerHTML=""},320);
+  if (typeof updateComposerMediaChrome === "function") updateComposerMediaChrome();
 }
 function renderQuickSwitch(){
   const sheet=$("#qsSheet");if(!sheet)return;
@@ -11181,6 +11248,7 @@ $("#sendBtn").onclick=send;
 $("#stopBtn").onclick=stopGeneration;
 $("#prompt").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
 $("#prompt").addEventListener("input",e=>{e.target.style.height="";e.target.style.height=Math.min(200,e.target.scrollHeight)+"px"});
+$("#prompt").addEventListener("focus",()=>{ if(typeof updateComposerMediaChrome==="function") updateComposerMediaChrome(); });
 $("#newChat").onclick=()=>{
   if(state.generating){toast("Wait for the response to finish.");return}
   if(state.messages.length&&!confirm("Start a new chat? Your current conversation will remain saved."))return;
