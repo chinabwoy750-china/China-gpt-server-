@@ -7841,6 +7841,81 @@ function openApiDocs(){
           </div>
         </div>
 
+
+        <div class="docs-section-title">OpenAI Responses API</div>
+        <div class="docs-endpoint method-post">
+          <div class="docs-endpoint-head">
+            <span class="docs-method post">POST</span>
+            <span class="docs-path">/v1/responses</span>
+          </div>
+          <p>OpenAI <b>Responses API</b> compatibility. Maps to the same models as chat completions. Supports <code>input</code> (string or message list), <code>instructions</code>, <code>max_output_tokens</code>, and streaming.</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
+            <pre>curl ${escapeHtml(base)}/v1/responses \
+  -H "X-China-GPT-Key: YOUR_ACCESS_CODE" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"myproxy/deepseek-chat","input":"Capital of France?","max_output_tokens":64}'</pre>
+          </div>
+        </div>
+
+        <div class="docs-section-title">Gemini-compatible</div>
+        <div class="docs-endpoint method-post">
+          <div class="docs-endpoint-head">
+            <span class="docs-method post">POST</span>
+            <span class="docs-path">/v1beta/models/{model}:generateContent</span>
+          </div>
+          <p>Google Gemini-style generateContent. Use any China-GPT model id in the path. Alias: <code>/v1beta/models/{model}/generateContent</code>. Stream: <code>:streamGenerateContent</code>.</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
+            <pre>curl ${escapeHtml(base)}/v1beta/models/myproxy%2Fdeepseek-chat:generateContent \
+  -H "X-China-GPT-Key: YOUR_ACCESS_CODE" \
+  -H "Content-Type: application/json" \
+  -d '{"contents":[{"role":"user","parts":[{"text":"Hello"}]}]}'</pre>
+          </div>
+        </div>
+
+        <div class="docs-section-title">Ollama-compatible</div>
+        <div class="docs-endpoint method-get">
+          <div class="docs-endpoint-head">
+            <span class="docs-method get">GET</span>
+            <span class="docs-path">/api/tags</span>
+          </div>
+          <p>List models in Ollama format (<code>{ models: [{ name, model, ... }] }</code>).</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
+            <pre>curl ${escapeHtml(base)}/api/tags \
+  -H "X-China-GPT-Key: YOUR_ACCESS_CODE"</pre>
+          </div>
+        </div>
+        <div class="docs-endpoint method-post">
+          <div class="docs-endpoint-head">
+            <span class="docs-method post">POST</span>
+            <span class="docs-path">/api/chat</span>
+          </div>
+          <p>Ollama chat API. Body: <code>model</code>, <code>messages</code>, optional <code>stream</code>.</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
+            <pre>curl ${escapeHtml(base)}/api/chat \
+  -H "X-China-GPT-Key: YOUR_ACCESS_CODE" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"myproxy/deepseek-chat","messages":[{"role":"user","content":"Hi"}],"stream":false}'</pre>
+          </div>
+        </div>
+        <div class="docs-endpoint method-post">
+          <div class="docs-endpoint-head">
+            <span class="docs-method post">POST</span>
+            <span class="docs-path">/api/generate</span>
+          </div>
+          <p>Ollama generate API. Body: <code>model</code>, <code>prompt</code>, optional <code>system</code>, <code>stream</code>.</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
+            <pre>curl ${escapeHtml(base)}/api/generate \
+  -H "X-China-GPT-Key: YOUR_ACCESS_CODE" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"myproxy/deepseek-chat","prompt":"Hello","stream":false}'</pre>
+          </div>
+        </div>
+
         <div class="docs-section-title">Custom providers</div>
         <div class="docs-note">
           Admins can register additional OpenAI-compatible providers in

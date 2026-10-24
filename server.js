@@ -22,6 +22,9 @@ import * as media from "./lib/media-proxy.js";
 import * as customProviders from "./lib/custom-providers.js";
 import * as modelCategories from "./lib/model-categories.js";
 import * as modelCatalog from "./lib/model-catalog.js";
+import * as responsesApi from "./lib/responses-compat.js";
+import * as geminiCompat from "./lib/gemini-compat.js";
+import * as ollamaCompat from "./lib/ollama-compat.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -261,6 +264,29 @@ app.post("/v1/web/fetch", auth.requireAuth, ratelimit.check, proxy.webFetch);
 
 // ---- Anthropic-compatible endpoint ----
 app.post("/v1/messages", auth.requireAuth, ratelimit.check, anthropic.handleMessages);
+
+// ---- OpenAI Responses API ----
+app.post("/v1/responses", auth.requireAuth, ratelimit.check, responsesApi.handleResponses);
+
+// ---- Gemini-compatible ----
+// Paths look like /v1beta/models/{model}:generateContent (colon form) or .../generateContent
+app.post(/^\/v1beta\/models\/.+:streamGenerateContent$/, auth.requireAuth, ratelimit.check, (req, res) => {
+  const m = req.path.match(/^\/v1beta\/models\/(.+):streamGenerateContent$/);
+  if (m) req.params = { ...(req.params || {}), model: decodeURIComponent(m[1]) };
+  return geminiCompat.handleStreamGenerateContent(req, res);
+});
+app.post(/^\/v1beta\/models\/.+:generateContent$/, auth.requireAuth, ratelimit.check, (req, res) => {
+  const m = req.path.match(/^\/v1beta\/models\/(.+):generateContent$/);
+  if (m) req.params = { ...(req.params || {}), model: decodeURIComponent(m[1]) };
+  return geminiCompat.handleGenerateContent(req, res);
+});
+app.post("/v1beta/models/:model/generateContent", auth.requireAuth, ratelimit.check, geminiCompat.handleGenerateContent);
+app.post("/v1beta/models/:model/streamGenerateContent", auth.requireAuth, ratelimit.check, geminiCompat.handleStreamGenerateContent);
+
+// ---- Ollama-compatible ----
+app.get("/api/tags", auth.requireAuth, ratelimit.check, ollamaCompat.handleTags);
+app.post("/api/chat", auth.requireAuth, ratelimit.check, ollamaCompat.handleChat);
+app.post("/api/generate", auth.requireAuth, ratelimit.check, ollamaCompat.handleGenerate);
 
 // ---- Media endpoints ----
 app.post("/v1/image-generation", auth.requireAuth, ratelimit.check, media.imageGeneration);
