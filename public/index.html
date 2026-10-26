@@ -8217,7 +8217,7 @@ function adminActionButton(label,id,action,disabled=false){
 /* ========== Model Combos (failover chains) ========== */
 let _adminCombos = [];
 async function loadAdminCombos(){
-  const r = await apiFetch("/admin/combos", { headers: authHeaders() });
+  const r = await apiFetch(WORKER_BASE + "/admin/combos", { headers: authHeaders() });
   const j = await r.json().catch(()=>({}));
   if(!r.ok) throw new Error(j.error?.message || "Failed to load combos");
   _adminCombos = j.combos || [];
@@ -8282,7 +8282,7 @@ function renderAdminCombos(box){
     list.querySelectorAll("[data-combo-edit]").forEach(b => b.onclick = () => openComboEditor(b.dataset.comboEdit));
     list.querySelectorAll("[data-combo-del]").forEach(b => b.onclick = async () => {
       if(!confirm("Delete combo "+b.dataset.comboDel+"?")) return;
-      const r = await apiFetch("/admin/combos/delete", { method:"POST", headers: authHeaders(), body: JSON.stringify({ id: b.dataset.comboDel }) });
+      const r = await apiFetch(WORKER_BASE + "/admin/combos/delete", { method:"POST", headers: authHeaders(), body: JSON.stringify({ id: b.dataset.comboDel }) });
       if(!r.ok){ toast("Delete failed"); return; }
       await loadAdminCombos(); paint(); toast("Deleted");
     });
@@ -8312,7 +8312,7 @@ function renderAdminCombos(box){
       models,
       enabled: box.querySelector("#comboEnabled").checked
     };
-    const r = await apiFetch("/admin/combos/upsert", { method:"POST", headers: authHeaders(), body: JSON.stringify(payload) });
+    const r = await apiFetch(WORKER_BASE + "/admin/combos/upsert", { method:"POST", headers: authHeaders(), body: JSON.stringify(payload) });
     const j = await r.json().catch(()=>({}));
     if(!r.ok){ toast(j.error?.message || "Save failed"); return; }
     toast("Saved " + (j.modelId || payload.id));
@@ -9921,7 +9921,8 @@ function renderAdmin(){
   }else if(adminSection==="provider-map"){
     renderProviderMappingPage();return;
   }else if(adminSection==="combos"){
-    renderAdminCombos(box);
+    renderAdminCombos(c);
+    return;
   }else if(adminSection==="providers"){
     renderProvidersPage();return;
   }else if(adminSection==="model-categories"){
