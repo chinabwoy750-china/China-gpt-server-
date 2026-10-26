@@ -3846,55 +3846,84 @@ const ENDPOINT_TYPE_MAP = {
   "chat":               "chat",
   "text":               "chat",
   "llm":                "chat",
+  "chat/completions":   "chat",
   "aihorde":            "image",
   "image-generation":   "image",
   "image":              "image",
   "images":             "image",
+  "images/generations": "image",
+  "images/edits":       "image",
   "video":              "video",
   "videos":             "video",
+  "videos/generations": "video",
   "audio":              "audio",
   "tts":                "audio",
   "speech":             "audio",
-  "embedding":          "embedding"
+  "audio/speech":       "audio",
+  "audio/transcriptions": "audio",
+  "transcription":      "audio",
+  "embedding":          "embedding",
+  "embeddings":         "embedding"
 };
 
-const CATEGORY_PRIORITY = ["chat", "image", "video", "audio"];
+/** Map a single endpoint-type token (or path) to a category. */
+function mapEndpointToken(t){
+  const raw = String(t || "").toLowerCase().trim();
+  if (!raw) return null;
+  if (ENDPOINT_TYPE_MAP[raw]) return ENDPOINT_TYPE_MAP[raw];
+  // Path-style tokens from some providers: "images/generations", "audio/transcriptions"
+  if (/embed/.test(raw)) return "embedding";
+  if (/(transcription|tts|speech|audio\/)/.test(raw)) return "audio";
+  if (/(videos?\/|text-to-video|image-to-video)/.test(raw)) return "video";
+  if (/(images?\/|image-generation|img2img|\/edits)/.test(raw)) return "image";
+  if (/(chat|completion|messages)/.test(raw)) return "chat";
+  return null;
+}
 
+/**
+ * Only return a category when endpoint types agree on ONE modality.
+ * Many providers list junk multi-tags (e.g. whisper → audio,image,video);
+ * those are treated as ambiguous so name heuristics can decide.
+ */
 function categorizeFromEndpointTypes(types){
   if (!Array.isArray(types) || !types.length) return null;
-  const hits = types
-    .map(t => ENDPOINT_TYPE_MAP[String(t || "").toLowerCase()])
-    .filter(Boolean);
+  const hits = [...new Set(types.map(mapEndpointToken).filter(Boolean))];
   if (!hits.length) return null;
-  if (hits.length === 1 && hits[0] === "embedding") return "embedding";
-  for (const cat of CATEGORY_PRIORITY) if (hits.includes(cat)) return cat;
-  if (hits.includes("embedding")) return "embedding";
+  if (hits.length === 1) return hits[0];
+  // Ambiguous multi-modality list — do not guess from types alone
   return null;
 }
 
 function categorizeByIdName(id){
   const s = String(id || "").toLowerCase();
   if (/(^|[/_.-])(bge-|e5-|embed|embeddinggemma|voyage|gte-|jina-?embed|jina-?code-?embed)/i.test(s)) return "embedding";
-  if (/(^|[/_.-])(tts|whisper|melotts|voice|speech|vocal|audio|music|bark|piper|xtts|kokoro|parler|aura-[12]|nova-3|deepgram)/i.test(s)) return "audio";
+  // Audio / STT / TTS before image (whisper must not become image)
+  if (/(^|[/_.-])(tts|whisper|melotts|voice|speech|vocal|audio|music|bark|piper|xtts|kokoro|parler|aura-[12]|nova-3|deepgram|transcri)/i.test(s)) return "audio";
   if (/(^|[/_.-])(veo|sora|runway|kling|seedance|hailuo|luma|pika|gen-?[23]|mochi|cogvideo|hunyuan-?video|wan-?2|ltx-?video|svd|vivix|text-to-video|image-to-video)/i.test(s)) return "video";
-  if (/(^|[/_.-])(flux|dall-?e|gpt-image|qwen-image|imagen|seedream|sd-?\d|sdxl|stable-?diffusion|midjourney|kandinsky|pixart|deepfloyd)/i.test(s)) return "image";
-  if (/\b(albedobase|amponyxl|anything-?v|autismmix|cyberrealistic|dreamshaper|juggernaut|prefect-?pony|tunix-?pony|ponyxl|illustrious|swamponyxl|rev-?animated|nova-?anime|nova-?furry|flat-?2d|quiet-?goodnight|k2-?horizon|ntr-?mix|mn-?violet|space-?bunny|diffusiongemma|sdxl-?lightning|phoenix-?1|lucid-?origin|wai-)/i.test(s)) return "image";
+  if (/(^|[/_.-])(flux|dall-?e|gpt-image|qwen-image|imagen|seedream|sd-?\d|sdxl|stable-?diffusion|midjourney|kandinsky|pixart|deepfloyd|nanobanana)/i.test(s)) return "image";
+  if (/\b(albedobase|amponyxl|anything-?v|autismmix|cyberrealistic|dreamshaper|juggernaut|prefect-?pony|tunix-?pony|ponyxl|illustrious|swamponyxl|rev-?animated|nova-?anime|nova-?furry|flat-?2d|quiet-?goodnight|k2-?horizon|ntr-?mix|mn-?violet|space-?bunny|diffusiongemma|sdxl-?lightning|phoenix-?1|lucid-?origin|wai-|klein-?[49]b)/i.test(s)) return "image";
   return "chat";
 }
 
 function categorizeModel(m){
+  const id = typeof m === "string" ? m : (m && m.id) || "";
+  const fromId = categorizeByIdName(id);
+  // Name heuristics win for media (whisper/flux/… must not land in the wrong bucket)
+  if (fromId !== "chat") return fromId;
+
   if (typeof m === "object" && m) {
     const t = String(m.type || m.category || "").toLowerCase();
     if (t === "chat" || t === "text" || t === "llm") return "chat";
     if (t === "image" || t === "images") return "image";
     if (t === "video" || t === "videos") return "video";
-    if (t === "audio" || t === "tts") return "audio";
+    if (t === "audio" || t === "tts" || t === "speech") return "audio";
   }
-  const id = typeof m === "string" ? m : (m && m.id) || "";
+
   const types = (typeof m === "object" && m) ? m.supported_endpoint_types : null;
   const fromTypes = categorizeFromEndpointTypes(types);
-  if (fromTypes) return fromTypes;
-  return categorizeByIdName(id);
+  if (fromTypes && fromTypes !== "embedding") return fromTypes;
+  if (fromTypes === "embedding") return "embedding";
+  return "chat";
 }
 
 function isFreeModelId(id){
