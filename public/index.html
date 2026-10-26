@@ -8317,18 +8317,47 @@ async function loadAdminCombos(){
   return _adminCombos;
 }
 
+function comboIsDisabledId(id){
+  const mid = String(id || "");
+  if (!mid) return true;
+  const dm = new Set(mhState.disabledModels || []);
+  const dp = new Set(mhState.disabledProviders || []);
+  if (dm.has(mid)) return true;
+  const prov = mid.split("/")[0].toLowerCase();
+  if (prov && dp.has(prov)) return true;
+  return false;
+}
+
+function comboFilterEnabled(ids){
+  return (ids || []).filter(id => id && !comboIsDisabledId(id));
+}
+
 function comboPoolIds(kind){
   const k = kind || "chat";
   const by = state.modelsByCategory || {};
   const fromCat = (arr) => (arr || []).map(m => typeof m === "string" ? m : m.id).filter(Boolean);
-  if (k === "image") return fromCat(by.image);
-  if (k === "video") return fromCat(by.video);
-  if (k === "audio") return fromCat(by.audio);
-  // chat / search / fetch — use chat catalogue + flat models list
-  const chat = fromCat(by.chat);
-  const flat = (state.models || []).map(m => m.id).filter(Boolean);
-  const set = new Set([...chat, ...flat]);
-  return [...set];
+  let ids = [];
+  if (k === "image") ids = fromCat(by.image);
+  else if (k === "video") ids = fromCat(by.video);
+  else if (k === "audio") ids = fromCat(by.audio);
+  else if (k === "search") {
+    // Search provider ids from Search Providers admin + known 9Router combos
+    const cfg = state.searchConfig || {};
+    const fromCfg = Array.isArray(cfg.providers) ? cfg.providers : [];
+    const known = ["search-combo", "gemini", "brave", "serper", "tavily", "exa", "you", "bing", "duckduckgo"];
+    ids = [...new Set([...fromCfg, ...known, ...(window._comboSearchExtra || [])])];
+  } else if (k === "fetch") {
+    const cfg = state.searchConfig || {};
+    const known = ["fetch-combo", "jina-reader", "jina", "reader", "firecrawl", "browserless"];
+    if (cfg.fetchModel) known.unshift(cfg.fetchModel);
+    ids = [...new Set([...known, ...(window._comboFetchExtra || [])])];
+  } else {
+    // chat
+    const chat = fromCat(by.chat);
+    const flat = (state.models || []).map(m => m.id).filter(Boolean);
+    ids = [...new Set([...chat, ...flat])];
+  }
+  return comboFilterEnabled(ids);
 }
 
 function comboProviderGroups(kind){
@@ -8351,11 +8380,56 @@ function comboIconHtml(modelId){
   }
 }
 
+async function ensureComboAuxData(){
+  // Disabled models/providers from model health
+  try {
+    const r = await apiFetch(WORKER_BASE + "/admin/model-health", { headers: authHeaders(false) });
+    const j = await r.json().catch(()=>({}));
+    if (r.ok) {
+      mhState.disabledModels = j.disabledModels || mhState.disabledModels || [];
+      mhState.disabledProviders = j.disabledProviders || mhState.disabledProviders || [];
+    }
+  } catch {}
+  // Search / fetch provider ids
+  try {
+    const r = await apiFetch(WORKER_BASE + "/search-config", { headers: authHeaders(false) });
+    const j = await r.json().catch(()=>({}));
+    if (r.ok) {
+      state.searchConfig = {
+        providers: j.providers || state.searchConfig?.providers || ["search-combo"],
+        defaultProvider: j.defaultProvider || "search-combo",
+        autoFetchUrls: j.autoFetchUrls !== false,
+        fetchTopN: j.fetchTopN ?? 2,
+        fetchModel: j.fetchModel || "fetch-combo"
+      };
+    }
+  } catch {}
+  // Optional: discover extra search/fetch model ids from 9Router via models list tags
+  try {
+    const all = [
+      ...(state.models || []).map(m => m.id),
+      ...Object.values(state.modelsByCategory || {}).flat().map(m => (typeof m === "string" ? m : m.id))
+    ].filter(Boolean);
+    window._comboSearchExtra = all.filter(id => /search|serp|brave|tavily|exa|bing|duck/i.test(id));
+    window._comboFetchExtra = all.filter(id => /fetch|jina|reader|firecrawl|browse|scrape/i.test(id));
+  } catch {
+    window._comboSearchExtra = [];
+    window._comboFetchExtra = [];
+  }
+}
+
 function renderAdminCombos(box){
   if (!box) return;
   if (!state.models.length && isAuthenticated()) {
     loadModels().catch(()=>{});
   }
+  ensureComboAuxData().then(() => {
+    // Re-paint editor pool if open
+    const host = box.querySelector("#comboEditorHost");
+    if (host && host.innerHTML.trim()) {
+      // no-op; paintList uses filtered pools next open
+    }
+  });
 
   box.innerHTML = `<div class="combo-page">
     <div class="combo-hero">
@@ -8406,13 +8480,20 @@ function renderAdminCombos(box){
     });
   };
 
-  const openEditor = (id) => {
+  const openEditor = async (id) => {
+    await ensureComboAuxData();
     const c = id ? _adminCombos.find(x => x.id === id) : null;
+    const rawModels = [...(c?.models || [])];
+    // Drop disabled models from existing combos when editing
+    const models = comboFilterEnabled(rawModels);
+    if (rawModels.length && models.length < rawModels.length) {
+      toast(`Removed ${rawModels.length - models.length} disabled model(s) from this combo`);
+    }
     _comboDraft = {
       id: c?.id || "",
       name: c?.name || "",
       kind: c?.kind || "chat",
-      models: [...(c?.models || [])],
+      models,
       enabled: c?.enabled !== false,
       editing: !!c
     };
@@ -8484,7 +8565,7 @@ function renderAdminCombos(box){
               ${renderTile(pr.key, "sm")}
               <span>${escapeHtml(pr.label)}</span>
               <span style="color:var(--dim)">${pr.models.length}</span>
-            </button>`).join("") : `<span style="color:var(--dim);font-size:13px">No providers for this kind yet — load models first.</span>`}
+            </button>`).join("") : `<span style="color:var(--dim);font-size:13px">No providers for this kind yet. For Search/Fetch, configure Admin → Search Providers, or load the model catalogue.</span>`}
         </div>
         <input class="combo-search" id="comboSearch" placeholder="Search models…" value="${escapeHtml(host._comboQ || "")}" />
         <div class="combo-model-list" id="comboModelList">
@@ -8498,7 +8579,11 @@ function renderAdminCombos(box){
               </div>
               <span class="combo-check">✓</span>
             </button>`;
-          }).join("") : `<div class="combo-empty-sel">No models match</div>`}
+          }).join("") : `<div class="combo-empty-sel">${
+            d.kind === "search" || d.kind === "fetch"
+              ? "No search/fetch providers found. Add them under Admin → Search Providers (providers list / fetch model), then reopen this editor."
+              : "No models match (disabled models are hidden)."
+          }</div>`}
         </div>
       </div>
 
@@ -8583,6 +8668,11 @@ function renderAdminCombos(box){
       syncDraftFromFields();
       if (!d.id) { toast("Id is required"); return; }
       if (!d.models.length) { toast("Select at least one model"); return; }
+      const blocked = d.models.filter(comboIsDisabledId);
+      if (blocked.length) {
+        toast("Remove disabled models: " + blocked.slice(0,3).join(", "));
+        return;
+      }
       const payload = {
         id: d.id,
         name: d.name || d.id,
