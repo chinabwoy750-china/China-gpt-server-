@@ -3101,6 +3101,68 @@ body.is-locked .auth-page{ display:none !important; }
 .persona-card-new .plus-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:var(--panel-3);border:1px solid var(--line)}
 
 
+
+/* ---- Model Combos admin ---- */
+.combo-page{display:flex;flex-direction:column;gap:16px}
+.combo-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.combo-hero h3{margin:0;font-size:18px;font-weight:650;letter-spacing:-.02em}
+.combo-hero p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.45;max-width:52ch}
+.combo-grid{display:grid;gap:12px}
+.combo-card{background:var(--panel-2);border:1px solid var(--line);border-radius:16px;padding:14px 16px;transition:border-color .15s,background .15s}
+.combo-card:hover{border-color:var(--line-strong)}
+.combo-card-top{display:flex;align-items:center;gap:12px}
+.combo-card-meta{flex:1;min-width:0}
+.combo-card-title{font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.combo-card-id{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:3px}
+.combo-chain{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;align-items:center}
+.combo-chip{display:inline-flex;align-items:center;gap:7px;padding:5px 10px 5px 6px;border-radius:999px;background:var(--panel-3);border:1px solid var(--line);font-size:12px;max-width:100%}
+.combo-chip .tile{width:22px;height:22px;font-size:10px;border-radius:7px;flex:0 0 auto}
+.combo-chip .tile-icon{width:14px;height:14px}
+.combo-chip-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px}
+.combo-arrow{color:var(--dim);font-size:12px;opacity:.7}
+.combo-card-actions{display:flex;gap:6px;flex-shrink:0}
+.combo-editor{background:var(--panel-2);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:16px}
+.combo-editor-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.combo-editor-head h3{margin:0;font-size:16px;font-weight:650}
+.combo-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.combo-fields{grid-template-columns:1fr}}
+.combo-field{display:flex;flex-direction:column;gap:6px}
+.combo-field label{font-size:12px;color:var(--muted);font-weight:500}
+.combo-field input,.combo-field select{height:40px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--text);padding:0 12px;font-size:13.5px}
+.combo-field input:focus,.combo-field select:focus,.combo-search:focus{outline:none;border-color:var(--accent, #4c8dff);box-shadow:0 0 0 3px rgba(76,141,255,.15)}
+.combo-selected{display:flex;flex-direction:column;gap:8px}
+.combo-selected-title{font-size:12px;color:var(--muted);font-weight:500;display:flex;justify-content:space-between}
+.combo-selected-list{display:flex;flex-direction:column;gap:6px;min-height:48px}
+.combo-sel-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
+.combo-sel-row .tile{width:28px;height:28px;border-radius:8px;flex:0 0 auto}
+.combo-sel-row .tile-icon{width:16px;height:16px}
+.combo-sel-info{flex:1;min-width:0}
+.combo-sel-name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.combo-sel-id{font-size:11px;color:var(--dim);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.combo-sel-ops{display:flex;gap:4px}
+.combo-sel-ops button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--panel-3);color:var(--muted);font-size:14px;cursor:pointer}
+.combo-sel-ops button:hover{color:var(--text);border-color:var(--line-strong)}
+.combo-empty-sel{padding:16px;text-align:center;color:var(--dim);font-size:13px;border:1px dashed var(--line);border-radius:12px}
+.combo-picker{display:flex;flex-direction:column;gap:10px}
+.combo-search{height:40px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--text);padding:0 12px;font-size:13.5px;width:100%}
+.combo-prov-row{display:flex;flex-wrap:wrap;gap:6px}
+.combo-prov-btn{display:inline-flex;align-items:center;gap:7px;padding:6px 10px 6px 7px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:12px;cursor:pointer}
+.combo-prov-btn:hover{border-color:var(--line-strong);background:var(--panel-3)}
+.combo-prov-btn .tile{width:20px;height:20px;font-size:9px;border-radius:6px}
+.combo-prov-btn .tile-icon{width:12px;height:12px}
+.combo-model-list{max-height:280px;overflow:auto;display:flex;flex-direction:column;gap:4px;padding:4px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.combo-model-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;border:1px solid transparent;cursor:pointer;text-align:left;background:transparent;color:var(--text);width:100%}
+.combo-model-item:hover{background:var(--panel-3)}
+.combo-model-item.is-on{border-color:rgba(76,141,255,.35);background:rgba(76,141,255,.08)}
+.combo-model-item .tile{width:26px;height:26px;border-radius:8px;flex:0 0 auto}
+.combo-model-item .tile-icon{width:15px;height:15px}
+.combo-model-meta{flex:1;min-width:0}
+.combo-model-name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.combo-model-sub{font-size:11px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.combo-check{width:18px;height:18px;border-radius:6px;border:1.5px solid var(--line-strong);flex:0 0 auto;display:grid;place-items:center;font-size:11px;color:transparent}
+.combo-model-item.is-on .combo-check{background:var(--accent,#4c8dff);border-color:var(--accent,#4c8dff);color:#fff}
+.combo-footer{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding-top:4px}
+.combo-kind-pill{font-size:11px;padding:2px 8px;border-radius:999px;background:rgba(76,141,255,.12);color:#8eb6ff;border:1px solid rgba(76,141,255,.25)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs" type="module" id="pdfjs-module">
 
@@ -8245,6 +8307,8 @@ function adminActionButton(label,id,action,disabled=false){
 
 /* ========== Model Combos (failover chains) ========== */
 let _adminCombos = [];
+let _comboDraft = { id: "", name: "", kind: "chat", models: [], enabled: true, editing: false };
+
 async function loadAdminCombos(){
   const r = await apiFetch(WORKER_BASE + "/admin/combos", { headers: authHeaders() });
   const j = await r.json().catch(()=>({}));
@@ -8252,104 +8316,296 @@ async function loadAdminCombos(){
   _adminCombos = j.combos || [];
   return _adminCombos;
 }
+
+function comboPoolIds(kind){
+  const k = kind || "chat";
+  const by = state.modelsByCategory || {};
+  const fromCat = (arr) => (arr || []).map(m => typeof m === "string" ? m : m.id).filter(Boolean);
+  if (k === "image") return fromCat(by.image);
+  if (k === "video") return fromCat(by.video);
+  if (k === "audio") return fromCat(by.audio);
+  // chat / search / fetch — use chat catalogue + flat models list
+  const chat = fromCat(by.chat);
+  const flat = (state.models || []).map(m => m.id).filter(Boolean);
+  const set = new Set([...chat, ...flat]);
+  return [...set];
+}
+
+function comboProviderGroups(kind){
+  const ids = comboPoolIds(kind);
+  const map = new Map();
+  for (const id of ids) {
+    const mk = makerOf(id);
+    if (!map.has(mk.key)) map.set(mk.key, { key: mk.key, label: mk.label, models: [] });
+    map.get(mk.key).models.push(id);
+  }
+  return [...map.values()].sort((a,b) => a.label.localeCompare(b.label));
+}
+
+function comboIconHtml(modelId){
+  try {
+    const key = makerOf(modelId).key;
+    return renderTile(key, "sm");
+  } catch {
+    return `<span class="tile sm">?</span>`;
+  }
+}
+
 function renderAdminCombos(box){
-  if(!box) return;
-  box.innerHTML = `<div class="admin-card">
-    <div class="admin-card-head">
-      <h3>Model Combos</h3>
-      <button type="button" class="btn-primary" id="comboNewBtn">New combo</button>
+  if (!box) return;
+  if (!state.models.length && isAuthenticated()) {
+    loadModels().catch(()=>{});
+  }
+
+  box.innerHTML = `<div class="combo-page">
+    <div class="combo-hero">
+      <div>
+        <h3>Model Combos</h3>
+        <p>Ordered failover chains. If the first model rate-limits or fails, the next one takes over — ideal for long agent sessions.</p>
+      </div>
+      <button type="button" class="btn-primary" id="comboNewBtn">+ New combo</button>
     </div>
-    <p class="admin-hint">Ordered failover chains (like Nine Router combos). Select <code>combo/your-id</code> in the catalogue — if the first model hits a limit or error, the gateway tries the next.</p>
-    <div id="comboList" class="admin-list"></div>
-  </div>
-  <div class="admin-card" id="comboEditor" style="display:none;margin-top:14px">
-    <h3 id="comboEditorTitle">Edit combo</h3>
-    <div class="admin-form-grid">
-      <label>Id <input id="comboId" placeholder="chat-backup" /></label>
-      <label>Name <input id="comboName" placeholder="Chat backup chain" /></label>
-      <label>Kind
-        <select id="comboKind">
-          <option value="chat">Chat</option>
-          <option value="image">Image</option>
-          <option value="video">Video</option>
-          <option value="audio">Audio</option>
-          <option value="search">Web search</option>
-          <option value="fetch">Web fetch</option>
-        </select>
-      </label>
-      <label style="grid-column:1/-1">Models (one id per line, order = failover order)
-        <textarea id="comboModels" rows="6" placeholder="myproxy/mistral&#10;myproxy/kimi&#10;myproxy/deepseek-chat"></textarea>
-      </label>
-      <label><input type="checkbox" id="comboEnabled" checked /> Enabled</label>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:12px">
-      <button type="button" class="btn-primary" id="comboSaveBtn">Save</button>
-      <button type="button" class="btn-ghost" id="comboCancelBtn">Cancel</button>
-    </div>
+    <div class="combo-grid" id="comboList"></div>
+    <div id="comboEditorHost"></div>
   </div>`;
 
   const list = box.querySelector("#comboList");
-  const paint = () => {
-    if(!_adminCombos.length){
-      list.innerHTML = `<div class="admin-empty">No combos yet. Create one to get a virtual model id like <code>combo/chat-backup</code>.</div>`;
+  const host = box.querySelector("#comboEditorHost");
+
+  const paintList = () => {
+    if (!_adminCombos.length) {
+      list.innerHTML = `<div class="combo-empty-sel">No combos yet. Create one to get a virtual model like <code>combo/chat-backup</code>.</div>`;
       return;
     }
     list.innerHTML = _adminCombos.map(c => {
       const mid = "combo/" + c.id;
-      return `<div class="admin-row" data-combo-id="${escapeHtml(c.id)}">
-        <div>
-          <div class="admin-row-title">${escapeHtml(c.name)} <span class="cap-badge">${escapeHtml(c.kind)}</span>
-            ${c.enabled===false?'<span class="cap-badge">disabled</span>':''}</div>
-          <div class="admin-row-sub"><code>${escapeHtml(mid)}</code> · ${(c.models||[]).map(m=>escapeHtml(m)).join(" → ")}</div>
+      const chain = (c.models || []).map((m, i) => {
+        const arrow = i ? `<span class="combo-arrow">→</span>` : "";
+        return `${arrow}<span class="combo-chip">${comboIconHtml(m)}<span class="combo-chip-name" title="${escapeHtml(m)}">${escapeHtml(cleanModelName(m))}</span></span>`;
+      }).join("");
+      return `<div class="combo-card" data-combo-id="${escapeHtml(c.id)}">
+        <div class="combo-card-top">
+          <div class="combo-card-meta">
+            <div class="combo-card-title">${escapeHtml(c.name)} <span class="combo-kind-pill">${escapeHtml(c.kind)}</span>${c.enabled===false?'<span class="combo-kind-pill" style="background:rgba(242,97,97,.12);color:#ff8f8f;border-color:rgba(242,97,97,.25)">off</span>':''}</div>
+            <div class="combo-card-id">${escapeHtml(mid)}</div>
+          </div>
+          <div class="combo-card-actions">
+            <button type="button" class="btn-ghost" data-combo-edit="${escapeHtml(c.id)}">Edit</button>
+            <button type="button" class="btn-ghost" data-combo-del="${escapeHtml(c.id)}">Delete</button>
+          </div>
         </div>
-        <div class="admin-row-actions">
-          <button type="button" class="btn-ghost" data-combo-edit="${escapeHtml(c.id)}">Edit</button>
-          <button type="button" class="btn-ghost" data-combo-del="${escapeHtml(c.id)}">Delete</button>
-        </div>
+        <div class="combo-chain">${chain || '<span class="combo-arrow">No models</span>'}</div>
       </div>`;
     }).join("");
-    list.querySelectorAll("[data-combo-edit]").forEach(b => b.onclick = () => openComboEditor(b.dataset.comboEdit));
+    list.querySelectorAll("[data-combo-edit]").forEach(b => b.onclick = () => openEditor(b.dataset.comboEdit));
     list.querySelectorAll("[data-combo-del]").forEach(b => b.onclick = async () => {
-      if(!confirm("Delete combo "+b.dataset.comboDel+"?")) return;
+      if (!confirm("Delete combo “" + b.dataset.comboDel + "”?")) return;
       const r = await apiFetch(WORKER_BASE + "/admin/combos/delete", { method:"POST", headers: authHeaders(), body: JSON.stringify({ id: b.dataset.comboDel }) });
-      if(!r.ok){ toast("Delete failed"); return; }
-      await loadAdminCombos(); paint(); toast("Deleted");
+      if (!r.ok) { toast("Delete failed"); return; }
+      await loadAdminCombos(); paintList(); toast("Deleted");
     });
   };
 
-  const openComboEditor = (id) => {
-    const ed = box.querySelector("#comboEditor");
-    ed.style.display = "";
+  const openEditor = (id) => {
     const c = id ? _adminCombos.find(x => x.id === id) : null;
-    box.querySelector("#comboEditorTitle").textContent = c ? "Edit combo" : "New combo";
-    box.querySelector("#comboId").value = c?.id || "";
-    box.querySelector("#comboId").disabled = !!c;
-    box.querySelector("#comboName").value = c?.name || "";
-    box.querySelector("#comboKind").value = c?.kind || "chat";
-    box.querySelector("#comboModels").value = (c?.models || []).join("\n");
-    box.querySelector("#comboEnabled").checked = c?.enabled !== false;
-  };
-
-  box.querySelector("#comboNewBtn").onclick = () => openComboEditor(null);
-  box.querySelector("#comboCancelBtn").onclick = () => { box.querySelector("#comboEditor").style.display = "none"; };
-  box.querySelector("#comboSaveBtn").onclick = async () => {
-    const models = box.querySelector("#comboModels").value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
-    const payload = {
-      id: box.querySelector("#comboId").value.trim(),
-      name: box.querySelector("#comboName").value.trim(),
-      kind: box.querySelector("#comboKind").value,
-      models,
-      enabled: box.querySelector("#comboEnabled").checked
+    _comboDraft = {
+      id: c?.id || "",
+      name: c?.name || "",
+      kind: c?.kind || "chat",
+      models: [...(c?.models || [])],
+      enabled: c?.enabled !== false,
+      editing: !!c
     };
-    const r = await apiFetch(WORKER_BASE + "/admin/combos/upsert", { method:"POST", headers: authHeaders(), body: JSON.stringify(payload) });
-    const j = await r.json().catch(()=>({}));
-    if(!r.ok){ toast(j.error?.message || "Save failed"); return; }
-    toast("Saved " + (j.modelId || payload.id));
-    box.querySelector("#comboEditor").style.display = "none";
-    await loadAdminCombos(); paint();
+    renderEditor();
+    host.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  loadAdminCombos().then(paint).catch(e => { list.innerHTML = `<div class="admin-empty">${escapeHtml(e.message)}</div>`; });
+  const renderEditor = () => {
+    const d = _comboDraft;
+    const q = (host._comboQ || "").toLowerCase();
+    const pool = comboPoolIds(d.kind);
+    const providers = comboProviderGroups(d.kind);
+    const filtered = pool.filter(id => {
+      if (!q) return true;
+      return id.toLowerCase().includes(q) || cleanModelName(id).toLowerCase().includes(q) || makerOf(id).label.toLowerCase().includes(q);
+    }).slice(0, 200);
+
+    host.innerHTML = `<div class="combo-editor">
+      <div class="combo-editor-head">
+        <h3>${d.editing ? "Edit combo" : "New combo"}</h3>
+        <button type="button" class="btn-ghost" id="comboCancelBtn">Close</button>
+      </div>
+      <div class="combo-fields">
+        <div class="combo-field">
+          <label>Id ${d.editing ? "(locked)" : ""}</label>
+          <input id="comboId" placeholder="chat-backup" value="${escapeHtml(d.id)}" ${d.editing ? "disabled" : ""} />
+        </div>
+        <div class="combo-field">
+          <label>Display name</label>
+          <input id="comboName" placeholder="Chat backup chain" value="${escapeHtml(d.name)}" />
+        </div>
+        <div class="combo-field">
+          <label>Kind</label>
+          <select id="comboKind">
+            ${["chat","image","video","audio","search","fetch"].map(k => `<option value="${k}" ${d.kind===k?"selected":""}>${k[0].toUpperCase()+k.slice(1)}</option>`).join("")}
+          </select>
+        </div>
+        <div class="combo-field" style="justify-content:flex-end">
+          <label style="display:flex;align-items:center;gap:8px;height:40px;margin-top:18px;cursor:pointer">
+            <input type="checkbox" id="comboEnabled" ${d.enabled?"checked":""} /> Enabled
+          </label>
+        </div>
+      </div>
+
+      <div class="combo-selected">
+        <div class="combo-selected-title"><span>Failover order</span><span>${d.models.length} model${d.models.length===1?"":"s"}</span></div>
+        <div class="combo-selected-list" id="comboSelectedList">
+          ${d.models.length ? d.models.map((m,i) => `
+            <div class="combo-sel-row" data-idx="${i}">
+              ${comboIconHtml(m)}
+              <div class="combo-sel-info">
+                <div class="combo-sel-name">${escapeHtml(cleanModelName(m))}</div>
+                <div class="combo-sel-id">${escapeHtml(m)}</div>
+              </div>
+              <div class="combo-sel-ops">
+                <button type="button" data-up="${i}" title="Move up">↑</button>
+                <button type="button" data-down="${i}" title="Move down">↓</button>
+                <button type="button" data-rm="${i}" title="Remove">×</button>
+              </div>
+            </div>`).join("") : `<div class="combo-empty-sel">Select models below — order is the failover chain</div>`}
+        </div>
+      </div>
+
+      <div class="combo-picker">
+        <div class="combo-selected-title"><span>Add from provider</span></div>
+        <div class="combo-prov-row" id="comboProvRow">
+          ${providers.length ? providers.map(pr => `
+            <button type="button" class="combo-prov-btn" data-prov="${escapeHtml(pr.key)}" title="Add all ${pr.models.length} models">
+              ${renderTile(pr.key, "sm")}
+              <span>${escapeHtml(pr.label)}</span>
+              <span style="color:var(--dim)">${pr.models.length}</span>
+            </button>`).join("") : `<span style="color:var(--dim);font-size:13px">No providers for this kind yet — load models first.</span>`}
+        </div>
+        <input class="combo-search" id="comboSearch" placeholder="Search models…" value="${escapeHtml(host._comboQ || "")}" />
+        <div class="combo-model-list" id="comboModelList">
+          ${filtered.length ? filtered.map(id => {
+            const on = d.models.includes(id);
+            return `<button type="button" class="combo-model-item${on?" is-on":""}" data-mid="${escapeHtml(id)}">
+              ${comboIconHtml(id)}
+              <div class="combo-model-meta">
+                <div class="combo-model-name">${escapeHtml(cleanModelName(id))}</div>
+                <div class="combo-model-sub">${escapeHtml(makerOf(id).label)} · ${escapeHtml(id)}</div>
+              </div>
+              <span class="combo-check">✓</span>
+            </button>`;
+          }).join("") : `<div class="combo-empty-sel">No models match</div>`}
+        </div>
+      </div>
+
+      <div class="combo-footer">
+        <button type="button" class="btn-ghost" id="comboCancelBtn2">Cancel</button>
+        <button type="button" class="btn-primary" id="comboSaveBtn">Save combo</button>
+      </div>
+    </div>`;
+
+    const syncDraftFromFields = () => {
+      d.id = host.querySelector("#comboId")?.value.trim() || d.id;
+      d.name = host.querySelector("#comboName")?.value.trim() || d.name;
+      d.enabled = !!host.querySelector("#comboEnabled")?.checked;
+    };
+
+    host.querySelector("#comboKind").onchange = () => {
+      syncDraftFromFields();
+      d.kind = host.querySelector("#comboKind").value;
+      // keep selected models that still exist in new pool; don't wipe user choices
+      renderEditor();
+    };
+    host.querySelector("#comboSearch").oninput = (e) => {
+      host._comboQ = e.target.value;
+      // preserve field values
+      syncDraftFromFields();
+      renderEditor();
+      const s = host.querySelector("#comboSearch");
+      if (s) { s.focus(); s.selectionStart = s.selectionEnd = s.value.length; }
+    };
+    host.querySelectorAll("[data-mid]").forEach(btn => {
+      btn.onclick = () => {
+        syncDraftFromFields();
+        const mid = btn.dataset.mid;
+        const i = d.models.indexOf(mid);
+        if (i >= 0) d.models.splice(i, 1);
+        else d.models.push(mid);
+        renderEditor();
+      };
+    });
+    host.querySelectorAll("[data-prov]").forEach(btn => {
+      btn.onclick = () => {
+        syncDraftFromFields();
+        const pr = providers.find(x => x.key === btn.dataset.prov);
+        if (!pr) return;
+        let added = 0;
+        for (const m of pr.models) {
+          if (!d.models.includes(m)) { d.models.push(m); added++; }
+        }
+        toast(added ? `Added ${added} from ${pr.label}` : `All ${pr.label} models already in chain`);
+        renderEditor();
+      };
+    });
+    host.querySelectorAll("[data-up]").forEach(btn => {
+      btn.onclick = () => {
+        const i = +btn.dataset.up;
+        if (i <= 0) return;
+        syncDraftFromFields();
+        [d.models[i-1], d.models[i]] = [d.models[i], d.models[i-1]];
+        renderEditor();
+      };
+    });
+    host.querySelectorAll("[data-down]").forEach(btn => {
+      btn.onclick = () => {
+        const i = +btn.dataset.down;
+        if (i >= d.models.length - 1) return;
+        syncDraftFromFields();
+        [d.models[i], d.models[i+1]] = [d.models[i+1], d.models[i]];
+        renderEditor();
+      };
+    });
+    host.querySelectorAll("[data-rm]").forEach(btn => {
+      btn.onclick = () => {
+        syncDraftFromFields();
+        d.models.splice(+btn.dataset.rm, 1);
+        renderEditor();
+      };
+    });
+    const close = () => { host.innerHTML = ""; };
+    host.querySelector("#comboCancelBtn").onclick = close;
+    host.querySelector("#comboCancelBtn2").onclick = close;
+    host.querySelector("#comboSaveBtn").onclick = async () => {
+      syncDraftFromFields();
+      if (!d.id) { toast("Id is required"); return; }
+      if (!d.models.length) { toast("Select at least one model"); return; }
+      const payload = {
+        id: d.id,
+        name: d.name || d.id,
+        kind: d.kind,
+        models: d.models,
+        enabled: d.enabled
+      };
+      const r = await apiFetch(WORKER_BASE + "/admin/combos/upsert", {
+        method: "POST", headers: authHeaders(), body: JSON.stringify(payload)
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok) { toast(j.error?.message || "Save failed"); return; }
+      toast("Saved " + (j.modelId || ("combo/" + payload.id)));
+      host.innerHTML = "";
+      await loadAdminCombos();
+      paintList();
+    };
+  };
+
+  box.querySelector("#comboNewBtn").onclick = () => openEditor(null);
+  loadAdminCombos().then(paintList).catch(e => {
+    list.innerHTML = `<div class="combo-empty-sel">${escapeHtml(e.message)}</div>`;
+  });
 }
 
 async function loadAdminAccounts(options={}){
