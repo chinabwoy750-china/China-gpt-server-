@@ -3701,9 +3701,11 @@ const PROVIDER_ICON_SLUGS = {
   openai: "openai",
   anthropic: "anthropic",
   google: "gemini",
+  gemini: "gemini",
   deepseek: "deepseek",
   qwen: "qwen",
   moonshot: "kimi",
+  kimi: "kimi",
   zai: "zai",
   xai: "grok",
   meta: "meta",
@@ -3713,7 +3715,26 @@ const PROVIDER_ICON_SLUGS = {
   cohere: "cohere",
   bytedance: "doubao",
   xiaomi: "xiaomi",
-  tencent: "hunyuan"
+  tencent: "hunyuan",
+  // Web search / fetch providers (combo picker + search admin)
+  search: "google",
+  "search-combo": "google",
+  brave: "brave",
+  serper: "google",
+  tavily: "tavily",
+  exa: "perplexity",
+  you: "you",
+  bing: "bing",
+  duckduckgo: "duckduckgo",
+  ddg: "duckduckgo",
+  fetch: "jina",
+  "fetch-combo": "jina",
+  jina: "jina",
+  "jina-reader": "jina",
+  reader: "jina",
+  firecrawl: "firecrawl",
+  browserless: "chrome",
+  perplexity: "perplexity"
 };
 const ICON_SOURCES = [
   (slug) => `https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@latest/icons/${slug}.svg`,
@@ -3800,7 +3821,10 @@ const PROVIDER_COLORS = {
   qwen:"#615ced", meta:"#0866ff", mistral:"#fa520f", xai:"#c9c9c9",
   moonshot:"#5a4fcf", zai:"#2b5797", nvidia:"#76b900", microsoft:"#0078d4",
   cohere:"#39594d", bytedance:"#325ab4", xiaomi:"#ff6900", tencent:"#1296db",
-  minimax:"#e94a3a", seedance:"#3b82f6", vivix:"#a855f7", kling:"#f59e0b", runway:"#22c55e", luma:"#06b6d4", pika:"#ec4899", talknova:"#8b5cf6"
+  minimax:"#e94a3a", seedance:"#3b82f6", vivix:"#a855f7", kling:"#f59e0b", runway:"#22c55e", luma:"#06b6d4", pika:"#ec4899", talknova:"#8b5cf6",
+  search:"#4285f4", brave:"#fb542b", serper:"#4285f4", tavily:"#0d9488",
+  exa:"#20808d", bing:"#008373", duckduckgo:"#de5833", jina:"#f97316",
+  firecrawl:"#ea580c", browserless:"#4285f4", perplexity:"#20808d", you:"#6366f1"
 };
 function providerColor(key){
   if (PROVIDER_COLORS[key]) return PROVIDER_COLORS[key];
@@ -3856,14 +3880,34 @@ const MAKERS = [
   { re:/(^|\/)mimo/i, key:"xiaomi", label:"Xiaomi" },
   { re:/(^|\/)(hy\d|hunyuan)/i, key:"tencent", label:"Tencent" },
   { re:/(^|\/)longcat/i, key:"meituan", label:"Meituan" },
-  { re:/(^|\/)sensenova/i, key:"sensetime", label:"SenseTime" }
+  { re:/(^|\/)sensenova/i, key:"sensetime", label:"SenseTime" },
+  // Web search / fetch (bare ids used in combos + Search Providers)
+  { re:/^search-combo$|^search$/i, key:"search", label:"Web Search" },
+  { re:/^brave$/i, key:"brave", label:"Brave" },
+  { re:/^serper$/i, key:"serper", label:"Serper" },
+  { re:/^tavily$/i, key:"tavily", label:"Tavily" },
+  { re:/^exa$/i, key:"exa", label:"Exa" },
+  { re:/^you$/i, key:"you", label:"You.com" },
+  { re:/^bing$/i, key:"bing", label:"Bing" },
+  { re:/^duckduckgo$|^ddg$/i, key:"duckduckgo", label:"DuckDuckGo" },
+  { re:/^fetch-combo$/i, key:"jina", label:"Jina" },
+  { re:/^jina(-reader)?$|^reader$/i, key:"jina", label:"Jina" },
+  { re:/^firecrawl$/i, key:"firecrawl", label:"Firecrawl" },
+  { re:/^browserless$/i, key:"browserless", label:"Browserless" },
+  { re:/^perplexity$/i, key:"perplexity", label:"Perplexity" }
 ];
 const AGGREGATOR_LABELS = {
   crax:"Crax", Dahl:"Dahl", kr:"Krea", cf:"Cloudflare", nb:"Google",
   ollama:"Ollama", openrouter:"OpenRouter", gemini:"Google",
   nvidia:"NVIDIA NIM", xkiro:"xKiro",
   bpm:"Bpm", seed:"ByteDance Seed",
-  talknova:"TalkNova", myproxy:"Myproxy"
+  talknova:"TalkNova", myproxy:"Myproxy",
+  "search-combo":"Search Combo", search:"Web Search",
+  brave:"Brave", serper:"Serper", tavily:"Tavily", exa:"Exa",
+  you:"You.com", bing:"Bing", duckduckgo:"DuckDuckGo", ddg:"DuckDuckGo",
+  "fetch-combo":"Fetch Combo", "jina-reader":"Jina Reader", jina:"Jina",
+  reader:"Reader", firecrawl:"Firecrawl", browserless:"Browserless",
+  perplexity:"Perplexity"
 };
 function applyOverrideKey(id){
   const ov = state.providerOverrides || {};
@@ -8364,20 +8408,62 @@ function comboProviderGroups(kind){
   const ids = comboPoolIds(kind);
   const map = new Map();
   for (const id of ids) {
-    const mk = makerOf(id);
-    if (!map.has(mk.key)) map.set(mk.key, { key: mk.key, label: mk.label, models: [] });
-    map.get(mk.key).models.push(id);
+    const key = comboProviderKey(id);
+    const label = providerLabel(key) || AGGREGATOR_LABELS[key] || key;
+    if (!map.has(key)) map.set(key, { key, label, models: [] });
+    map.get(key).models.push(id);
   }
   return [...map.values()].sort((a,b) => a.label.localeCompare(b.label));
 }
 
+function comboProviderKey(modelId){
+  const id = String(modelId || "").trim();
+  if (!id) return "other";
+  // Bare search/fetch ids are themselves the provider key
+  const low = id.toLowerCase();
+  if (PROVIDER_ICON_SLUGS[low] || AGGREGATOR_LABELS[low]) return low === "search-combo" ? "search" : (low === "fetch-combo" ? "jina" : low);
+  try { return makerOf(id).key; } catch { return low.split("/")[0] || "other"; }
+}
+
 function comboIconHtml(modelId){
   try {
-    const key = makerOf(modelId).key;
+    const key = comboProviderKey(modelId);
     return renderTile(key, "sm");
   } catch {
     return `<span class="tile sm">?</span>`;
   }
+}
+
+/** Warm icon cache for a list of provider keys (search/fetch combos). */
+async function warmComboIcons(modelIds){
+  const keys = new Set((modelIds || []).map(comboProviderKey));
+  await Promise.all([...keys].map(async (k) => {
+    if (iconCache.has(k) && iconCache.get(k)) return;
+    const override = adminIconOverrides[k];
+    if (override) { iconCache.set(k, override); return; }
+    // Try primary key + slug aliases
+    const tryKeys = [k, slugFor(k)].filter(Boolean);
+    let found = null;
+    for (const tk of tryKeys) {
+      const slug = slugFor(tk) || tk;
+      if (!slug) continue;
+      for (const src of ICON_SOURCES) {
+        const url = src(slug);
+        if (await probeImage(url)) { found = url; break; }
+      }
+      if (found) break;
+      // simpleicons alt: strip dashes
+      const alt = String(slug).replace(/-/g, "");
+      if (alt !== slug) {
+        for (const src of ICON_SOURCES) {
+          const url = src(alt);
+          if (await probeImage(url)) { found = url; break; }
+        }
+      }
+      if (found) break;
+    }
+    iconCache.set(k, found);
+  }));
 }
 
 async function ensureComboAuxData(){
@@ -8497,6 +8583,8 @@ function renderAdminCombos(box){
       enabled: c?.enabled !== false,
       editing: !!c
     };
+    const pool = comboPoolIds(_comboDraft.kind);
+    await warmComboIcons([...pool, ...models]);
     renderEditor();
     host.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -8506,6 +8594,14 @@ function renderAdminCombos(box){
     const q = (host._comboQ || "").toLowerCase();
     const pool = comboPoolIds(d.kind);
     const providers = comboProviderGroups(d.kind);
+    // Fire-and-forget icon warmup so tiles fill in
+    warmComboIcons([...pool, ...d.models]).then(() => {
+      // soft refresh icons in-place if editor still open
+      host.querySelectorAll(".combo-model-item[data-mid], .combo-sel-row, .combo-prov-btn[data-prov]").forEach(el => {
+        const mid = el.dataset.mid || el.dataset.prov;
+        // leave as-is; next open shows cached icons
+      });
+    });
     const filtered = pool.filter(id => {
       if (!q) return true;
       return id.toLowerCase().includes(q) || cleanModelName(id).toLowerCase().includes(q) || makerOf(id).label.toLowerCase().includes(q);
