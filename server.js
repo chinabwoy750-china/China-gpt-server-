@@ -22,6 +22,7 @@ import * as media from "./lib/media-proxy.js";
 import * as customProviders from "./lib/custom-providers.js";
 import * as modelCategories from "./lib/model-categories.js";
 import * as modelCatalog from "./lib/model-catalog.js";
+import * as modelCombos from "./lib/model-combos.js";
 import * as responsesApi from "./lib/responses-compat.js";
 import * as geminiCompat from "./lib/gemini-compat.js";
 import * as ollamaCompat from "./lib/ollama-compat.js";
@@ -214,6 +215,12 @@ app.post("/admin/providers/probe-models", auth.requireAdmin, customProviders.adm
 app.get("/admin/model-categories", auth.requireAdmin, modelCategories.adminGet);
 app.post("/admin/model-categories/set", auth.requireAdmin, modelCategories.adminSet);
 app.post("/admin/model-categories/bulk-set", auth.requireAdmin, modelCategories.adminBulkSet);
+
+// ---- Model combos (failover chains) ----
+app.get("/admin/combos", auth.requireAdmin, modelCombos.adminList);
+app.post("/admin/combos/upsert", auth.requireAdmin, modelCombos.adminUpsert);
+app.post("/admin/combos/delete", auth.requireAdmin, modelCombos.adminDelete);
+app.get("/v1/combos", auth.requireAuth, modelCombos.adminList);
 // ---- Telegram bot ----
 app.post("/telegram/webhook", telegram.webhook);
 app.get("/admin/telegram", auth.requireAdmin, telegram.adminGet);

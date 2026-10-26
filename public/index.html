@@ -3218,6 +3218,7 @@ body.is-locked .auth-page{ display:none !important; }
       <button data-admin-section="telegram" data-icon="telegram">Telegram Bot</button>
       <button data-admin-section="provider-map" data-icon="link">Provider Mapping</button>
       <button data-admin-section="providers" data-icon="terminal">Providers</button>
+      <button data-admin-section="combos" data-icon="layers">Model Combos</button>
       <button data-admin-section="model-categories" data-icon="layers">Model Categories</button>
       <button data-admin-section="site-lock" class="admin-nav-danger" data-icon="lock">Site Lock</button>
       <button data-admin-section="system" data-icon="cog">System</button>
@@ -7916,6 +7917,28 @@ function openApiDocs(){
           </div>
         </div>
 
+
+        <div class="docs-section-title">Model combos</div>
+        <div class="docs-note">
+          Admins can create ordered failover chains under <b style="color:var(--text)">Admin → Model Combos</b>.
+          Use the virtual model id <code style="font-family:var(--mono)">combo/your-id</code> in chat (or API).
+          If the first model rate-limits or errors, China-GPT tries the next in the list automatically.
+        </div>
+        <div class="docs-endpoint method-post">
+          <div class="docs-endpoint-head">
+            <span class="docs-method post">POST</span>
+            <span class="docs-path">/v1/chat/completions</span>
+          </div>
+          <p>Example using a combo:</p>
+          <div class="docs-code">
+            <button type="button" class="docs-code-copy" data-copy-code title="Copy">${COPY_ICON}</button>
+            <pre>curl ${escapeHtml(base)}/v1/chat/completions \
+  -H "X-China-GPT-Key: YOUR_ACCESS_CODE" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"combo/chat-backup","messages":[{"role":"user","content":"Hello"}]}'</pre>
+          </div>
+        </div>
+
         <div class="docs-section-title">Custom providers</div>
         <div class="docs-note">
           Admins can register additional OpenAI-compatible providers in
@@ -8190,6 +8213,116 @@ function adminStatusCard(label,value,detail,ok){
 function adminActionButton(label,id,action,disabled=false){
   return `<button class="btn-ghost admin-key-action" data-id="${escapeHtml(id)}" data-action="${action}" ${disabled?"disabled":""}>${escapeHtml(label)}</button>`;
 }
+
+/* ========== Model Combos (failover chains) ========== */
+let _adminCombos = [];
+async function loadAdminCombos(){
+  const r = await apiFetch("/admin/combos", { headers: authHeaders() });
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.error?.message || "Failed to load combos");
+  _adminCombos = j.combos || [];
+  return _adminCombos;
+}
+function renderAdminCombos(box){
+  if(!box) return;
+  box.innerHTML = `<div class="admin-card">
+    <div class="admin-card-head">
+      <h3>Model Combos</h3>
+      <button type="button" class="btn-primary" id="comboNewBtn">New combo</button>
+    </div>
+    <p class="admin-hint">Ordered failover chains (like Nine Router combos). Select <code>combo/your-id</code> in the catalogue — if the first model hits a limit or error, the gateway tries the next.</p>
+    <div id="comboList" class="admin-list"></div>
+  </div>
+  <div class="admin-card" id="comboEditor" style="display:none;margin-top:14px">
+    <h3 id="comboEditorTitle">Edit combo</h3>
+    <div class="admin-form-grid">
+      <label>Id <input id="comboId" placeholder="chat-backup" /></label>
+      <label>Name <input id="comboName" placeholder="Chat backup chain" /></label>
+      <label>Kind
+        <select id="comboKind">
+          <option value="chat">Chat</option>
+          <option value="image">Image</option>
+          <option value="video">Video</option>
+          <option value="audio">Audio</option>
+          <option value="search">Web search</option>
+          <option value="fetch">Web fetch</option>
+        </select>
+      </label>
+      <label style="grid-column:1/-1">Models (one id per line, order = failover order)
+        <textarea id="comboModels" rows="6" placeholder="myproxy/mistral&#10;myproxy/kimi&#10;myproxy/deepseek-chat"></textarea>
+      </label>
+      <label><input type="checkbox" id="comboEnabled" checked /> Enabled</label>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button type="button" class="btn-primary" id="comboSaveBtn">Save</button>
+      <button type="button" class="btn-ghost" id="comboCancelBtn">Cancel</button>
+    </div>
+  </div>`;
+
+  const list = box.querySelector("#comboList");
+  const paint = () => {
+    if(!_adminCombos.length){
+      list.innerHTML = `<div class="admin-empty">No combos yet. Create one to get a virtual model id like <code>combo/chat-backup</code>.</div>`;
+      return;
+    }
+    list.innerHTML = _adminCombos.map(c => {
+      const mid = "combo/" + c.id;
+      return `<div class="admin-row" data-combo-id="${escapeHtml(c.id)}">
+        <div>
+          <div class="admin-row-title">${escapeHtml(c.name)} <span class="cap-badge">${escapeHtml(c.kind)}</span>
+            ${c.enabled===false?'<span class="cap-badge">disabled</span>':''}</div>
+          <div class="admin-row-sub"><code>${escapeHtml(mid)}</code> · ${(c.models||[]).map(m=>escapeHtml(m)).join(" → ")}</div>
+        </div>
+        <div class="admin-row-actions">
+          <button type="button" class="btn-ghost" data-combo-edit="${escapeHtml(c.id)}">Edit</button>
+          <button type="button" class="btn-ghost" data-combo-del="${escapeHtml(c.id)}">Delete</button>
+        </div>
+      </div>`;
+    }).join("");
+    list.querySelectorAll("[data-combo-edit]").forEach(b => b.onclick = () => openComboEditor(b.dataset.comboEdit));
+    list.querySelectorAll("[data-combo-del]").forEach(b => b.onclick = async () => {
+      if(!confirm("Delete combo "+b.dataset.comboDel+"?")) return;
+      const r = await apiFetch("/admin/combos/delete", { method:"POST", headers: authHeaders(), body: JSON.stringify({ id: b.dataset.comboDel }) });
+      if(!r.ok){ toast("Delete failed"); return; }
+      await loadAdminCombos(); paint(); toast("Deleted");
+    });
+  };
+
+  const openComboEditor = (id) => {
+    const ed = box.querySelector("#comboEditor");
+    ed.style.display = "";
+    const c = id ? _adminCombos.find(x => x.id === id) : null;
+    box.querySelector("#comboEditorTitle").textContent = c ? "Edit combo" : "New combo";
+    box.querySelector("#comboId").value = c?.id || "";
+    box.querySelector("#comboId").disabled = !!c;
+    box.querySelector("#comboName").value = c?.name || "";
+    box.querySelector("#comboKind").value = c?.kind || "chat";
+    box.querySelector("#comboModels").value = (c?.models || []).join("\n");
+    box.querySelector("#comboEnabled").checked = c?.enabled !== false;
+  };
+
+  box.querySelector("#comboNewBtn").onclick = () => openComboEditor(null);
+  box.querySelector("#comboCancelBtn").onclick = () => { box.querySelector("#comboEditor").style.display = "none"; };
+  box.querySelector("#comboSaveBtn").onclick = async () => {
+    const models = box.querySelector("#comboModels").value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+    const payload = {
+      id: box.querySelector("#comboId").value.trim(),
+      name: box.querySelector("#comboName").value.trim(),
+      kind: box.querySelector("#comboKind").value,
+      models,
+      enabled: box.querySelector("#comboEnabled").checked
+    };
+    const r = await apiFetch("/admin/combos/upsert", { method:"POST", headers: authHeaders(), body: JSON.stringify(payload) });
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok){ toast(j.error?.message || "Save failed"); return; }
+    toast("Saved " + (j.modelId || payload.id));
+    box.querySelector("#comboEditor").style.display = "none";
+    await loadAdminCombos(); paint();
+  };
+
+  loadAdminCombos().then(paint).catch(e => { list.innerHTML = `<div class="admin-empty">${escapeHtml(e.message)}</div>`; });
+}
+
 async function loadAdminAccounts(options={}){
   if(!isAuthenticated()||state.role!=="admin") throw new Error("Administrator access required");
   if(options.reset!==false) adminAccountsCursor=null;
@@ -9787,6 +9920,8 @@ function renderAdmin(){
     renderTelegramPage();return;
   }else if(adminSection==="provider-map"){
     renderProviderMappingPage();return;
+  }else if(adminSection==="combos"){
+    renderAdminCombos(box);
   }else if(adminSection==="providers"){
     renderProvidersPage();return;
   }else if(adminSection==="model-categories"){
