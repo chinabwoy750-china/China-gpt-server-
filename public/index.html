@@ -4368,6 +4368,7 @@ async function loadModels(){
     }
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j=await r.json(); state.models=Array.isArray(j.data)?j.data:[];
+    if (j.warning) { console.warn("[loadModels]", j.warning); try { toast(j.warning); } catch {} }
     if (Array.isArray(j.groups) && j.groups.length) {
       state.modelGroups = j.groups.map(g => ({
         canonical: g.canonical,
@@ -10429,7 +10430,7 @@ function renderAdmin(){
       <div class="admin-status-grid">
         ${adminStatusCard("China-GPT backend","Online","Admin request succeeded",true)}
         ${adminStatusCard("9Router gateway",j.gateway||"Unknown","Reported by backend",!!j.gateway)}
-        ${adminStatusCard("NINEROUTER_API_KEY",j.apiKeyConfigured?"Configured":"Missing","Never exposed to browser",!!j.apiKeyConfigured)}
+        ${adminStatusCard("NINEROUTER_API_KEY",j.apiKeyConfigured?"Configured":"Missing","Set on Render as NINEROUTER_API_KEY (not in Custom Providers)",!!j.apiKeyConfigured)}
       </div>
     </div>
     <div class="admin-section"><div class="admin-section-head"><h3>Quick actions</h3><span>Live protected controls</span></div>
