@@ -6294,11 +6294,8 @@ async function runMediaGeneration(ai, prompt, kind, imageAttachments){
     : "/audio";
   const body = { model, prompt: applyUncensoredMediaPrompt(prompt || ""), n: 1 };
   if (kind === "image") {
-    body.size = "auto";
-    body.quality = "auto";
-    body.background = "auto";
-    body.image_detail = "high";
-    body.output_format = "png";
+    // Keep body minimal — many upstreams (CF Flux, etc.) 400 on size/quality "auto"
+    body.n = 1;
     if (imgs.length) attachMediaImages(body, imgs);
   } else if (kind === "video") {
     const vo = state.videoOpts || {};
