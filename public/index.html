@@ -4368,6 +4368,7 @@ async function loadModels(){
     }
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j=await r.json(); state.models=Array.isArray(j.data)?j.data:[];
+    state.models = state.models.filter(m => m && m.id && !isLikelyMediaModelId(m.id));
     if (j.warning) { console.warn("[loadModels]", j.warning); try { toast(j.warning); } catch {} }
     if (Array.isArray(j.groups) && j.groups.length) {
       state.modelGroups = j.groups.map(g => ({
@@ -6099,6 +6100,14 @@ function bindVideoOptsBar(){
   });
 }
 
+function isLikelyMediaModelId(id){
+  const s = String(id || "");
+  if (!s) return false;
+  if (/(veo|sora|runway|kling|seedance|hailuo|luma|pika|cogvideo|vivix|text-to-video|image-to-video|talknova-.*video)/i.test(s)) return true;
+  if (/(tts|speech|melotts|bark|piper|xtts|kokoro|fish-speech|f5-tts)/i.test(s)) return true;
+  if (/(gpt-image|qwen-image|dall-?e|flux|stable-?diffusion|sdxl|imagen|nanobanana|seedream|ideogram|recraft|@cf\/|black-forest|dreamshaper|lucid.?origin|phoenix.?1|text2img|img2img|midjourney)/i.test(s)) return true;
+  return false;
+}
 function resolveMediaKindForSend(){
   if (state.mediaMode === "image" || state.mediaMode === "video" || state.mediaMode === "audio") return state.mediaMode;
   const id = state.model;
@@ -11163,23 +11172,35 @@ async function loadCategorizedModels(){
       video: Array.isArray(j.video) ? j.video : [],
       audio: Array.isArray(j.audio) ? j.audio : []
     };
+    // Promote any media-looking rows still in chat bucket
+    const promote = [];
+    state.modelsByCategory.chat = state.modelsByCategory.chat.filter(m => {
+      if (!m || !m.id) return false;
+      if (isLikelyMediaModelId(m.id)) {
+        const s = String(m.id).toLowerCase();
+        const bucket = /(veo|sora|runway|kling|seedance|video)/i.test(s) ? "video"
+          : /(tts|speech|melotts|kokoro)/i.test(s) ? "audio" : "image";
+        if (!state.modelsByCategory[bucket].some(x => x.id === m.id)) {
+          state.modelsByCategory[bucket].push({ ...m, category: bucket });
+        }
+        return false;
+      }
+      return true;
+    });
     updateCatalogTabCounts();
 
-    // ---- Merge custom provider chat models into the main models array ----
-    // This is what makes UnoRouter (and any custom provider) show up in
-    // the chat catalogue, the provider filter chips, and the grouping logic.
-    const customChat = state.modelsByCategory.chat.filter(m => m.source === "custom");
-
-    if (customChat.length) {
-      const customIds = new Set(customChat.map(m => m.id));
-      // Remove any previous custom entries (stale on re-fetch), then append.
-      const r9 = state.models.filter(m => !customIds.has(m.id));
-      state.models = [...r9, ...customChat];
-      // Rebuild groups so custom chat models fold into their canonical groups.
-      state.modelGroups = clientGroupModels(state.models);
-    } else if (state.models.length) {
-      state.modelGroups = clientGroupModels(state.models);
+    // Chat catalogue = chat category only (never image/video/audio)
+    const chatList = state.modelsByCategory.chat.slice();
+    const chatIds = new Set(chatList.map(m => m.id));
+    // Keep any non-media models that only live on /v1/models (no category metadata)
+    for (const m of (state.models || [])) {
+      if (!m || !m.id || chatIds.has(m.id)) continue;
+      if (isLikelyMediaModelId(m.id)) continue;
+      chatList.push(m);
+      chatIds.add(m.id);
     }
+    state.models = chatList;
+    state.modelGroups = clientGroupModels(state.models);
 
     // If the current model was removed (e.g. custom provider deleted),
     // fall back to the first available.
