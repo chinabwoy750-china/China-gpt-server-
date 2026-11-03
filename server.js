@@ -22,6 +22,7 @@ import * as media from "./lib/media-proxy.js";
 import * as customProviders from "./lib/custom-providers.js";
 import * as modelCategories from "./lib/model-categories.js";
 import * as modelCatalog from "./lib/model-catalog.js";
+import * as ninerouterConfig from "./lib/ninerouter-config.js";
 import * as modelCombos from "./lib/model-combos.js";
 import * as responsesApi from "./lib/responses-compat.js";
 import * as geminiCompat from "./lib/gemini-compat.js";
@@ -193,6 +194,8 @@ app.get("/apikeys/list", auth.requireAccessCode, apikeys.list);
 app.post("/apikeys/revoke", auth.requireAccessCode, apikeys.revoke);
 
 app.get("/admin/status", auth.requireAdmin, admin.status);
+app.get("/admin/ninerouter", auth.requireAdmin, ninerouterConfig.adminGet);
+app.post("/admin/ninerouter", auth.requireAdmin, ninerouterConfig.adminSave);
 app.get("/admin/accounts", auth.requireAdmin, admin.accounts);
 app.post("/admin/keys/create", auth.requireAdmin, admin.createKey);
 app.post("/admin/keys/revoke", auth.requireAdmin, admin.revokeKey);

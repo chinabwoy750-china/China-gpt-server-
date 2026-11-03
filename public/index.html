@@ -9193,7 +9193,28 @@ async function renderProviderIconsPage(){
 function renderApiSettingsPage(){
   const c=$("#adminContent");
   c.innerHTML=`
-    <p class="admin-kicker">The base URL shown to everyone on the API documentation page.</p>
+    <p class="admin-kicker">Gateway credentials and the public API base URL.</p>
+
+    <div class="admin-section">
+      <div class="admin-section-head"><h3>Nine Router API key</h3><span id="nrKeyStatus">…</span></div>
+      <div class="admin-note" style="margin-bottom:14px">
+        China-GPT needs this key to call <code style="font-family:var(--mono);font-size:11px">ninerouter-china.onrender.com</code> for chat and image models.
+        You can set it here (saved in Redis/KV) <b>or</b> as the Render env var <code style="font-family:var(--mono);font-size:11px">NINEROUTER_API_KEY</code>. Admin value wins when both are set.
+      </div>
+      <div class="field" style="max-width:520px">
+        <label for="adminNrKey">API key</label>
+        <input id="adminNrKey" type="password" autocomplete="off" placeholder="sk-… (leave mask to keep current)" spellcheck="false">
+      </div>
+      <div class="field" style="max-width:520px">
+        <label for="adminNrBase">Base URL (optional)</label>
+        <input id="adminNrBase" placeholder="https://ninerouter-china.onrender.com" spellcheck="false">
+      </div>
+      <div class="admin-actions">
+        <button class="btn-primary" id="adminNrSave">Save Nine Router key</button>
+        <button class="btn-ghost" id="adminNrTest">Test key</button>
+      </div>
+    </div>
+
     <div class="admin-section">
       <div class="admin-section-head"><h3>API base URL</h3></div>
       <div class="admin-note" style="margin-bottom:14px">
@@ -9218,8 +9239,51 @@ function renderApiSettingsPage(){
     const ok=await saveApiBaseUrl("");
     if(ok){input.value="";toast("Reset to default")}
   };
-  // Load fresh
   (async()=>{await loadApiBaseUrl();input.value=state.apiBaseUrl||""})();
+
+  // Nine Router key UI
+  const nrKey=c.querySelector("#adminNrKey");
+  const nrBase=c.querySelector("#adminNrBase");
+  const nrStatus=c.querySelector("#nrKeyStatus");
+  (async()=>{
+    try{
+      const r=await apiFetch(WORKER_BASE+"/admin/ninerouter",{headers:authHeaders(false)});
+      const j=await r.json().catch(()=>({}));
+      if(j.apiKeyConfigured){
+        nrStatus.textContent = "Configured ("+(j.source||"?")+")";
+        nrKey.placeholder = j.apiKeyMasked || "•••• configured";
+      } else {
+        nrStatus.textContent = "Missing";
+      }
+      if(j.baseUrl) nrBase.value = j.baseUrl;
+    }catch(e){ nrStatus.textContent = "Could not load"; }
+  })();
+  c.querySelector("#adminNrSave").onclick=async()=>{
+    try{
+      const r=await apiFetch(WORKER_BASE+"/admin/ninerouter",{
+        method:"POST",
+        headers:authHeaders(),
+        body:JSON.stringify({ apiKey: nrKey.value.trim(), baseUrl: nrBase.value.trim() })
+      });
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok||!j.ok){ toast(j.error||"Save failed"); return; }
+      toast("Nine Router key saved");
+      nrKey.value="";
+      nrKey.placeholder=j.apiKeyMasked||"•••• saved";
+      nrStatus.textContent="Configured ("+(j.source||"admin")+")";
+      try{ await loadModels(); await loadCategorizedModels(); }catch{}
+    }catch(e){ toast(e.message||"Save failed"); }
+  };
+  c.querySelector("#adminNrTest").onclick=async()=>{
+    try{
+      toast("Testing models…");
+      const r=await apiFetch(API_BASE+"/models",{headers:authHeaders(false)});
+      const j=await r.json().catch(()=>({}));
+      if(j.warning) toast(j.warning);
+      else if(Array.isArray(j.data)) toast("OK — "+j.data.length+" chat models visible");
+      else toast("Unexpected response HTTP "+r.status);
+    }catch(e){ toast(e.message||"Test failed"); }
+  };
 }
 
 /* ============================================================
