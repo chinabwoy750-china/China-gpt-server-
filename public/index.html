@@ -5107,33 +5107,121 @@ async function readUrlIntoComposer(url){
   toast("Added to composer");
 }
 
+function ensureStreamingScaffold(row, ai){
+  // Remove idle "Thinking…" placeholder once real tokens arrive
+  if ((ai.reasoning && ai.reasoning.length) || (ai.content && ai.content.length)) {
+    const idle = row.querySelector(".thinking-row");
+    if (idle) idle.remove();
+  }
+  // Reasoning block — create in place (never full-list re-render)
+  if (ai.reasoning && ai.reasoning.length) {
+    let rb = row.querySelector(".reasoning-block");
+    if (!rb) {
+      rb = document.createElement("div");
+      rb.className = "reasoning-block open is-streaming";
+      rb.innerHTML = `
+        <button type="button" class="reasoning-toggle" aria-expanded="true">
+          <span class="reasoning-caret">${typeof ICONS !== "undefined" ? ICONS.chevronDown : "▾"}</span>
+          <span class="reasoning-label">Thinking…</span>
+        </button>
+        <div class="reasoning-body" role="region" aria-label="Reasoning"></div>`;
+      const toggle = rb.querySelector(".reasoning-toggle");
+      toggle.onclick = () => {
+        const isOpen = rb.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        ai._reasoningOpen = isOpen;
+      };
+      // Insert before bubble if present, else at end
+      const bubble = row.querySelector(".bubble");
+      if (bubble) row.insertBefore(rb, bubble);
+      else row.appendChild(rb);
+    } else {
+      rb.classList.add("is-streaming");
+      if (ai._reasoningOpen !== false) rb.classList.add("open");
+      const lab = rb.querySelector(".reasoning-label");
+      if (lab && ai.streaming) lab.textContent = "Thinking…";
+    }
+  }
+  // Answer bubble + live caret
+  let b = row.querySelector(".bubble");
+  if (!b) {
+    b = document.createElement("div");
+    b.className = "bubble is-streaming";
+    row.appendChild(b);
+  } else {
+    b.classList.add("is-streaming");
+  }
+  return { row, bubble: b, reasoning: row.querySelector(".reasoning-block") };
+}
+
+let _streamRaf = 0;
+let _streamPending = null;
+
 function updateStreamingMessage(ai){
-  const box=$("#messages");
-  const row=box.lastElementChild;
-  if(!row||!row.classList.contains("msg-assistant")){renderMessages();return}
-  if(ai.reasoning){
-    const rb=row.querySelector(".reasoning-block");
-    if(!rb){renderMessages();return}
-    const body=rb.querySelector(".reasoning-body");
-    if(body){
-      const rtxt = String(ai.reasoning||"");
+  // Batch DOM writes to one frame — stops white/black flicker from rapid full paints
+  _streamPending = ai;
+  if (_streamRaf) return;
+  _streamRaf = requestAnimationFrame(() => {
+    _streamRaf = 0;
+    const target = _streamPending;
+    _streamPending = null;
+    if (!target) return;
+    flushStreamingMessage(target);
+  });
+}
+
+function flushStreamingMessage(ai){
+  const box = $("#messages");
+  if (!box) return;
+  let row = box.lastElementChild;
+  if (!row || !row.classList.contains("msg-assistant")) {
+    // Only full render if the row truly is missing (first paint)
+    renderMessages();
+    row = box.lastElementChild;
+    if (!row || !row.classList.contains("msg-assistant")) return;
+  }
+
+  const parts = ensureStreamingScaffold(row, ai);
+
+  // Live reasoning text
+  if (ai.reasoning) {
+    const rb = parts.reasoning || row.querySelector(".reasoning-block");
+    const body = rb && rb.querySelector(".reasoning-body");
+    if (body) {
+      const rtxt = String(ai.reasoning || "");
       if (body.dataset.raw !== rtxt) {
         body.dataset.raw = rtxt;
-        if (rtxt.includes("\n")) {
-          body.innerHTML = rtxt.trim().split(/\n\n+/).map(para =>
-            `<p style="margin:0 0 10px;line-height:1.7">${escapeHtml(para).replace(/\n/g,"<br>")}</p>`
-          ).join("");
-        } else {
-          body.textContent = rtxt;
+        // Fast path: plain textContent during stream (avoids expensive HTML rebuild each token)
+        body.textContent = rtxt;
+      }
+    }
+  }
+
+  // Live answer tokens
+  const b = parts.bubble || row.querySelector(".bubble");
+  if (b) {
+    const txt = String(ai.content || "");
+    if (b.dataset.raw !== txt) {
+      b.dataset.raw = txt;
+      // Keep a streaming caret so it feels live, not a sudden dump
+      b.textContent = txt;
+      if (ai.streaming) {
+        let caret = b.querySelector(".stream-caret");
+        // textContent wiped children — re-append caret via a text node + span
+        // Use textContent for content, then append caret element
+        b.textContent = txt;
+        if (ai.streaming) {
+          const caretEl = document.createElement("span");
+          caretEl.className = "stream-caret";
+          caretEl.setAttribute("aria-hidden", "true");
+          b.appendChild(caretEl);
         }
       }
     }
   }
-  const b=row.querySelector(".bubble");
-  if(!b){renderMessages();return}
-  if(b.textContent!==ai.content)b.textContent=ai.content;
   scrollToBottom();
 }
+
 
 /* ============================================================
    CONVERSATIONS
@@ -5818,7 +5906,20 @@ function finalizeAssistantMessage(ai){
     ai.reasoningEndedAt=Date.now();
   }
   if (ai._thinkTimer) { clearInterval(ai._thinkTimer); ai._thinkTimer = null; }
+  if (ai._genProgressTimer) { clearInterval(ai._genProgressTimer); ai._genProgressTimer = null; }
   ai.streaming=false;
+  // Flush any pending RAF stream paint, then strip live-stream chrome
+  if (typeof flushStreamingMessage === "function") {
+    try { flushStreamingMessage(ai); } catch {}
+  }
+  const box = $("#messages");
+  const row = box && box.lastElementChild;
+  if (row && row.classList.contains("msg-assistant")) {
+    row.querySelectorAll(".stream-caret").forEach(el => el.remove());
+    row.querySelectorAll(".is-streaming").forEach(el => el.classList.remove("is-streaming"));
+    const idle = row.querySelector(".thinking-row");
+    if (idle) idle.remove();
+  }
 }
 function updateGeneratingUI(){
   const stop=$("#stopBtn"),sendBtn=$("#sendBtn");
