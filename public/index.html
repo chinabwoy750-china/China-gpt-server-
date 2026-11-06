@@ -10154,9 +10154,19 @@ async function renderModelHealthPage(){
       mhState.results = j.results || {};
       mhState.autoDisableThreshold = j.autoDisableThreshold || 3;
     }
+    mhState.catalogueWarning = "";
     if (modelsRes.ok) {
       const j = await modelsRes.json();
       mhAllModels = j.data || [];
+      if (j.warning) mhState.catalogueWarning = j.warning;
+      if (!mhAllModels.length) {
+        mhState.catalogueWarning = (mhState.catalogueWarning ? mhState.catalogueWarning + " · " : "")
+          + "Catalogue empty. Save Nine Router key under Admin → API Settings, then Refresh.";
+      }
+    } else {
+      const j = await modelsRes.json().catch(() => ({}));
+      mhAllModels = [];
+      mhState.catalogueWarning = j.error || ("Could not load models (HTTP " + modelsRes.status + ")");
     }
   } catch (e) {
     c.innerHTML = `<p class="admin-kicker">Could not reach backend: ${escapeHtml(e.message)}</p>`;
@@ -10211,7 +10221,9 @@ function renderModelHealthTable(){
     : 0;
 
   c.innerHTML = `
-    <p class="admin-kicker">Test models directly against 9Router. Failures auto-disable after ${mhState.autoDisableThreshold} consecutive attempts. Disabled models are hidden from everyone, including API callers.</p>
+    <p class="admin-kicker">Test models against Nine Router and your custom providers. Failures auto-disable after ${mhState.autoDisableThreshold} consecutive attempts. Disabled models are hidden from everyone, including API callers.</p>
+    ${mhState.catalogueWarning ? `<div class="admin-note" style="margin-bottom:12px;border-color:#c45c26;color:#f0b089">${escapeHtml(mhState.catalogueWarning)}</div>` : ""}
+    ${orphanResults ? `<div class="admin-note" style="margin-bottom:12px">Stale health rows: <b>${orphanResults}</b> old results + <b>${orphanDisabled}</b> disabled IDs not in the live catalogue. Use <b>Prune stale</b> to clean them up.</div>` : ""}
 
     <div class="mh-summary">
       ${adminStat("Total", total, "In catalogue")}
