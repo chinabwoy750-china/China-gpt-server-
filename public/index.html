@@ -9406,22 +9406,24 @@ function renderApiSettingsPage(){
     <p class="admin-kicker">Gateway credentials and the public API base URL.</p>
 
     <div class="admin-section">
-      <div class="admin-section-head"><h3>Nine Router API key</h3><span id="nrKeyStatus">…</span></div>
+      <div class="admin-section-head"><h3>Main gateway endpoint</h3><span id="nrKeyStatus">…</span></div>
       <div class="admin-note" style="margin-bottom:14px">
-        China-GPT needs this key to call <code style="font-family:var(--mono);font-size:11px">ninerouter-china.onrender.com</code> for chat and image models.
-        You can set it here (saved in Redis/KV) <b>or</b> as the Render env var <code style="font-family:var(--mono);font-size:11px">NINEROUTER_API_KEY</code>. Admin value wins when both are set.
+        This is the primary upstream for chat, images, search, and fetch when a model is not from a custom provider.
+        Point it at <b>any OpenAI-compatible base</b> (Nine Router, LiteLLM, OpenRouter, your own proxy, etc.).
+        Saved in Redis/KV (overrides Render env <code style="font-family:var(--mono);font-size:11px">NINEROUTER_BASE</code> / <code style="font-family:var(--mono);font-size:11px">NINEROUTER_API_KEY</code>).
+      </div>
+      <div class="field" style="max-width:520px">
+        <label for="adminNrBase">Base URL</label>
+        <input id="adminNrBase" placeholder="https://ninerouter-china.onrender.com" spellcheck="false">
+        <div class="editor-hint" style="margin-top:6px">Examples: <code style="font-family:var(--mono);font-size:11px">https://ninerouter-china.onrender.com</code>, <code style="font-family:var(--mono);font-size:11px">https://openrouter.ai/api</code>, <code style="font-family:var(--mono);font-size:11px">https://my-proxy.example.com</code> — no trailing <code style="font-family:var(--mono)">/v1</code> needed if paths already include it; use the root that has <code style="font-family:var(--mono)">/v1/models</code>.</div>
       </div>
       <div class="field" style="max-width:520px">
         <label for="adminNrKey">API key</label>
         <input id="adminNrKey" type="password" autocomplete="off" placeholder="sk-… (leave mask to keep current)" spellcheck="false">
       </div>
-      <div class="field" style="max-width:520px">
-        <label for="adminNrBase">Base URL (optional)</label>
-        <input id="adminNrBase" placeholder="https://ninerouter-china.onrender.com" spellcheck="false">
-      </div>
       <div class="admin-actions">
-        <button class="btn-primary" id="adminNrSave">Save Nine Router key</button>
-        <button class="btn-ghost" id="adminNrTest">Test key</button>
+        <button class="btn-primary" id="adminNrSave">Save gateway</button>
+        <button class="btn-ghost" id="adminNrTest">Test connection</button>
       </div>
     </div>
 
@@ -9477,7 +9479,7 @@ function renderApiSettingsPage(){
       });
       const j=await r.json().catch(()=>({}));
       if(!r.ok||!j.ok){ toast(j.error||"Save failed"); return; }
-      toast("Nine Router key saved");
+      toast("Main gateway saved");
       nrKey.value="";
       nrKey.placeholder=j.apiKeyMasked||"•••• saved";
       nrStatus.textContent="Configured ("+(j.source||"admin")+")";
@@ -9490,7 +9492,7 @@ function renderApiSettingsPage(){
       const r=await apiFetch(API_BASE+"/models",{headers:authHeaders(false)});
       const j=await r.json().catch(()=>({}));
       if(j.warning) toast(j.warning);
-      else if(Array.isArray(j.data)) toast("OK — "+j.data.length+" chat models visible");
+      else if(Array.isArray(j.data)) toast("OK — "+j.data.length+" models from gateway");
       else toast("Unexpected response HTTP "+r.status);
     }catch(e){ toast(e.message||"Test failed"); }
   };
