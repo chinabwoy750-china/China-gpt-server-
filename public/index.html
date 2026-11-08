@@ -3076,7 +3076,7 @@ body.is-locked .auth-page{ display:none !important; }
   .free-toggle{padding:0 10px;font-size:11.5px;height:30px}
 }
 
-.catalog-tabs{
+.catalog-tabs{flex:0 0 auto;
   display:flex;gap:6px;padding:12px 20px 4px;
   flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
   scrollbar-width:none;
@@ -3094,7 +3094,7 @@ body.is-locked .auth-page{ display:none !important; }
 .catalog-tab.is-active{background:var(--accent-soft);color:var(--text);border-color:rgba(61,125,255,.4)}
 .catalog-tab .count{color:var(--dim);font-variant-numeric:tabular-nums}
 .catalog-tab.is-active .count{color:var(--accent)}
-@media (max-width:640px){.catalog-tabs{padding:10px 14px 0}}
+@media (max-width:640px){.catalog-tabs{flex:0 0 auto;padding:10px 14px 0}}
 
 /* ============ Patch 1d: admin nav + side-api icon alignment ============ */
 .admin-nav button{display:flex;align-items:center;gap:8px}
@@ -4132,18 +4132,40 @@ function setFreeOnly(value){
   toast(state.freeOnly ? "Showing free models only" : "Showing all models");
 }
 
+function normalizeProviderKey(raw){
+  let k = String(raw || "").toLowerCase().trim();
+  if (!k) return "other";
+  k = k.replace(/^@/, "");
+  k = k.replace(/-web$/i, "").replace(/-free$/i, "").replace(/-ai$/i, "");
+  k = k.replace(/_web$/i, "").replace(/_free$/i, "");
+  if (k === "hf" || k.startsWith("hf-") || k === "huggingface") return "huggingface";
+  if (k.startsWith("cloudflare") || k === "cf" || k === "cf-ai") return "cloudflare";
+  if (k === "maxai" || k === "max-ai") return "maxai";
+  if (k === "innerai" || k === "inner-ai" || k === "inner") return "inner";
+  if (k === "hyperagent" || k === "hyper-agent") return "hyperagent";
+  if (k === "arena" || k === "arena-ai") return "arena";
+  if (k === "blackbox" || k === "blackbox-web") return "blackbox";
+  if (k === "conol" || k === "conol-web") return "conol";
+  if (k === "adapta" || k === "adapta-web") return "adapta";
+  return k || "other";
+}
 function makerOf(modelId){
   const id = String(modelId||"");
   const override = applyOverrideKey(id);
   if (override) return { key: override, label: providerLabel(override) };
-  // Match family on full id and after the first slash so talknova/seedance-… → Seedance
   const rest = id.includes("/") ? id.slice(id.indexOf("/") + 1) : id;
   for (const m of MAKERS) {
     if (m.re.test(id) || m.re.test(rest)) return { key: m.key, label: m.label };
   }
-  const agg = (id.split("/")[0]||"").toLowerCase();
-  const label = AGGREGATOR_LABELS[agg] || (agg ? agg[0].toUpperCase()+agg.slice(1) : "Other");
-  return { key: agg || "other", label };
+  // Aggregator/provider prefix only when the id is namespaced
+  if (id.includes("/")) {
+    const agg = normalizeProviderKey(id.split("/")[0]);
+    const label = (typeof AGGREGATOR_LABELS !== "undefined" && AGGREGATOR_LABELS[agg])
+      || (agg ? agg[0].toUpperCase() + agg.slice(1) : "Other");
+    return { key: agg || "other", label };
+  }
+  // Bare model names are not providers
+  return { key: "other", label: "Other" };
 }
 function providerOf(modelId){ return makerOf(modelId).key; }
 function providerLabel(key){
@@ -4431,8 +4453,17 @@ async function loadModels(){
       return;
     }
     if(!r.ok) throw new Error("HTTP "+r.status);
-    const j=await r.json(); state.models=Array.isArray(j.data)?j.data:[];
-    state.models = state.models.filter(m => m && m.id && !isLikelyMediaModelId(m.id));
+    const j=await r.json();
+    const rawList = Array.isArray(j.data) ? j.data : [];
+    const seenIds = new Set();
+    state.models = [];
+    for (const m of rawList) {
+      if (!m) continue;
+      const id = String(m.id || m.model || m.name || "").trim();
+      if (!id || seenIds.has(id) || isLikelyMediaModelId(id)) continue;
+      seenIds.add(id);
+      state.models.push({ ...m, id });
+    }
     if (j.warning) { console.warn("[loadModels]", j.warning); try { toast(j.warning); } catch {} }
     if (Array.isArray(j.groups) && j.groups.length) {
       state.modelGroups = j.groups.map(g => ({
