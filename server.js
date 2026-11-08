@@ -212,6 +212,7 @@ app.post("/admin/site-lock/unlock", auth.requireAdmin, siteLock.adminUnlock);
 app.get("/admin/providers", auth.requireAdmin, customProviders.adminList);
 app.post("/admin/providers/upsert", auth.requireAdmin, customProviders.adminUpsert);
 app.post("/admin/providers/delete", auth.requireAdmin, customProviders.adminDelete);
+app.post("/admin/providers/validate", auth.requireAdmin, customProviders.adminValidateKey);
 app.post("/admin/providers/probe-models", auth.requireAdmin, customProviders.adminProbeModels);
 
 // ---- Model categories (admin) ----

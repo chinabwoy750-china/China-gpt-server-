@@ -3276,26 +3276,51 @@ body.is-locked .auth-page{ display:none !important; }
     <aside class="admin-nav" id="adminNav">
       <div class="admin-nav-title">China-GPT Admin</div>
       <button class="is-active" data-admin-section="overview" data-icon="home">Overview</button>
-      <button data-admin-section="accounts" data-icon="user">Accounts</button>
-      <button data-admin-section="keys" data-icon="key">Access Keys</button>
-      <button data-admin-section="models" data-icon="layers">Models</button>
-      <button data-admin-section="usage" data-icon="chart">Usage</button>
-      <button data-admin-section="compare" data-icon="compare">Compare</button>
-      <button data-admin-section="playground" data-icon="play">Playground</button>
-      <button data-admin-section="provider-icons" data-icon="palette">Provider Icons</button>
-      <button data-admin-section="api-settings" data-icon="terminal">API Settings</button>
-      <button data-admin-section="model-groups" data-icon="layers">Model Groups</button>
-      <button data-admin-section="model-health" data-icon="shield">Model Health</button>
-      <button data-admin-section="search-config" data-icon="search">Search Providers</button>
-      <button data-admin-section="telegram" data-icon="telegram">Telegram Bot</button>
-      <button data-admin-section="provider-map" data-icon="link">Provider Mapping</button>
-      <button data-admin-section="providers" data-icon="terminal">Providers</button>
-      <button data-admin-section="combos" data-icon="layers">Model Combos</button>
-      <button data-admin-section="model-categories" data-icon="layers">Model Categories</button>
-      <button data-admin-section="site-lock" class="admin-nav-danger" data-icon="lock">Site Lock</button>
-      <button data-admin-section="system" data-icon="cog">System</button>
-      <button data-admin-section="logs" data-icon="list">Activity Logs</button>
-      <button data-admin-section="settings" data-icon="sliders">Settings</button>
+
+      <div class="admin-nav-group is-open" data-nav-group="general">
+        <button type="button" class="admin-nav-group-btn" data-nav-toggle="general">General</button>
+        <div class="admin-nav-group-body">
+          <button data-admin-section="accounts" data-icon="user">Accounts</button>
+          <button data-admin-section="keys" data-icon="key">Access Keys</button>
+          <button data-admin-section="usage" data-icon="chart">Usage</button>
+          <button data-admin-section="compare" data-icon="compare">Compare</button>
+          <button data-admin-section="playground" data-icon="play">Playground</button>
+          <button data-admin-section="logs" data-icon="list">Activity Logs</button>
+        </div>
+      </div>
+
+      <div class="admin-nav-group is-open" data-nav-group="models">
+        <button type="button" class="admin-nav-group-btn" data-nav-toggle="models">Models</button>
+        <div class="admin-nav-group-body">
+          <button data-admin-section="models" data-icon="layers">Catalogue</button>
+          <button data-admin-section="model-groups" data-icon="layers">Model Groups</button>
+          <button data-admin-section="model-health" data-icon="shield">Model Health</button>
+          <button data-admin-section="combos" data-icon="layers">Model Combos</button>
+          <button data-admin-section="model-categories" data-icon="layers">Categories</button>
+          <button data-admin-section="provider-map" data-icon="link">Provider Mapping</button>
+        </div>
+      </div>
+
+      <div class="admin-nav-group is-open" data-nav-group="providers">
+        <button type="button" class="admin-nav-group-btn" data-nav-toggle="providers">Providers</button>
+        <div class="admin-nav-group-body">
+          <button data-admin-section="providers" data-icon="terminal">Custom Providers</button>
+          <button data-admin-section="provider-icons" data-icon="palette">Provider Icons</button>
+          <button data-admin-section="search-config" data-icon="search">Search Providers</button>
+          <button data-admin-section="api-settings" data-icon="terminal">API Settings</button>
+        </div>
+      </div>
+
+      <div class="admin-nav-group" data-nav-group="system">
+        <button type="button" class="admin-nav-group-btn" data-nav-toggle="system">System</button>
+        <div class="admin-nav-group-body">
+          <button data-admin-section="telegram" data-icon="telegram">Telegram Bot</button>
+          <button data-admin-section="site-lock" class="admin-nav-danger" data-icon="lock">Site Lock</button>
+          <button data-admin-section="system" data-icon="cog">System</button>
+          <button data-admin-section="settings" data-icon="sliders">Settings</button>
+        </div>
+      </div>
+
       <button class="admin-back" id="adminBackBtn" data-icon="arrowLeft">Back</button>
     </aside>
     <main class="admin-main"><div class="admin-content" id="adminContent"></div></main>
@@ -8704,6 +8729,17 @@ async function ensureComboAuxData(){
   }
 }
 
+
+function bindAdminNavGroups(){
+  document.querySelectorAll("[data-nav-toggle]").forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      const g = btn.closest(".admin-nav-group");
+      if (g) g.classList.toggle("is-open");
+    };
+  });
+}
+
 function renderAdminCombos(box){
   if (!box) return;
   if (!state.models.length && isAuthenticated()) {
@@ -8780,6 +8816,8 @@ function renderAdminCombos(box){
       name: c?.name || "",
       kind: c?.kind || "chat",
       models,
+      maxModels: c?.maxModels || 20,
+      providerFilter: "",
       enabled: c?.enabled !== false,
       editing: !!c
     };
@@ -8803,9 +8841,17 @@ function renderAdminCombos(box){
       });
     });
     const filtered = pool.filter(id => {
+      if (d.providerFilter) {
+        const key = (typeof makerOf === "function" ? makerOf(id).key : String(id).split("/")[0]).toLowerCase();
+        if (key !== String(d.providerFilter).toLowerCase() && !String(id).toLowerCase().startsWith(String(d.providerFilter).toLowerCase() + "/")) {
+          // also allow exact provider group key match from comboProviderGroups
+          const pr = providers.find(p => p.key === d.providerFilter);
+          if (!pr || !pr.models.includes(id)) return false;
+        }
+      }
       if (!q) return true;
       return id.toLowerCase().includes(q) || cleanModelName(id).toLowerCase().includes(q) || makerOf(id).label.toLowerCase().includes(q);
-    }).slice(0, 200);
+    }).slice(0, 300);
 
     host.innerHTML = `<div class="combo-editor">
       <div class="combo-editor-head">
@@ -8832,10 +8878,18 @@ function renderAdminCombos(box){
             <input type="checkbox" id="comboEnabled" ${d.enabled?"checked":""} /> Enabled
           </label>
         </div>
+        <div class="combo-field" style="grid-column:1/-1">
+          <label>Max models in this combo</label>
+          <div class="combo-max-row" id="comboMaxRow">
+            ${[10,15,20,25,30,35,40,45,50].map(n =>
+              `<button type="button" data-max="${n}" class="${(d.maxModels||20)===n?"is-on":""}">${n}</button>`
+            ).join("")}
+          </div>
+        </div>
       </div>
 
       <div class="combo-selected">
-        <div class="combo-selected-title"><span>Failover order</span><span>${d.models.length} model${d.models.length===1?"":"s"}</span></div>
+        <div class="combo-selected-title"><span>Failover order</span><span>${d.models.length} / ${d.maxModels||20} model${d.models.length===1?"":"s"}</span></div>
         <div class="combo-selected-list" id="comboSelectedList">
           ${d.models.length ? d.models.map((m,i) => `
             <div class="combo-sel-row" data-idx="${i}">
@@ -8857,11 +8911,13 @@ function renderAdminCombos(box){
         <div class="combo-selected-title"><span>Add from provider</span></div>
         <div class="combo-prov-row" id="comboProvRow">
           ${providers.length ? providers.map(pr => `
-            <button type="button" class="combo-prov-btn" data-prov="${escapeHtml(pr.key)}" title="Add all ${pr.models.length} models">
+            <button type="button" class="combo-prov-btn${d.providerFilter===pr.key?" is-filter":""}" data-prov="${escapeHtml(pr.key)}" title="Show only ${escapeHtml(pr.label)} models">
               ${renderTile(pr.key, "sm")}
               <span>${escapeHtml(pr.label)}</span>
               <span style="color:var(--dim)">${pr.models.length}</span>
-            </button>`).join("") : `<span style="color:var(--dim);font-size:13px">No providers for this kind yet. For Search/Fetch, configure Admin → Search Providers, or load the model catalogue.</span>`}
+            </button>`).join("") +
+            (d.providerFilter ? `<button type="button" class="combo-prov-btn" data-prov-clear="1" title="Show all providers">✕ Clear filter</button>
+            <button type="button" class="combo-prov-btn" data-prov-addall="${escapeHtml(d.providerFilter)}" title="Add all filtered models">+ Add all shown</button>` : "") : `<span style="color:var(--dim);font-size:13px">No providers for this kind yet. For Search/Fetch, configure Admin → Search Providers, or load the model catalogue.</span>`}
         </div>
         <input class="combo-search" id="comboSearch" placeholder="Search models…" value="${escapeHtml(host._comboQ || "")}" />
         <div class="combo-model-list" id="comboModelList">
@@ -8898,37 +8954,84 @@ function renderAdminCombos(box){
     host.querySelector("#comboKind").onchange = () => {
       syncDraftFromFields();
       d.kind = host.querySelector("#comboKind").value;
-      // keep selected models that still exist in new pool; don't wipe user choices
+      d.providerFilter = "";
       renderEditor();
     };
-    host.querySelector("#comboSearch").oninput = (e) => {
-      host._comboQ = e.target.value;
-      // preserve field values
-      syncDraftFromFields();
-      renderEditor();
-      const s = host.querySelector("#comboSearch");
-      if (s) { s.focus(); s.selectionStart = s.selectionEnd = s.value.length; }
-    };
-    host.querySelectorAll("[data-mid]").forEach(btn => {
+    host.querySelectorAll("[data-max]").forEach(btn => {
       btn.onclick = () => {
         syncDraftFromFields();
-        const mid = btn.dataset.mid;
-        const i = d.models.indexOf(mid);
-        if (i >= 0) d.models.splice(i, 1);
-        else d.models.push(mid);
+        d.maxModels = +btn.dataset.max || 20;
+        if (d.models.length > d.maxModels) {
+          d.models = d.models.slice(0, d.maxModels);
+          toast("Trimmed chain to " + d.maxModels + " models");
+        }
         renderEditor();
       };
     });
+    // Debounced search — only re-paint model list, keep editor state
+    let _searchT = null;
+    host.querySelector("#comboSearch").oninput = (e) => {
+      host._comboQ = e.target.value;
+      clearTimeout(_searchT);
+      _searchT = setTimeout(() => {
+        syncDraftFromFields();
+        const sel = host.querySelector("#comboSearch");
+        const pos = sel ? sel.selectionStart : null;
+        renderEditor();
+        const s2 = host.querySelector("#comboSearch");
+        if (s2) { s2.focus(); if (pos != null) s2.selectionStart = s2.selectionEnd = pos; }
+      }, 180);
+    };
+    // Multi-select: toggle without jumping away — update list in place when possible
+    host.querySelectorAll("[data-mid]").forEach(btn => {
+      btn.onclick = (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        syncDraftFromFields();
+        const mid = btn.dataset.mid;
+        const i = d.models.indexOf(mid);
+        if (i >= 0) {
+          d.models.splice(i, 1);
+          btn.classList.remove("is-on");
+        } else {
+          if (d.models.length >= (d.maxModels || 20)) {
+            toast("Max " + (d.maxModels || 20) + " models for this combo");
+            return;
+          }
+          d.models.push(mid);
+          btn.classList.add("is-on");
+        }
+        // Refresh selected list + counter only (keep picker scroll)
+        const scrollList = host.querySelector("#comboModelList");
+        const scrollTop = scrollList ? scrollList.scrollTop : 0;
+        renderEditor();
+        const sl2 = host.querySelector("#comboModelList");
+        if (sl2) sl2.scrollTop = scrollTop;
+      };
+    });
+    // Provider tap = filter models (not auto-add all)
     host.querySelectorAll("[data-prov]").forEach(btn => {
       btn.onclick = () => {
         syncDraftFromFields();
-        const pr = providers.find(x => x.key === btn.dataset.prov);
+        const key = btn.dataset.prov;
+        d.providerFilter = (d.providerFilter === key) ? "" : key;
+        renderEditor();
+      };
+    });
+    host.querySelectorAll("[data-prov-clear]").forEach(btn => {
+      btn.onclick = () => { syncDraftFromFields(); d.providerFilter = ""; renderEditor(); };
+    });
+    host.querySelectorAll("[data-prov-addall]").forEach(btn => {
+      btn.onclick = () => {
+        syncDraftFromFields();
+        const pr = providers.find(x => x.key === btn.dataset.provAddall);
         if (!pr) return;
         let added = 0;
         for (const m of pr.models) {
+          if (d.models.length >= (d.maxModels || 20)) break;
           if (!d.models.includes(m)) { d.models.push(m); added++; }
         }
-        toast(added ? `Added ${added} from ${pr.label}` : `All ${pr.label} models already in chain`);
+        toast(added ? `Added ${added} from ${pr.label}` : "Nothing new to add (or max reached)");
         renderEditor();
       };
     });
@@ -8974,6 +9077,7 @@ function renderAdminCombos(box){
         name: d.name || d.id,
         kind: d.kind,
         models: d.models,
+        maxModels: d.maxModels || 20,
         enabled: d.enabled
       };
       const r = await apiFetch(WORKER_BASE + "/admin/combos/upsert", {
@@ -10805,10 +10909,15 @@ function openProviderForm(id){
       <input id="pfBaseUrl" value="${escapeHtml(existing?.baseUrl || "")}" placeholder="https://api.example.com" spellcheck="false"></div>
     <div class="field"><label>API key ${existing ? "(leave mask to keep current)" : ""}</label>
       <input id="pfApiKey" value="${escapeHtml(existing?.apiKey || "")}" autocomplete="off" spellcheck="false"></div>
+    <div class="field"><label>Extra accounts (optional, round-robin)</label>
+      <textarea id="pfAccounts" class="editor-textarea" style="min-height:72px" placeholder="One API key per line (optional label: key)&#10;work: sk-aaa&#10;sk-bbb">${escapeHtml((existing?.accounts||[]).map(a => a.label && a.label !== "account" ? (a.label + ": " + (a.apiKey || "")) : (a.apiKey || "")).join("\n"))}</textarea>
+      <div class="editor-hint">Multiple keys for the same provider are rotated every few seconds. Primary key above is always included.</div>
+    </div>
     <div class="field"><label>Auth style</label>
       <select id="pfAuthStyle" style="background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px">
         <option value="bearer" ${existing?.authStyle === "bearer" || !existing ? "selected" : ""}>Bearer token</option>
         <option value="x-api-key" ${existing?.authStyle === "x-api-key" ? "selected" : ""}>x-api-key header</option>
+        <option value="anthropic" ${existing?.authStyle === "anthropic" ? "selected" : ""}>Anthropic (x-api-key + version)</option>
         <option value="none" ${existing?.authStyle === "none" ? "selected" : ""}>No auth</option>
       </select></div>
     <div class="field"><label>Endpoint paths (override OpenAI defaults)</label>
@@ -11037,12 +11146,23 @@ function openProviderForm(id){
   };
 
 $f("pfSave").onclick = async () => {
+    const parseAccounts = (raw) => {
+      return String(raw || "").split(/\r?\n/).map(line => {
+        line = line.trim();
+        if (!line) return null;
+        const m = line.match(/^([^:]+):\s*(.+)$/);
+        if (m && m[2].trim().length > 8) return { label: m[1].trim().slice(0,40), apiKey: m[2].trim() };
+        return { label: "account", apiKey: line };
+      }).filter(Boolean);
+    };
     const payload = {
       id: $f("pfId").value.trim(),
       label: $f("pfLabel").value.trim(),
       baseUrl: $f("pfBaseUrl").value.trim(),
       apiKey: $f("pfApiKey").value.trim(),
       authStyle: $f("pfAuthStyle").value,
+      accounts: parseAccounts($f("pfAccounts")?.value || ""),
+      roundRobin: true,
       paths: {
         chat: $f("pfPathChat").value.trim(),
         image: $f("pfPathImage").value.trim(),
@@ -11058,6 +11178,32 @@ $f("pfSave").onclick = async () => {
       enabled: $f("pfEnabled").checked,
       modelsMeta: ($f("pfProbeResult") && $f("pfProbeResult")._pfModelsMeta) || existing?.modelsMeta || {}
     };
+    // Auto-check key before save (unless only mask kept and no new key)
+    const keyFresh = payload.apiKey && !payload.apiKey.startsWith("••••");
+    if (keyFresh || payload.accounts.length) {
+      try {
+        toast("Checking API key…");
+        const vr = await apiFetch(WORKER_BASE + "/admin/providers/validate", {
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({
+            id: payload.id,
+            baseUrl: payload.baseUrl,
+            apiKey: keyFresh ? payload.apiKey : (payload.accounts[0]?.apiKey || payload.apiKey),
+            authStyle: payload.authStyle
+          })
+        });
+        const vj = await vr.json().catch(() => ({}));
+        if (vj.valid === false) {
+          toast(vj.message || "API key invalid — not saved");
+          return;
+        }
+        if (vj.soft) toast(vj.message || "Key soft-ok");
+        else if (vj.valid) toast("Key valid");
+      } catch (e) {
+        toast("Key check failed: " + (e.message || "error") + " — not saved");
+        return;
+      }
+    }
     try {
       const r = await apiFetch(WORKER_BASE + "/admin/providers/upsert", {
         method: "POST", headers: authHeaders(), body: JSON.stringify(payload)
@@ -11069,6 +11215,26 @@ $f("pfSave").onclick = async () => {
       loadCategorizedModels();
     } catch (e) { toast(e.message || "Could not save"); }
   };
+
+  // Optional explicit validate button if present
+  if ($f("pfValidate")) {
+    $f("pfValidate").onclick = async () => {
+      try {
+        toast("Checking…");
+        const r = await apiFetch(WORKER_BASE + "/admin/providers/validate", {
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({
+            id: $f("pfId").value.trim(),
+            baseUrl: $f("pfBaseUrl").value.trim(),
+            apiKey: $f("pfApiKey").value.trim(),
+            authStyle: $f("pfAuthStyle").value
+          })
+        });
+        const j = await r.json().catch(() => ({}));
+        toast(j.message || (j.valid ? "Valid" : "Invalid"));
+      } catch (e) { toast(e.message || "Check failed"); }
+    };
+  }
 
   if ($f("pfCancel")) $f("pfCancel").onclick = () => openProviderForm(null);
 }
