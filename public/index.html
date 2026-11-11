@@ -128,6 +128,60 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
 .msg-user{align-items:flex-end}
 .msg-user .bubble{max-width:min(100%,540px);padding:10px 14px;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-lg);white-space:pre-wrap;overflow-wrap:anywhere}
 .msg-assistant .msg-who{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12.5px;margin-bottom:2px}
+
+/* Modern assistant markdown */
+.msg-assistant .bubble.md{
+  white-space:normal;
+  line-height:1.7;
+  font-size:14.5px;
+  color:var(--text);
+}
+.msg-assistant .bubble.md > *:first-child{margin-top:0}
+.msg-assistant .bubble.md > *:last-child{margin-bottom:0}
+.msg-assistant .bubble.md p{margin:0 0 0.85em}
+.msg-assistant .bubble.md h1,.msg-assistant .bubble.md h2,.msg-assistant .bubble.md h3{
+  margin:1.1em 0 0.45em;font-weight:650;letter-spacing:-.02em;line-height:1.3
+}
+.msg-assistant .bubble.md h1{font-size:1.35em}
+.msg-assistant .bubble.md h2{font-size:1.2em}
+.msg-assistant .bubble.md h3{font-size:1.08em}
+.msg-assistant .bubble.md ul,.msg-assistant .bubble.md ol{margin:0.4em 0 0.9em;padding-left:1.35em}
+.msg-assistant .bubble.md li{margin:0.25em 0}
+.msg-assistant .bubble.md li::marker{color:var(--muted)}
+.msg-assistant .bubble.md a{color:var(--accent,#4c8dff);text-decoration:none;border-bottom:1px solid rgba(76,141,255,.35)}
+.msg-assistant .bubble.md a:hover{border-bottom-color:var(--accent,#4c8dff)}
+.msg-assistant .bubble.md code{
+  font-family:var(--mono);font-size:0.86em;
+  background:var(--panel-3);border:1px solid var(--line);
+  padding:0.12em 0.4em;border-radius:6px
+}
+.msg-assistant .bubble.md pre{
+  margin:0.75em 0;padding:12px 14px;border-radius:12px;
+  background:var(--panel-2);border:1px solid var(--line);
+  overflow-x:auto;-webkit-overflow-scrolling:touch
+}
+.msg-assistant .bubble.md pre code{
+  background:none;border:0;padding:0;font-size:12.5px;line-height:1.55
+}
+.msg-assistant .bubble.md blockquote{
+  margin:0.75em 0;padding:0.35em 0 0.35em 14px;
+  border-left:3px solid var(--accent,#4c8dff);
+  color:var(--muted)
+}
+.msg-assistant .bubble.md table{
+  border-collapse:collapse;width:100%;margin:0.75em 0;font-size:13px
+}
+.msg-assistant .bubble.md th,.msg-assistant .bubble.md td{
+  border:1px solid var(--line);padding:8px 10px;text-align:left
+}
+.msg-assistant .bubble.md th{background:var(--panel-3);font-weight:600}
+.msg-assistant .bubble.md hr{
+  border:0;border-top:1px solid var(--line);margin:1.1em 0
+}
+.msg-assistant .bubble.is-streaming{
+  white-space:pre-wrap;
+}
+
 .msg-assistant .bubble{max-width:min(100%,620px);padding:0;color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65}
 
 /* ============ Composer ============ */
@@ -1422,13 +1476,14 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor}
 @media(max-width:800px){
   .admin-shell{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
   .admin-nav{
-    flex-direction:row;align-items:center;flex-wrap:nowrap;
+    display:flex;flex-direction:row;align-items:center;flex-wrap:nowrap;
     overflow-x:auto;overflow-y:hidden;
     border-right:0;border-bottom:1px solid var(--line);
     padding:8px;gap:6px;
     scrollbar-width:none;
     -webkit-overflow-scrolling:touch;
   }
+  .admin-nav-group,.admin-nav-group-btn,.admin-nav-group-body{display:none!important}
   .admin-nav::-webkit-scrollbar{display:none}
   .admin-nav-title{display:none}
   .admin-nav button{flex:0 0 auto;white-space:nowrap;height:34px;padding:0 12px;border:1px solid var(--line)}
@@ -3310,51 +3365,26 @@ body.is-locked .auth-page{ display:none !important; }
     <aside class="admin-nav" id="adminNav">
       <div class="admin-nav-title">China-GPT Admin</div>
       <button class="is-active" data-admin-section="overview" data-icon="home">Overview</button>
-
-      <div class="admin-nav-group is-open" data-nav-group="general">
-        <button type="button" class="admin-nav-group-btn" data-nav-toggle="general">General</button>
-        <div class="admin-nav-group-body">
-          <button data-admin-section="accounts" data-icon="user">Accounts</button>
-          <button data-admin-section="keys" data-icon="key">Access Keys</button>
-          <button data-admin-section="usage" data-icon="chart">Usage</button>
-          <button data-admin-section="compare" data-icon="compare">Compare</button>
-          <button data-admin-section="playground" data-icon="play">Playground</button>
-          <button data-admin-section="logs" data-icon="list">Activity Logs</button>
-        </div>
-      </div>
-
-      <div class="admin-nav-group is-open" data-nav-group="models">
-        <button type="button" class="admin-nav-group-btn" data-nav-toggle="models">Models</button>
-        <div class="admin-nav-group-body">
-          <button data-admin-section="models" data-icon="layers">Catalogue</button>
-          <button data-admin-section="model-groups" data-icon="layers">Model Groups</button>
-          <button data-admin-section="model-health" data-icon="shield">Model Health</button>
-          <button data-admin-section="combos" data-icon="layers">Model Combos</button>
-          <button data-admin-section="model-categories" data-icon="layers">Categories</button>
-          <button data-admin-section="provider-map" data-icon="link">Provider Mapping</button>
-        </div>
-      </div>
-
-      <div class="admin-nav-group is-open" data-nav-group="providers">
-        <button type="button" class="admin-nav-group-btn" data-nav-toggle="providers">Providers</button>
-        <div class="admin-nav-group-body">
-          <button data-admin-section="providers" data-icon="terminal">Custom Providers</button>
-          <button data-admin-section="provider-icons" data-icon="palette">Provider Icons</button>
-          <button data-admin-section="search-config" data-icon="search">Search Providers</button>
-          <button data-admin-section="api-settings" data-icon="terminal">API Settings</button>
-        </div>
-      </div>
-
-      <div class="admin-nav-group" data-nav-group="system">
-        <button type="button" class="admin-nav-group-btn" data-nav-toggle="system">System</button>
-        <div class="admin-nav-group-body">
-          <button data-admin-section="telegram" data-icon="telegram">Telegram Bot</button>
-          <button data-admin-section="site-lock" class="admin-nav-danger" data-icon="lock">Site Lock</button>
-          <button data-admin-section="system" data-icon="cog">System</button>
-          <button data-admin-section="settings" data-icon="sliders">Settings</button>
-        </div>
-      </div>
-
+      <button data-admin-section="accounts" data-icon="user">Accounts</button>
+      <button data-admin-section="keys" data-icon="key">Access Keys</button>
+      <button data-admin-section="usage" data-icon="chart">Usage</button>
+      <button data-admin-section="compare" data-icon="compare">Compare</button>
+      <button data-admin-section="playground" data-icon="play">Playground</button>
+      <button data-admin-section="logs" data-icon="list">Activity Logs</button>
+      <button data-admin-section="models" data-icon="layers">Catalogue</button>
+      <button data-admin-section="model-groups" data-icon="layers">Model Groups</button>
+      <button data-admin-section="model-health" data-icon="shield">Model Health</button>
+      <button data-admin-section="combos" data-icon="layers">Model Combos</button>
+      <button data-admin-section="model-categories" data-icon="layers">Categories</button>
+      <button data-admin-section="provider-map" data-icon="link">Provider Mapping</button>
+      <button data-admin-section="providers" data-icon="terminal">Custom Providers</button>
+      <button data-admin-section="provider-icons" data-icon="palette">Provider Icons</button>
+      <button data-admin-section="search-config" data-icon="search">Search Providers</button>
+      <button data-admin-section="api-settings" data-icon="terminal">API Settings</button>
+      <button data-admin-section="telegram" data-icon="telegram">Telegram Bot</button>
+      <button data-admin-section="site-lock" class="admin-nav-danger" data-icon="lock">Site Lock</button>
+      <button data-admin-section="system" data-icon="cog">System</button>
+      <button data-admin-section="settings" data-icon="sliders">Settings</button>
       <button class="admin-back" id="adminBackBtn" data-icon="arrowLeft">Back</button>
     </aside>
     <main class="admin-main"><div class="admin-content" id="adminContent"></div></main>
@@ -6014,6 +6044,19 @@ function finalizeAssistantMessage(ai){
     row.querySelectorAll(".is-streaming").forEach(el => el.classList.remove("is-streaming"));
     const idle = row.querySelector(".thinking-row");
     if (idle) idle.remove();
+    // Upgrade streamed plain text → modern markdown without full list rebuild
+    const b = row.querySelector(".bubble");
+    const txt = String(ai.content || "");
+    if (b && txt && !ai.error) {
+      const html = renderMarkdownSafe(txt);
+      if (html !== null) {
+        b.classList.add("md");
+        b.innerHTML = html;
+        try { enhanceRenderedMarkdown(b); } catch {}
+      } else {
+        b.textContent = txt;
+      }
+    }
   }
 }
 function updateGeneratingUI(){
