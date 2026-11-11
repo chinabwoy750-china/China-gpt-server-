@@ -3277,9 +3277,9 @@ body.is-locked .auth-page{ display:none !important; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs" type="module" id="pdfjs-module">
 
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+<script src="/vendor/marked.min.js"></script>
+<script src="/vendor/purify.min.js"></script>
+<script src="/vendor/highlight.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
@@ -4605,15 +4605,77 @@ function refreshCatalogIfOpen(){if($("#modelsPage").classList.contains("open")){
 /* ============================================================
    MARKDOWN
    ============================================================ */
+/** Minimal markdown → HTML when CDN/libs are unavailable */
+function simpleMarkdown(src){
+  let s = String(src || "");
+  // Escape HTML first
+  s = s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  // Fenced code blocks
+  s = s.replace(/```([\w-]*)\n([\s\S]*?)```/g, (_, lang, code) => {
+    return `<pre><code class="language-${lang||""}">${code.replace(/\n$/,"")}</code></pre>`;
+  });
+  // Inline code
+  s = s.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+  // Headings
+  s = s.replace(/^######\s+(.+)$/gm, "<h6>$1</h6>");
+  s = s.replace(/^#####\s+(.+)$/gm, "<h5>$1</h5>");
+  s = s.replace(/^####\s+(.+)$/gm, "<h4>$1</h4>");
+  s = s.replace(/^###\s+(.+)$/gm, "<h3>$1</h3>");
+  s = s.replace(/^##\s+(.+)$/gm, "<h2>$1</h2>");
+  s = s.replace(/^#\s+(.+)$/gm, "<h1>$1</h1>");
+  // Bold / italic
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+  s = s.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, "<em>$1</em>");
+  // Links
+  s = s.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  // Unordered lists
+  s = s.replace(/(?:^|\n)((?:\s*[-*]\s+.+(?:\n|$))+)/g, (block) => {
+    const items = block.trim().split(/\n/).map(line => {
+      const m = line.match(/^\s*[-*]\s+(.+)/);
+      return m ? `<li>${m[1]}</li>` : "";
+    }).join("");
+    return `\n<ul>${items}</ul>\n`;
+  });
+  // Ordered lists
+  s = s.replace(/(?:^|\n)((?:\s*\d+\.\s+.+(?:\n|$))+)/g, (block) => {
+    const items = block.trim().split(/\n/).map(line => {
+      const m = line.match(/^\s*\d+\.\s+(.+)/);
+      return m ? `<li>${m[1]}</li>` : "";
+    }).join("");
+    return `\n<ol>${items}</ol>\n`;
+  });
+  // Paragraphs: split on blank lines, skip if already block element
+  s = s.split(/\n{2,}/).map(para => {
+    const t = para.trim();
+    if (!t) return "";
+    if (/^<(h[1-6]|ul|ol|pre|blockquote|table)/i.test(t)) return t;
+    return `<p>${t.replace(/\n/g, "<br>")}</p>`;
+  }).join("\n");
+  return s;
+}
+
 function renderMarkdownSafe(text){
+  const src = String(text || "");
+  if (!src) return "";
   try{
-    if(window.marked&&window.DOMPurify){
-      marked.setOptions({breaks:true,gfm:true});
-      const raw=marked.parse(text);
-      return DOMPurify.sanitize(raw,{ADD_ATTR:["target","rel"]});
+    const markedLib = window.marked;
+    const purify = window.DOMPurify;
+    if (markedLib) {
+      const parse = typeof markedLib.parse === "function" ? markedLib.parse.bind(markedLib)
+        : (typeof markedLib === "function" ? markedLib : null);
+      if (parse) {
+        if (markedLib.setOptions) markedLib.setOptions({ breaks: true, gfm: true });
+        let raw = parse(src);
+        if (purify && purify.sanitize) {
+          raw = purify.sanitize(raw, { ADD_ATTR: ["target", "rel"] });
+        }
+        return raw;
+      }
     }
-  }catch(e){}
-  return null;
+  }catch(e){ console.warn("[markdown]", e); }
+  // Always return HTML — never null — so UI never shows raw ## / -
+  try { return simpleMarkdown(src); } catch { return `<p>${String(src).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>")}</p>`; }
 }
 const CODE_EXT_MAP={javascript:".js",js:".js",typescript:".ts",ts:".ts",html:".html",xml:".xml",css:".css",json:".json",bash:".sh",shell:".sh",sh:".sh",python:".py",py:".py",java:".java",c:".c",cpp:".cpp","c++":".cpp",csharp:".cs","c#":".cs",php:".php",sql:".sql",yaml:".yml",yml:".yml",markdown:".md",md:".md",go:".go",rust:".rs",rs:".rs"};
 function extFor(lang){return CODE_EXT_MAP[(lang||"").toLowerCase()]||".txt"}
@@ -5049,8 +5111,9 @@ function renderMessages(){
           b.className="bubble";
           if (m.role === "assistant" && !m.streaming && !m.error) {
             const html = renderMarkdownSafe(text);
-            if (html !== null) { b.classList.add("md"); b.innerHTML = html; enhanceRenderedMarkdown(b); }
-            else b.textContent = text;
+            b.classList.add("md");
+            b.innerHTML = html;
+            try { enhanceRenderedMarkdown(b); } catch {}
           } else {
             b.textContent = text;
           }
@@ -6096,13 +6159,9 @@ function finalizeAssistantMessage(ai){
     const txt = String(ai.content || "");
     if (b && txt && !ai.error) {
       const html = renderMarkdownSafe(txt);
-      if (html !== null) {
-        b.classList.add("md");
-        b.innerHTML = html;
-        try { enhanceRenderedMarkdown(b); } catch {}
-      } else {
-        b.textContent = txt;
-      }
+      b.classList.add("md");
+      b.innerHTML = html;
+      try { enhanceRenderedMarkdown(b); } catch {}
     }
   }
 }
