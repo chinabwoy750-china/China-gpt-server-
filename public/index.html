@@ -4173,6 +4173,24 @@ function setFreeOnly(value){
   toast(state.freeOnly ? "Showing free models only" : "Showing all models");
 }
 
+function uniqueModelIds(list, providerId){
+  const seen = new Set();
+  const out = [];
+  const p = String(providerId || "").toLowerCase();
+  for (const x of list || []) {
+    let id = String(x || "").trim();
+    if (!id) continue;
+    if (p) {
+      const re = new RegExp("^" + p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "/", "i");
+      while (re.test(id)) id = id.replace(re, "");
+    }
+    const k = id.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(id);
+  }
+  return out;
+}
 function normalizeProviderKey(raw){
   let k = String(raw || "").toLowerCase().trim();
   if (!k) return "other";
@@ -11151,10 +11169,14 @@ function openProviderForm(id){
 
       const buckets = { chat: [], image: [], video: [], audio: [], embedding: [] };
       const modelsMeta = {};
+      const providerSlug = String(probe.id || "").trim().toLowerCase();
       for (const m of filtered) {
         const cat = categorizeModel(m);
-        if (buckets[cat]) buckets[cat].push(m.id);
-        else buckets.chat.push(m.id);
+        const bucket = buckets[cat] ? cat : "chat";
+        // Avoid pushing the same id twice into a bucket
+        if (!buckets[bucket].some(x => String(x).toLowerCase() === String(m.id).toLowerCase())) {
+          buckets[bucket].push(m.id);
+        }
         if (m && m.id) {
           modelsMeta[m.id] = {
             name: m.name,
@@ -11171,6 +11193,10 @@ function openProviderForm(id){
         }
       }
       resultBox._pfModelsMeta = modelsMeta;
+      // Dedupe + strip provider prefix before showing in textareas
+      for (const cat of Object.keys(buckets)) {
+        buckets[cat] = uniqueModelIds(buckets[cat], providerSlug);
+      }
 
       const sectionOrder = ["chat", "image", "video", "audio", "embedding"];
       const sectionLabels = { chat: "Chat", image: "Images", video: "Videos", audio: "Audio", embedding: "Embeddings" };
@@ -11311,12 +11337,15 @@ $f("pfSave").onclick = async () => {
         video: $f("pfPathVideo").value.trim(),
         audio: $f("pfPathAudio").value.trim()
       },
-      models: {
-        chat: $f("pfChat").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean),
-        image: $f("pfImage").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean),
-        video: $f("pfVideo").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean),
-        audio: $f("pfAudio").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
-      },
+      models: (() => {
+        const pid = $f("pfId").value.trim();
+        return {
+          chat: uniqueModelIds($f("pfChat").value.split(/\r?\n/), pid),
+          image: uniqueModelIds($f("pfImage").value.split(/\r?\n/), pid),
+          video: uniqueModelIds($f("pfVideo").value.split(/\r?\n/), pid),
+          audio: uniqueModelIds($f("pfAudio").value.split(/\r?\n/), pid)
+        };
+      })(),
       enabled: $f("pfEnabled").checked,
       modelsMeta: ($f("pfProbeResult") && $f("pfProbeResult")._pfModelsMeta) || existing?.modelsMeta || {}
     };
