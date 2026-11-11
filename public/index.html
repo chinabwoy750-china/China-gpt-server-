@@ -9906,6 +9906,31 @@ async function renderProviderMappingPage(){
     <p class="admin-kicker">Move a family of models from one provider to another by keyword. The upstream model ID never changes — only how the app labels, filters and colours it. Disabling the target provider in Model Health cascades here automatically.</p>
 
     <div class="admin-section">
+      <div class="admin-section-head"><h3>Move whole provider</h3><span>Remap every model under one provider label to another</span></div>
+      <div class="row" style="flex-wrap:wrap;gap:8px;align-items:flex-end">
+        <div class="field" style="flex:1;min-width:160px;margin:0">
+          <label for="pmFromProv">From provider</label>
+          <select id="pmFromProv" style="width:100%;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 12px;color:var(--text)">
+            <option value="">Select…</option>
+            ${optionList}
+          </select>
+        </div>
+        <div style="padding-bottom:12px;color:var(--dim);font-size:18px">→</div>
+        <div class="field" style="flex:1;min-width:160px;margin:0">
+          <label for="pmToProv">To provider</label>
+          <select id="pmToProv" style="width:100%;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 12px;color:var(--text)">
+            <option value="">Select…</option>
+            ${optionList}
+          </select>
+        </div>
+        <button class="btn-primary" id="pmMoveProv" type="button" style="height:42px">Move all</button>
+      </div>
+      <div class="admin-note" id="pmMoveProvHint" style="margin-top:10px">
+        Example: move <b>Kiro</b> → <b>Anthropic</b> so every model labeled Kiro shows under Anthropic (icons, filters, health). Upstream IDs stay the same.
+      </div>
+    </div>
+
+    <div class="admin-section">
       <div class="admin-section-head"><h3>Move by keyword</h3><span>Case-insensitive substring match on the model ID</span></div>
       <div class="row" style="flex-wrap:wrap;gap:8px">
         <div class="field" style="flex:1;min-width:200px;margin:0">
@@ -10024,6 +10049,47 @@ async function renderProviderMappingPage(){
     });
   };
   renderList();
+
+  const fromSel = c.querySelector("#pmFromProv");
+  const toSel = c.querySelector("#pmToProv");
+  const moveHint = c.querySelector("#pmMoveProvHint");
+  const updateMoveHint = () => {
+    const f = fromSel.value, t = toSel.value;
+    if (!f || !t) {
+      moveHint.innerHTML = `Example: move <b>Kiro</b> → <b>Anthropic</b> so every model labeled Kiro shows under Anthropic (icons, filters, health). Upstream IDs stay the same.`;
+      return;
+    }
+    const count = allIds.filter(id => {
+      const m = makerOf(id).key;
+      return m === f || id.toLowerCase().startsWith(f + "/") || id.toLowerCase().includes(f);
+    }).length;
+    moveHint.innerHTML = `Will remap models currently under <b>${escapeHtml(providerLabel(f))}</b> → <b>${escapeHtml(providerLabel(t))}</b> (about <b>${count}</b> model id${count===1?"":"s"} match in the catalogue).`;
+  };
+  fromSel.onchange = updateMoveHint;
+  toSel.onchange = updateMoveHint;
+
+  c.querySelector("#pmMoveProv").onclick = async () => {
+    const from = fromSel.value;
+    const to = toSel.value;
+    if (!from || !to) { toast("Pick both From and To providers"); return; }
+    if (from === to) { toast("From and To must be different"); return; }
+    if (!confirm(`Move entire provider "${providerLabel(from)}" → "${providerLabel(to)}"?\n\nAll models labeled as ${providerLabel(from)} will show as ${providerLabel(to)}.`)) return;
+    try {
+      const r = await apiFetch(WORKER_BASE + "/admin/provider-overrides/move-provider", {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({ from, to })
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || !j.ok) throw new Error(j.error || "Failed");
+      state.providerOverrides.byPattern = j.byPattern || [];
+      state.providerOverrides.byModelId = j.byModelId || {};
+      toast(`Moved ${providerLabel(from)} → ${providerLabel(to)}`);
+      renderProviderMappingPage();
+      refreshCatalogIfOpen();
+      if ($("#qsSheet") && $("#qsSheet").classList.contains("open")) renderQuickSwitch();
+      updateBadge();
+    } catch (e) { toast(e.message || "Could not move provider"); }
+  };
 
   c.querySelector("#pmAdd").onclick = async () => {
     const pattern = (input.value || "").trim().toLowerCase();

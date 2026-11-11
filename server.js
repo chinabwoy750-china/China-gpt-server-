@@ -264,6 +264,7 @@ app.post("/admin/provider-overrides/pattern/add", auth.requireAdmin, providerOve
 app.post("/admin/provider-overrides/pattern/remove", auth.requireAdmin, providerOverrides.adminRemovePattern);
 app.post("/admin/provider-overrides/model/add", auth.requireAdmin, providerOverrides.adminAddModelId);
 app.post("/admin/provider-overrides/model/remove", auth.requireAdmin, providerOverrides.adminRemoveModelId);
+app.post("/admin/provider-overrides/move-provider", auth.requireAdmin, providerOverrides.adminMoveProvider);
 
 app.get("/usage/me", auth.requireAuth, usage.me);
 
