@@ -11019,7 +11019,18 @@ async function renderProvidersPage(){
         });
         const j = await r.json().catch(() => ({}));
         if (!r.ok || !j.ok) throw new Error(j.error || "Delete failed");
-        toast("Provider deleted");
+        toast("Provider deleted — refreshing models…");
+        // Drop client cache so removed models leave the catalogue immediately
+        state.models = [];
+        state.modelGroups = [];
+        state.modelsByCategory = { chat: [], image: [], video: [], audio: [] };
+        if (Array.isArray(state.customProviders)) {
+          state.customProviders = state.customProviders.filter(p => p.id !== b.dataset.deleteProvider);
+        }
+        try {
+          await loadModels();
+          await loadCategorizedModels();
+        } catch {}
         renderProvidersPage();
       } catch (e) { toast(e.message || "Could not delete"); }
     });
