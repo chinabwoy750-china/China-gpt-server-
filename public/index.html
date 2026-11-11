@@ -4426,14 +4426,32 @@ $("#screenPageClose").onclick=popPage;
    LOAD MODELS
    ============================================================ */
 
+function customPrefixSet() {
+  const s = new Set();
+  for (const p of (state.customProviders || [])) {
+    if (p && p.id) s.add(String(p.id).toLowerCase());
+  }
+  return s;
+}
 function canonicalKeyOf(modelId) {
-  const raw = String(modelId || "");
-  const last = raw.includes("/") ? raw.slice(raw.lastIndexOf("/") + 1) : raw;
-  return last.toLowerCase()
+  const raw = String(modelId || "").trim();
+  if (!raw) return "unknown";
+  const prefixes = customPrefixSet();
+  const norm = (seg) => String(seg || "").toLowerCase()
     .replace(/:free$/i, "")
     .replace(/[._]/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+  if (raw.includes("/")) {
+    const slash = raw.indexOf("/");
+    const prefix = raw.slice(0, slash).toLowerCase();
+    const rest = raw.slice(slash + 1);
+    const restKey = norm(rest.includes("/") ? rest.slice(rest.lastIndexOf("/") + 1) : rest) || norm(rest) || rest.toLowerCase();
+    // Keep kiro/*, talknova/*, etc. in their own group — not merged with bare gateway ids
+    if (prefixes.has(prefix)) return prefix + "::" + restKey;
+    return restKey || "unknown";
+  }
+  return norm(raw) || raw.toLowerCase();
 }
 function clientGroupModels(models) {
   const map = new Map();
