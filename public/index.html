@@ -6705,6 +6705,15 @@ async function runMediaGeneration(ai, prompt, kind, imageAttachments){
         } catch {}
       }
     }
+    // Append routing hints when backend provides them
+    if (j && j.error) {
+      const bits = [];
+      if (j.error.via) bits.push("via " + j.error.via);
+      if (j.error.host) bits.push(j.error.host);
+      if (j.error.path) bits.push(j.error.path);
+      if (j.error.model) bits.push("model " + j.error.model);
+      if (bits.length) msg = String(msg) + " [" + bits.join(" · ") + "]";
+    }
     ai.error = true;
     ai.content = "Generation failed: " + String(msg);
     ai.streaming = false;
