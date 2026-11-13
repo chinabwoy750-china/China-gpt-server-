@@ -6678,10 +6678,21 @@ async function runMediaGeneration(ai, prompt, kind, imageAttachments){
 
   if (!r.ok) {
     try { j = await r.json(); } catch {}
-    let msg = (j && (j.error?.message || j.error || j.message)) || "";
+    let msg = "";
+    if (j) {
+      msg = j.error?.message || (typeof j.error === "string" ? j.error : "") || j.message || "";
+      // Unwrap nested JSON string messages from proxy gateways
+      if (typeof msg === "string" && msg.includes("{") && /"message"/.test(msg)) {
+        try {
+          const inner = JSON.parse(msg.slice(msg.indexOf("{")));
+          if (inner?.error?.message) msg = inner.error.message;
+          else if (inner?.message) msg = inner.message;
+        } catch {}
+      }
+    }
     if (!msg) {
-      if (r.status === 503) msg = "HTTP 503 — service or Nine Router unavailable. Set NINEROUTER_API_KEY on Render, or use a custom-provider image model.";
-      else if (r.status === 502) msg = "HTTP 502 — could not reach the image provider. Check NINEROUTER_API_KEY and Nine Router status.";
+      if (r.status === 503) msg = "HTTP 503 — gateway or provider unavailable. Check Admin → API Settings or Custom Providers.";
+      else if (r.status === 502) msg = "HTTP 502 — image provider failed. See details above if any; often the upstream image site (e.g. Perchance) is blocked.";
       else if (r.status === 429) msg = "HTTP 429 — rate limited. Wait a minute and try again.";
       else msg = "HTTP " + r.status;
     }
